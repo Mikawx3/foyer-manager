@@ -32,9 +32,8 @@ export function SmartPercentageInputs({
   return (
     <div className="space-y-3">
       <ul className="space-y-2">
-        {items.map((item, index) => {
+        {items.map((item) => {
           const max = maxPercentageForKey(values, item.id, keys);
-          const isSecondOfTwo = items.length === 2 && index === 1;
 
           return (
             <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
@@ -47,8 +46,6 @@ export function SmartPercentageInputs({
                   max={max}
                   step={0.1}
                   value={values[item.id] ?? 0}
-                  readOnly={isSecondOfTwo}
-                  aria-readonly={isSecondOfTwo}
                   onChange={(event) => {
                     const raw = event.target.value === "" ? 0 : Number(event.target.value);
                     onChange(applyPercentageChange(values, keys, item.id, raw));

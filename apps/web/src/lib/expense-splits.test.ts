@@ -1,6 +1,10 @@
 import type { ExpenseSplit, Tenant } from "@foyer/types";
 import { describe, expect, it } from "vitest";
-import { isExpenseSplitsComplete } from "./expense-splits.ts";
+import {
+  initialSplitsFromExpenseSplits,
+  isExpenseSplitsComplete,
+  splitParticipantsFromExpenseSplits,
+} from "./expense-splits.ts";
 
 const tenants: Tenant[] = [
   {
@@ -18,6 +22,32 @@ const tenants: Tenant[] = [
     createdAt: "2026-01-01T00:00:00.000Z",
   },
 ];
+
+describe("splitParticipantsFromExpenseSplits", () => {
+  it("returns all tenants when there are no splits", () => {
+    expect(splitParticipantsFromExpenseSplits(tenants, [])).toEqual(tenants);
+  });
+
+  it("returns only tenants present in expense splits", () => {
+    const splits: ExpenseSplit[] = [
+      { id: "s1", expenseId: "e1", tenantId: "t2", amount: 85.1, percentage: 85.1 },
+    ];
+    expect(splitParticipantsFromExpenseSplits(tenants, splits)).toEqual([tenants[1]]);
+  });
+});
+
+describe("initialSplitsFromExpenseSplits", () => {
+  it("maps participant tenants to their existing percentages", () => {
+    const splits: ExpenseSplit[] = [
+      { id: "s1", expenseId: "e1", tenantId: "t2", amount: 85.1, percentage: 85.1 },
+      { id: "s2", expenseId: "e1", tenantId: "t1", amount: 14.9, percentage: 14.9 },
+    ];
+    expect(initialSplitsFromExpenseSplits(tenants, splits)).toEqual([
+      { tenantId: "t1", percentage: 14.9 },
+      { tenantId: "t2", percentage: 85.1 },
+    ]);
+  });
+});
 
 describe("isExpenseSplitsComplete", () => {
   it("returns false when no splits", () => {

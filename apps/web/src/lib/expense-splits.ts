@@ -1,5 +1,32 @@
 import type { ExpenseSplit, Tenant } from "@foyer/types";
 
+export function splitParticipantsFromExpenseSplits(
+  tenants: Tenant[],
+  splits: ExpenseSplit[],
+): Tenant[] {
+  if (splits.length === 0) {
+    return tenants;
+  }
+
+  const splitIds = new Set(splits.map((split) => split.tenantId));
+  return tenants.filter((tenant) => splitIds.has(tenant.id));
+}
+
+export function initialSplitsFromExpenseSplits(
+  tenants: Tenant[],
+  splits: ExpenseSplit[],
+): { tenantId: string; percentage: number }[] {
+  const participants = splitParticipantsFromExpenseSplits(tenants, splits);
+
+  return participants.map((tenant) => {
+    const split = splits.find((entry) => entry.tenantId === tenant.id);
+    return {
+      tenantId: tenant.id,
+      percentage: split?.percentage ?? 0,
+    };
+  });
+}
+
 export function isExpenseSplitsComplete(
   splits: ExpenseSplit[],
   tenants: Tenant[],

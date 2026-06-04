@@ -9,4 +9,5 @@ expenseRoutes.get("/:id/splits", expenseController.getSplits);
 expenseRoutes.post("/:id/splits/reset", expenseController.resetSplits);
 expenseRoutes.post("/:id/splits", expenseController.assignSplits);
 expenseRoutes.get("/:id", expenseController.get);
+expenseRoutes.patch("/:id", expenseController.update);
 expenseRoutes.delete("/:id", expenseController.remove);

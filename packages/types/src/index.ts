@@ -41,6 +41,36 @@ export interface ResolvedDefaultSplit {
   percentage: number;
 }
 
+export interface SplitPreview {
+  tenantId: string;
+  tenantName: string;
+  percentage: number;
+  amount: number;
+}
+
+export interface CreateExpensePayload {
+  amount: number;
+  description: string;
+  categoryId: string;
+  paidByTenantId: string;
+  householdId: string;
+  date: string;
+  splitMode?: SplitMode;
+  splits?: { tenantId: string; percentage: number }[];
+  participantIds?: string[];
+}
+
+export interface UpdateExpensePayload {
+  amount: number;
+  description: string;
+  categoryId: string;
+  paidByTenantId: string;
+  date: string;
+  splitMode?: SplitMode;
+  splits?: { tenantId: string; percentage: number }[];
+  participantIds?: string[];
+}
+
 export interface Expense {
   id: string;
   amount: number;

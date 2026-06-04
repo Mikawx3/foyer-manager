@@ -1,5 +1,6 @@
 import type {
   Category,
+  CreateExpensePayload,
   DefaultSplit,
   DefaultSplitRules,
   Expense,
@@ -7,9 +8,9 @@ import type {
   Household,
   PaginatedExpenses,
   ResolvedDefaultSplit,
-  SplitMode,
   Tenant,
   TenantBalance,
+  UpdateExpensePayload,
 } from "@foyer/types";
 import axios, { isAxiosError } from "axios";
 
@@ -115,17 +116,13 @@ export async function getExpenses(
   return data;
 }
 
-export async function createExpense(input: {
-  amount: number;
-  description: string;
-  categoryId: string;
-  paidByTenantId: string;
-  householdId: string;
-  date: string;
-  splitMode?: SplitMode;
-  splits?: { tenantId: string; percentage: number }[];
-}): Promise<Expense> {
+export async function createExpense(input: CreateExpensePayload): Promise<Expense> {
   const { data } = await api.post<Expense>("/expenses", input);
+  return data;
+}
+
+export async function updateExpense(id: string, input: UpdateExpensePayload): Promise<Expense> {
+  const { data } = await api.patch<Expense>(`/expenses/${id}`, input);
   return data;
 }
 

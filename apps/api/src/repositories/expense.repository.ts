@@ -80,6 +80,34 @@ export class ExpenseRepository {
     }
   }
 
+  async updateById(
+    id: string,
+    data: {
+      amount: number;
+      description: string;
+      categoryId: string;
+      paidByTenantId: string;
+      date: Date;
+      splitMode?: "default" | "custom";
+    },
+  ): Promise<Expense> {
+    try {
+      return await prisma.expense.update({
+        where: { id },
+        data: {
+          amount: numberToDecimal(data.amount),
+          description: data.description,
+          categoryId: data.categoryId,
+          paidByTenantId: data.paidByTenantId,
+          date: data.date,
+          ...(data.splitMode !== undefined && { splitMode: data.splitMode }),
+        },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
   async deleteById(id: string): Promise<Expense> {
     try {
       return await prisma.expense.delete({ where: { id } });

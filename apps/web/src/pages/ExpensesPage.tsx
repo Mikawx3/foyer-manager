@@ -1,10 +1,11 @@
 import type { Category, Expense, ExpenseSplit, Tenant } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Download, Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CategoriesSection } from "../components/expenses/CategoriesSection.tsx";
+import { ExpenseEditModal } from "../components/expenses/ExpenseEditModal.tsx";
 import { inputClassName, selectClassName } from "../components/forms/FormField.tsx";
 import { CategoryForm } from "../components/forms/CategoryForm.tsx";
 import { ExpenseForm } from "../components/forms/ExpenseForm.tsx";
@@ -32,10 +33,18 @@ import {
 import { exportExpensesToCSV, slugifyHouseholdName } from "../lib/export.ts";
 import { formatCurrency, formatDate } from "../lib/format.ts";
 import { currentMonthValue, type ExpenseListFilters } from "../lib/expense-list-filters.ts";
-import { isExpenseSplitsComplete } from "../lib/expense-splits.ts";
+import {
+  initialSplitsFromExpenseSplits,
+  isExpenseSplitsComplete,
+  splitParticipantsFromExpenseSplits,
+} from "../lib/expense-splits.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
-import type { CreateCategoryForm, CreateExpenseForm } from "../lib/schemas.ts";
+import type {
+  CreateCategoryForm,
+  CreateExpenseForm,
+  UpdateExpenseForm,
+} from "../lib/schemas.ts";
 import {
   amount,
   btnPrimary,
@@ -123,6 +132,16 @@ function ExpenseSplits({
   const splits = splitsQuery.data ?? [];
   const splitsComplete = isExpenseSplitsComplete(splits, tenants);
 
+  const splitParticipantTenants = useMemo(
+    () => splitParticipantsFromExpenseSplits(tenants, splits),
+    [tenants, splits],
+  );
+
+  const splitFormInitialSplits = useMemo(
+    () => initialSplitsFromExpenseSplits(splitParticipantTenants, splits),
+    [splitParticipantTenants, splits],
+  );
+
   const toggleLabel = expanded
     ? "Hide splits"
     : splitsComplete
@@ -167,7 +186,8 @@ function ExpenseSplits({
           {!splitsComplete && tenants.length > 0 && (
             <>
               <SplitForm
-                tenants={tenants}
+                tenants={splitParticipantTenants}
+                initialSplits={splitFormInitialSplits}
                 onSubmit={(data) => splitMutation.mutate(data)}
                 isPending={splitMutation.isPending}
               />
@@ -187,7 +207,7 @@ interface ExpenseFormsAsideProps {
   categories: Category[];
   tenants: Tenant[];
   onCategorySubmit: (data: CreateCategoryForm) => void;
-  onExpenseSubmit: (data: CreateExpenseForm) => void;
+  onExpenseSubmit: (data: CreateExpenseForm | UpdateExpenseForm) => void;
   categoryPending: boolean;
   expensePending: boolean;
   categoryError: unknown;
@@ -238,6 +258,7 @@ export function ExpensesPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; description: string } | null>(
     null,
   );
@@ -356,7 +377,11 @@ export function ExpensesPage() {
         categories={categoriesQuery.data}
         tenants={tenantsQuery.data}
         onCategorySubmit={(data) => createCategoryMutation.mutate(data)}
-        onExpenseSubmit={(data) => createExpenseMutation.mutate(data)}
+        onExpenseSubmit={(data) => {
+          if ("householdId" in data) {
+            createExpenseMutation.mutate(data);
+          }
+        }}
         categoryPending={createCategoryMutation.isPending}
         expensePending={createExpenseMutation.isPending}
         categoryError={createCategoryMutation.error}
@@ -518,6 +543,14 @@ export function ExpensesPage() {
                           <p className={`${amount} text-lg`}>{formatCurrency(expense.amount)}</p>
                           <button
                             type="button"
+                            onClick={() => setEditingExpense(expense)}
+                            className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-900"
+                            aria-label={`Edit ${expense.description}`}
+                          >
+                            <Pencil className="h-4 w-4" strokeWidth={2} />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() =>
                               setPendingDelete({
                                 id: expense.id,
@@ -582,6 +615,18 @@ export function ExpensesPage() {
         </div>
       )}
 
+      {editingExpense && categoriesQuery.data && tenantsQuery.data && (
+        <ExpenseEditModal
+          expense={editingExpense}
+          householdId={householdId}
+          categories={categoriesQuery.data}
+          tenants={tenantsQuery.data}
+          expenseFilters={expenseFilters}
+          open={editingExpense !== null}
+          onClose={() => setEditingExpense(null)}
+        />
+      )}
+
       <ConfirmModal
         isOpen={pendingDelete !== null}
         title="Delete expense"
@@ -606,7 +651,11 @@ export function ExpensesPage() {
             categories={categoriesQuery.data}
             tenants={tenantsQuery.data}
             onCategorySubmit={(data) => createCategoryMutation.mutate(data)}
-            onExpenseSubmit={(data) => createExpenseMutation.mutate(data)}
+            onExpenseSubmit={(data) => {
+          if ("householdId" in data) {
+            createExpenseMutation.mutate(data);
+          }
+        }}
             categoryPending={createCategoryMutation.isPending}
             expensePending={createExpenseMutation.isPending}
             categoryError={createCategoryMutation.error}

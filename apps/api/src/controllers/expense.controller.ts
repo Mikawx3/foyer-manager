@@ -6,6 +6,7 @@ import {
   createExpenseSchema,
   expenseIdParamSchema,
   listExpensesQuerySchema,
+  updateExpenseSchema,
 } from "../validators/expense.validator.js";
 
 export class ExpenseController {
@@ -27,6 +28,13 @@ export class ExpenseController {
     const body = parseOrThrow(createExpenseSchema, await c.req.json());
     const expense = await this.service.create(body);
     return c.json(expense, 201);
+  };
+
+  update = async (c: Context) => {
+    const { id } = parseOrThrow(expenseIdParamSchema, c.req.param());
+    const body = parseOrThrow(updateExpenseSchema, await c.req.json());
+    const expense = await this.service.update(id, body);
+    return c.json(expense, 200);
   };
 
   remove = async (c: Context) => {

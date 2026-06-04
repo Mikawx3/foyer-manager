@@ -11,4 +11,6 @@ export const queryKeys = {
   splits: (expenseId: string) => ["splits", expenseId] as const,
   balances: (householdId: string) => ["balances", householdId] as const,
   defaultSplits: (householdId: string) => ["default-splits", householdId] as const,
+  resolvedDefaultSplits: (householdId: string, categoryId: string) =>
+    ["default-splits", householdId, "resolve", categoryId] as const,
 };

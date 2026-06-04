@@ -1,23 +1,36 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Category, Tenant } from "@foyer/types";
+import type { Category, Expense, Tenant } from "@foyer/types";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import { btnPrimary, formCard } from "../../lib/ui-classes.ts";
+import { useForm } from "react-hook-form";
+import { ExpenseParticipantSplits, isCustomSplitValid } from "../expenses/ExpenseParticipantSplits.tsx";
+import { resolveDefaultSplits } from "../../lib/api.ts";
+import { queryKeys } from "../../lib/query-keys.ts";
+import { redistributeSplits } from "../../lib/redistribute-splits.ts";
 import { equalSplitPercentages } from "../../lib/split-percentages.ts";
-import { createExpenseSchema, type CreateExpenseForm } from "../../lib/schemas.ts";
-import { FormField, inputClassName, selectClassName } from "./FormField.tsx";
 import {
-  isPercentageTotalComplete,
-  SmartPercentageInputs,
-  totalFromValues,
-} from "./SmartPercentageInputs.tsx";
+  createExpenseSchema,
+  updateExpenseSchema,
+  type CreateExpenseForm,
+  type UpdateExpenseForm,
+} from "../../lib/schemas.ts";
+import { btnPrimary, formCard } from "../../lib/ui-classes.ts";
+import { FormField, inputClassName, selectClassName } from "./FormField.tsx";
+
+type ExpenseFormValues = CreateExpenseForm | UpdateExpenseForm;
 
 interface ExpenseFormProps {
   householdId: string;
   categories: Category[];
   tenants: Tenant[];
-  onSubmit: (data: CreateExpenseForm) => void;
+  onSubmit: (data: ExpenseFormValues) => void;
   isPending: boolean;
+  variant?: "create" | "edit";
+  initialExpense?: Expense;
+  initialParticipantIds?: string[];
+  initialSplits?: { tenantId: string; percentage: number }[];
+  title?: string;
+  submitLabel?: string;
 }
 
 export function ExpenseForm({
@@ -26,90 +39,206 @@ export function ExpenseForm({
   tenants,
   onSubmit,
   isPending,
+  variant = "create",
+  initialExpense,
+  initialParticipantIds,
+  initialSplits,
+  title,
+  submitLabel,
 }: ExpenseFormProps) {
   const today = new Date().toISOString().slice(0, 10);
-  const [useDefaultSplit, setUseDefaultSplit] = useState(true);
+  const allTenantIds = useMemo(() => tenants.map((tenant) => tenant.id), [tenants]);
+
+  const defaultValues: ExpenseFormValues =
+    variant === "edit" && initialExpense
+      ? {
+          amount: initialExpense.amount,
+          description: initialExpense.description,
+          categoryId: initialExpense.categoryId,
+          paidByTenantId: initialExpense.paidByTenantId,
+          date: initialExpense.date.slice(0, 10),
+          splitMode: initialExpense.splitMode,
+          splits: initialSplits ?? [],
+          participantIds: initialParticipantIds ?? allTenantIds,
+        }
+      : {
+          amount: Number.NaN,
+          description: "",
+          categoryId: "",
+          paidByTenantId: "",
+          householdId,
+          date: today,
+          splitMode: "default",
+          splits: [],
+          participantIds: allTenantIds,
+        };
+
+  const schema = variant === "edit" ? updateExpenseSchema : createExpenseSchema;
 
   const {
     register,
-    control,
     handleSubmit,
     reset,
     setValue,
     watch,
     formState: { errors },
-  } = useForm<CreateExpenseForm>({
-    resolver: zodResolver(createExpenseSchema),
-    defaultValues: {
-      description: "",
-      categoryId: "",
-      paidByTenantId: "",
-      householdId,
-      date: today,
-      splitMode: "default",
-      splits: [],
-    },
+  } = useForm<ExpenseFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues,
   });
 
-  const { replace } = useFieldArray({ control, name: "splits" });
-
-  const tenantItems = useMemo(
-    () => tenants.map((tenant) => ({ id: tenant.id, label: tenant.name })),
-    [tenants],
+  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>(
+    initialParticipantIds ?? allTenantIds,
   );
-  const tenantIds = useMemo(() => tenants.map((tenant) => tenant.id), [tenants]);
+  const [useAutoSplit, setUseAutoSplit] = useState(
+    initialExpense ? initialExpense.splitMode === "default" : true,
+  );
+
+  const amount = watch("amount") ?? 0;
+  const categoryId = watch("categoryId") ?? "";
+  const formSplits = watch("splits") ?? [];
 
   useEffect(() => {
-    if (useDefaultSplit) {
-      setValue("splitMode", "default");
-      setValue("splits", undefined);
-      return;
+    setSelectedParticipantIds(initialParticipantIds ?? allTenantIds);
+  }, [initialParticipantIds, allTenantIds]);
+
+  useEffect(() => {
+    if (variant === "create") {
+      setValue("householdId", householdId);
+    }
+  }, [householdId, setValue, variant]);
+
+  const resolvedRulesQuery = useQuery({
+    queryKey: queryKeys.resolvedDefaultSplits(householdId, categoryId),
+    queryFn: () => resolveDefaultSplits(householdId, categoryId),
+    enabled: Boolean(householdId) && Boolean(categoryId),
+  });
+
+  const autoPreview = useMemo(() => {
+    if (!categoryId || selectedParticipantIds.length === 0 || amount <= 0) {
+      return [];
+    }
+    const baseRules = resolvedRulesQuery.data ?? [];
+    return redistributeSplits(tenants, selectedParticipantIds, baseRules, amount);
+  }, [
+    amount,
+    categoryId,
+    resolvedRulesQuery.data,
+    selectedParticipantIds,
+    tenants,
+  ]);
+
+  const selectedTenants = useMemo(
+    () => tenants.filter((tenant) => selectedParticipantIds.includes(tenant.id)),
+    [tenants, selectedParticipantIds],
+  );
+
+  const customPercentageValues = useMemo(() => {
+    return Object.fromEntries(
+      selectedTenants.map((tenant) => {
+        const split = formSplits.find((entry) => entry.tenantId === tenant.id);
+        return [tenant.id, split?.percentage ?? 0];
+      }),
+    );
+  }, [formSplits, selectedTenants]);
+
+  useEffect(() => {
+    if (!useAutoSplit && selectedTenants.length > 0) {
+      if (formSplits.length === 0) {
+        const percentages = equalSplitPercentages(selectedTenants.length);
+        setValue(
+          "splits",
+          selectedTenants.map((tenant, index) => ({
+            tenantId: tenant.id,
+            percentage: percentages[index] ?? 0,
+          })),
+        );
+      }
+    }
+  }, [formSplits.length, useAutoSplit, selectedTenants, setValue]);
+
+  const toggleParticipant = (tenantId: string) => {
+    setSelectedParticipantIds((current) => {
+      if (current.includes(tenantId)) {
+        if (current.length <= 1) {
+          return current;
+        }
+        return current.filter((id) => id !== tenantId);
+      }
+      return [...current, tenantId];
+    });
+  };
+
+  const allParticipantsSelected =
+    selectedParticipantIds.length === allTenantIds.length &&
+    allTenantIds.every((id) => selectedParticipantIds.includes(id));
+
+  const buildPayload = (data: ExpenseFormValues): ExpenseFormValues => {
+    const participantIds = selectedParticipantIds;
+
+    if (useAutoSplit) {
+      if (allParticipantsSelected) {
+        return {
+          ...data,
+          splitMode: "default",
+          participantIds,
+          splits: undefined,
+        };
+      }
+      return {
+        ...data,
+        splitMode: "custom",
+        participantIds,
+        splits: autoPreview.map((row) => ({
+          tenantId: row.tenantId,
+          percentage: row.percentage,
+        })),
+      };
     }
 
-    setValue("splitMode", "custom");
-    const percentages = equalSplitPercentages(tenants.length);
-    replace(
-      tenants.map((tenant, index) => ({
+    return {
+      ...data,
+      splitMode: "custom",
+      participantIds,
+      splits: selectedTenants.map((tenant) => ({
         tenantId: tenant.id,
-        percentage: percentages[index] ?? 0,
+        percentage: customPercentageValues[tenant.id] ?? 0,
       })),
-    );
-  }, [useDefaultSplit, tenants, setValue, replace]);
-
-  const customSplits = watch("splits") ?? [];
-  const customPercentageValues = Object.fromEntries(
-    tenants.map((tenant) => {
-      const split = customSplits.find((entry) => entry.tenantId === tenant.id);
-      return [tenant.id, split?.percentage ?? 0];
-    }),
-  );
-  const customTotal = totalFromValues(customPercentageValues, tenantIds);
-  const customValid = isPercentageTotalComplete(customTotal);
+    };
+  };
 
   const submit = handleSubmit((data) => {
-    const payload: CreateExpenseForm = {
-      ...data,
-      splitMode: useDefaultSplit ? "default" : "custom",
-      ...(useDefaultSplit ? {} : { splits: data.splits }),
-    };
-    onSubmit(payload);
-    reset({
-      description: "",
-      categoryId: "",
-      paidByTenantId: "",
-      householdId,
-      date: today,
-      splitMode: "default",
-      splits: [],
-    });
-    setUseDefaultSplit(true);
+    onSubmit(buildPayload(data));
+    if (variant === "create") {
+      reset({
+        description: "",
+        categoryId: "",
+        paidByTenantId: "",
+        householdId,
+        date: today,
+        splitMode: "default",
+        splits: [],
+        participantIds: allTenantIds,
+        amount: Number.NaN,
+      });
+      setSelectedParticipantIds(allTenantIds);
+      setUseAutoSplit(true);
+    }
   });
+
+  const selectedTenantIds = selectedTenants.map((tenant) => tenant.id);
+  const customValid = isCustomSplitValid(useAutoSplit, customPercentageValues, selectedTenantIds);
+
+  const heading = title ?? (variant === "edit" ? "Edit expense" : "New expense");
+  const buttonLabel =
+    submitLabel ?? (isPending ? "Saving…" : variant === "edit" ? "Save changes" : "Create expense");
 
   return (
     <form onSubmit={submit} className={formCard}>
-      <h3 className="text-sm font-semibold tracking-tight text-stone-900">New expense</h3>
-      <input type="hidden" {...register("householdId")} />
+      <h3 className="text-sm font-semibold tracking-tight text-stone-900">{heading}</h3>
+      {variant === "create" && <input type="hidden" {...register("householdId")} />}
       <input type="hidden" {...register("splitMode")} />
+
       <FormField label="Amount" error={errors.amount?.message}>
         <input
           className={inputClassName}
@@ -134,6 +263,30 @@ export function ExpenseForm({
           ))}
         </select>
       </FormField>
+
+      {tenants.length > 0 && (
+        <ExpenseParticipantSplits
+          tenants={tenants}
+          selectedParticipantIds={selectedParticipantIds}
+          onToggleParticipant={toggleParticipant}
+          useAutoSplit={useAutoSplit}
+          onUseAutoSplitChange={setUseAutoSplit}
+          autoPreview={autoPreview}
+          expenseAmount={Number(amount) || 0}
+          customPercentageValues={customPercentageValues}
+          onCustomPercentagesChange={(values) => {
+            setValue(
+              "splits",
+              selectedTenants.map((tenant) => ({
+                tenantId: tenant.id,
+                percentage: values[tenant.id] ?? 0,
+              })),
+            );
+          }}
+          splitsError={errors.splits?.message}
+        />
+      )}
+
       <FormField label="Paid by" error={errors.paidByTenantId?.message}>
         <select className={selectClassName} {...register("paidByTenantId")} defaultValue="">
           <option value="" disabled>
@@ -150,60 +303,18 @@ export function ExpenseForm({
         <input className={inputClassName} type="date" {...register("date")} />
       </FormField>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-stone-700">Split</legend>
-        <label className="flex items-center gap-2 text-sm text-stone-700">
-          <input
-            type="radio"
-            name="split-mode"
-            checked={useDefaultSplit}
-            onChange={() => setUseDefaultSplit(true)}
-          />
-          Use default split
-        </label>
-        <label className="flex items-center gap-2 text-sm text-stone-700">
-          <input
-            type="radio"
-            name="split-mode"
-            checked={!useDefaultSplit}
-            onChange={() => setUseDefaultSplit(false)}
-          />
-          Customize split
-        </label>
-      </fieldset>
-
-      {!useDefaultSplit && tenants.length > 0 && (
-        <div className="space-y-2 rounded-lg border border-border bg-bg p-3">
-          {errors.splits?.message && (
-            <p className="text-sm text-negative">{errors.splits.message}</p>
-          )}
-          <SmartPercentageInputs
-            items={tenantItems}
-            values={customPercentageValues}
-            onChange={(values) => {
-              setValue(
-                "splits",
-                tenants.map((tenant) => ({
-                  tenantId: tenant.id,
-                  percentage: values[tenant.id] ?? 0,
-                })),
-              );
-            }}
-          />
-        </div>
-      )}
-
       <button
         type="submit"
         disabled={
           isPending ||
           categories.length === 0 ||
           tenants.length === 0 ||
-          (!useDefaultSplit && !customValid)
+          !customValid ||
+          selectedParticipantIds.length === 0
         }
         className={btnPrimary}
       >
-        {isPending ? "Creating…" : "Create expense"}
+        {buttonLabel}
       </button>
     </form>
   );

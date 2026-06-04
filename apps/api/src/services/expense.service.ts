@@ -8,6 +8,7 @@ import type {
 import { NotFoundError, ValidationError } from "../errors/app.errors.js";
 import { decimalToNumber } from "../lib/decimal.js";
 import { toExpenseDto, toExpenseSplitDto } from "../lib/mappers.js";
+import { redistributeSplitsToItems } from "../lib/redistribute-splits.js";
 import {
   assertPercentagesSumTo100,
   calculateSplitAmounts,
@@ -35,7 +36,11 @@ import {
 } from "../repositories/tenant.repository.js";
 import type { AssignSplitsInput } from "../validators/expense-split.validator.js";
 import { buildExpenseListWhere } from "../repositories/expense-list-filters.js";
-import type { CreateExpenseInput, ListExpensesQuery } from "../validators/expense.validator.js";
+import type {
+  CreateExpenseInput,
+  ListExpensesQuery,
+  UpdateExpenseInput,
+} from "../validators/expense.validator.js";
 import {
   defaultSplitService,
   type DefaultSplitService,
@@ -92,8 +97,6 @@ export class ExpenseService {
       "Payer tenant not found in this household",
     );
 
-    const splitMode = input.splitMode ?? "default";
-
     const expense = await this.expenses.create({
       amount: input.amount,
       description: input.description,
@@ -101,14 +104,42 @@ export class ExpenseService {
       paidByTenantId: input.paidByTenantId,
       householdId: input.householdId,
       date: new Date(`${input.date}T00:00:00.000Z`),
-      splitMode,
+      splitMode: "default",
     });
 
-    if (splitMode === "custom" && input.splits) {
-      await this.applyPercentagesToExpense(expense, input.splits);
+    await this.applyParticipantSplits(expense, input);
+    const saved = await this.expenses.findById(expense.id);
+    return toExpenseDto(saved ?? expense);
+  }
+
+  async update(id: string, input: UpdateExpenseInput): Promise<Expense> {
+    const existing = await this.expenses.findById(id);
+    if (!existing) {
+      throw new NotFoundError("Expense not found");
     }
 
-    return toExpenseDto(expense);
+    await this.assertCategoryInHousehold(input.categoryId, existing.householdId);
+    await this.assertTenantInHousehold(
+      input.paidByTenantId,
+      existing.householdId,
+      "Payer tenant not found in this household",
+    );
+
+    const expense = await this.expenses.updateById(id, {
+      amount: input.amount,
+      description: input.description,
+      categoryId: input.categoryId,
+      paidByTenantId: input.paidByTenantId,
+      date: new Date(`${input.date}T00:00:00.000Z`),
+    });
+
+    await this.applyParticipantSplits(expense, {
+      ...input,
+      householdId: existing.householdId,
+    });
+
+    const saved = await this.expenses.findById(id);
+    return toExpenseDto(saved ?? expense);
   }
 
   async delete(id: string): Promise<Expense> {
@@ -242,6 +273,57 @@ export class ExpenseService {
         percentage: split.percentage,
       };
     });
+  }
+
+  private async applyParticipantSplits(
+    expense: PrismaExpense,
+    input: CreateExpenseInput | (UpdateExpenseInput & { householdId: string }),
+  ): Promise<void> {
+    const householdTenants = await this.tenants.findAllByHousehold(input.householdId);
+    const allTenantIds = householdTenants.map((tenant) => tenant.id);
+    const participantIds = input.participantIds ?? allTenantIds;
+
+    if (participantIds.length === 0) {
+      throw new ValidationError("At least one participant is required");
+    }
+
+    const uniqueParticipants = new Set(participantIds);
+    if (uniqueParticipants.size !== participantIds.length) {
+      throw new ValidationError("Participant ids must be unique");
+    }
+
+    for (const participantId of participantIds) {
+      await this.assertTenantInHousehold(
+        participantId,
+        input.householdId,
+        "Participant not found in this household",
+      );
+    }
+
+    const allIncluded =
+      participantIds.length === allTenantIds.length &&
+      allTenantIds.every((tenantId) => uniqueParticipants.has(tenantId));
+
+    if (input.splitMode === "custom" && input.splits && input.splits.length > 0) {
+      await this.expenses.updateSplitMode(expense.id, "custom");
+      await this.applyPercentagesToExpense(expense, input.splits);
+      return;
+    }
+
+    if (allIncluded) {
+      await this.splits.replaceForExpense(expense.id, []);
+      await this.expenses.updateSplitMode(expense.id, "default");
+      return;
+    }
+
+    const baseRules = await this.defaultSplits.resolveForExpense(
+      input.householdId,
+      input.categoryId,
+    );
+
+    const redistributed = redistributeSplitsToItems(participantIds, baseRules);
+    await this.expenses.updateSplitMode(expense.id, "custom");
+    await this.applyPercentagesToExpense(expense, redistributed);
   }
 
   private async applyPercentagesToExpense(

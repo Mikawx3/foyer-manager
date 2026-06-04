@@ -38,6 +38,7 @@ function createExpenseRepoMock(
     findAllByHouseholdWithSplits: vi.fn(),
     create: vi.fn(),
     updateSplitMode: vi.fn(),
+    updateById: vi.fn(),
     deleteById: vi.fn(),
     ...overrides,
   };
@@ -477,6 +478,77 @@ describe("ExpenseService", () => {
       { tenantId: tenantInHouse, totalPaid: 100, totalOwed: 70, balance: 30 },
       { tenantId: tenantB, totalPaid: 0, totalOwed: 30, balance: -30 },
     ]);
+  });
+
+  it("create with participant subset persists custom redistributed splits", async () => {
+    const tenantB = "clt22345678901234567890123";
+    const tenantC = "clt32345678901234567890123";
+    const replaceForExpense = vi.fn().mockResolvedValue([]);
+    const createdExpense = { ...prismaExpense, id: expenseId };
+    const expenses = createExpenseRepoMock({
+      create: vi.fn().mockResolvedValue(createdExpense),
+      findById: vi.fn().mockResolvedValue({ ...createdExpense, splitMode: "custom" }),
+      updateSplitMode: vi.fn().mockResolvedValue({ ...createdExpense, splitMode: "custom" }),
+    });
+    const tenants: TenantRepository = {
+      findById: vi.fn().mockImplementation((id: string) =>
+        Promise.resolve({
+          id,
+          householdId,
+          name: "M",
+          email: `${id}@test.com`,
+          createdAt: new Date(),
+        }),
+      ),
+      findAllByHousehold: vi.fn().mockResolvedValue([
+        { id: tenantInHouse, householdId, name: "A", email: "a@test.com", createdAt: new Date() },
+        { id: tenantB, householdId, name: "B", email: "b@test.com", createdAt: new Date() },
+        { id: tenantC, householdId, name: "C", email: "c@test.com", createdAt: new Date() },
+      ]),
+      create: vi.fn(),
+      deleteById: vi.fn(),
+    };
+    const defaultSplits: DefaultSplitService = {
+      getRules: vi.fn(),
+      setRules: vi.fn(),
+      resolveForExpense: vi.fn().mockResolvedValue([
+        { tenantId: tenantInHouse, percentage: 50 },
+        { tenantId: tenantB, percentage: 30 },
+        { tenantId: tenantC, percentage: 20 },
+      ]),
+      deleteCategoryRules: vi.fn(),
+    };
+
+    const service = new ExpenseService(
+      expenses,
+      { findByExpenseId: vi.fn(), replaceForExpense },
+      {
+        findById: vi.fn().mockResolvedValue({ id: householdId, name: "Home", createdAt: new Date() }),
+        findAll: vi.fn(),
+        create: vi.fn(),
+        deleteById: vi.fn(),
+      },
+      tenants,
+      { findById: vi.fn().mockResolvedValue({ id: categoryId, householdId, name: "Rent" }) },
+      defaultSplits,
+    );
+
+    await service.create({
+      amount: 100,
+      description: "Dinner",
+      categoryId,
+      paidByTenantId: tenantInHouse,
+      householdId,
+      date: "2026-06-01",
+      splitMode: "default",
+      participantIds: [tenantInHouse, tenantB],
+    });
+
+    expect(expenses.updateSplitMode).toHaveBeenCalledWith(expenseId, "custom");
+    expect(replaceForExpense).toHaveBeenCalled();
+    const splitInput = replaceForExpense.mock.calls[0]?.[1] as { tenantId: string; percentage: number }[];
+    expect(splitInput).toHaveLength(2);
+    expect(splitInput.reduce((sum, row) => sum + row.percentage, 0)).toBe(100);
   });
 
   it("resetSplitsToDefault throws when no rules resolved", async () => {
