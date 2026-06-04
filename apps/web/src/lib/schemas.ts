@@ -15,19 +15,44 @@ export const createCategorySchema = z.object({
   householdId: z.string().cuid(),
 });
 
-export const createExpenseSchema = z.object({
-  amount: z.number().positive("Amount must be positive").max(999_999_999.99),
-  description: z.string().trim().min(1, "Description is required").max(500),
-  categoryId: z.string().cuid("Select a category"),
-  paidByTenantId: z.string().cuid("Select who paid"),
-  householdId: z.string().cuid(),
-  date: z.string().date("Use YYYY-MM-DD format"),
-});
-
 const splitItemSchema = z.object({
   tenantId: z.string().cuid(),
   percentage: z.number().positive().max(100),
 });
+
+export const createExpenseSchema = z
+  .object({
+    amount: z.number().positive("Amount must be positive").max(999_999_999.99),
+    description: z.string().trim().min(1, "Description is required").max(500),
+    categoryId: z.string().cuid("Select a category"),
+    paidByTenantId: z.string().cuid("Select who paid"),
+    householdId: z.string().cuid(),
+    date: z.string().date("Use YYYY-MM-DD format"),
+    splitMode: z.enum(["default", "custom"]),
+    splits: z.array(splitItemSchema).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.splitMode !== "custom") {
+        return true;
+      }
+      if (!data.splits || data.splits.length === 0) {
+        return false;
+      }
+      const tenantIds = data.splits.map((split) => split.tenantId);
+      return new Set(tenantIds).size === tenantIds.length;
+    },
+    { message: "Custom split requires unique members", path: ["splits"] },
+  )
+  .refine(
+    (data) => {
+      if (data.splitMode !== "custom" || !data.splits) {
+        return true;
+      }
+      return data.splits.reduce((sum, split) => sum + split.percentage, 0) === 100;
+    },
+    { message: "Percentages must sum to exactly 100", path: ["splits"] },
+  );
 
 export const assignSplitsSchema = z
   .object({

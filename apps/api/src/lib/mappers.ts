@@ -1,6 +1,15 @@
-import type { Category, Expense, ExpenseSplit, Household, Tenant } from "@foyer/types";
+import type {
+  Category,
+  DefaultSplit,
+  Expense,
+  ExpenseSplit,
+  Household,
+  SplitMode,
+  Tenant,
+} from "@foyer/types";
 import type {
   Category as PrismaCategory,
+  DefaultSplit as PrismaDefaultSplit,
   Expense as PrismaExpense,
   ExpenseSplit as PrismaExpenseSplit,
   Household as PrismaHousehold,
@@ -34,6 +43,10 @@ export function toTenantDto(tenant: PrismaTenant): Tenant {
   };
 }
 
+function toSplitMode(value: string): SplitMode {
+  return value === "custom" ? "custom" : "default";
+}
+
 export function toExpenseDto(expense: PrismaExpense): Expense {
   return {
     id: expense.id,
@@ -42,8 +55,21 @@ export function toExpenseDto(expense: PrismaExpense): Expense {
     categoryId: expense.categoryId,
     paidByTenantId: expense.paidByTenantId,
     householdId: expense.householdId,
+    splitMode: toSplitMode(expense.splitMode),
     date: expense.date.toISOString(),
     createdAt: expense.createdAt.toISOString(),
+  };
+}
+
+export function toDefaultSplitDto(split: PrismaDefaultSplit): DefaultSplit {
+  return {
+    id: split.id,
+    householdId: split.householdId,
+    categoryId: split.categoryId,
+    tenantId: split.tenantId,
+    percentage: split.percentage,
+    createdAt: split.createdAt.toISOString(),
+    updatedAt: split.updatedAt.toISOString(),
   };
 }
 

@@ -6,6 +6,7 @@ import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { createHousehold, getApiErrorMessage, getHouseholds } from "../lib/api.ts";
 import { queryKeys } from "../lib/query-keys.ts";
+import { mutationToastHandlers } from "../lib/toast.ts";
 import { formatDate } from "../lib/format.ts";
 import { cardInteractive, inlineError, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
@@ -19,9 +20,12 @@ export function HouseholdsPage() {
 
   const createMutation = useMutation({
     mutationFn: createHousehold,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.households });
-    },
+    ...mutationToastHandlers({
+      successMessage: "Household created",
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.households });
+      },
+    }),
   });
 
   return (

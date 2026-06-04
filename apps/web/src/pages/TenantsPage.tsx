@@ -6,6 +6,7 @@ import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { createTenant, getApiErrorMessage, getTenants } from "../lib/api.ts";
 import { queryKeys } from "../lib/query-keys.ts";
+import { mutationToastHandlers } from "../lib/toast.ts";
 import { formatDate } from "../lib/format.ts";
 import { card, inlineError, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
@@ -21,10 +22,13 @@ export function TenantsPage() {
 
   const createMutation = useMutation({
     mutationFn: createTenant,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.tenants(householdId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
-    },
+    ...mutationToastHandlers({
+      successMessage: "Member added",
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.tenants(householdId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
+      },
+    }),
   });
 
   return (

@@ -1,8 +1,13 @@
 import type {
   Category,
+  DefaultSplit,
+  DefaultSplitRules,
   Expense,
   ExpenseSplit,
   Household,
+  PaginatedExpenses,
+  ResolvedDefaultSplit,
+  SplitMode,
   Tenant,
   TenantBalance,
 } from "@foyer/types";
@@ -77,9 +82,31 @@ export async function createCategory(input: {
   return data;
 }
 
-export async function getExpenses(householdId: string): Promise<Expense[]> {
-  const { data } = await api.get<Expense[]>("/expenses", {
-    params: { householdId },
+export async function deleteCategory(id: string): Promise<void> {
+  await api.delete(`/categories/${id}`);
+}
+
+export interface ExpenseListParams {
+  page?: number;
+  limit?: number;
+  month?: string;
+  categoryId?: string;
+}
+
+export async function getExpenses(
+  householdId: string,
+  params: ExpenseListParams = {},
+): Promise<PaginatedExpenses> {
+  const { data } = await api.get<PaginatedExpenses>("/expenses", {
+    params: {
+      householdId,
+      page: params.page ?? 1,
+      limit: params.limit ?? 10,
+      ...(params.month !== undefined && { month: params.month }),
+      ...(params.categoryId !== undefined && params.categoryId !== "" && {
+        categoryId: params.categoryId,
+      }),
+    },
   });
   return data;
 }
@@ -91,6 +118,8 @@ export async function createExpense(input: {
   paidByTenantId: string;
   householdId: string;
   date: string;
+  splitMode?: SplitMode;
+  splits?: { tenantId: string; percentage: number }[];
 }): Promise<Expense> {
   const { data } = await api.post<Expense>("/expenses", input);
   return data;
@@ -106,6 +135,50 @@ export async function createSplits(
 
 export async function getSplits(expenseId: string): Promise<ExpenseSplit[]> {
   const { data } = await api.get<ExpenseSplit[]>(`/expenses/${expenseId}/splits`);
+  return data;
+}
+
+export async function resetExpenseSplits(expenseId: string): Promise<ExpenseSplit[]> {
+  const { data } = await api.post<ExpenseSplit[]>(`/expenses/${expenseId}/splits/reset`);
+  return data;
+}
+
+export async function getDefaultSplits(householdId: string): Promise<DefaultSplitRules> {
+  const { data } = await api.get<DefaultSplitRules>(`/households/${householdId}/default-splits`);
+  return data;
+}
+
+export async function putDefaultSplits(
+  householdId: string,
+  input: {
+    categoryId: string | null;
+    splits: { tenantId: string; percentage: number }[];
+  },
+): Promise<DefaultSplit[]> {
+  const { data } = await api.put<DefaultSplit[]>(
+    `/households/${householdId}/default-splits`,
+    input,
+  );
+  return data;
+}
+
+export async function deleteCategoryDefaultSplits(
+  householdId: string,
+  categoryId: string,
+): Promise<void> {
+  await api.delete(`/households/${householdId}/default-splits`, {
+    params: { categoryId },
+  });
+}
+
+export async function resolveDefaultSplits(
+  householdId: string,
+  categoryId: string,
+): Promise<ResolvedDefaultSplit[]> {
+  const { data } = await api.get<ResolvedDefaultSplit[]>(
+    `/households/${householdId}/default-splits/resolve`,
+    { params: { categoryId } },
+  );
   return data;
 }
 

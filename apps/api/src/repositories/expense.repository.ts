@@ -1,4 +1,4 @@
-import type { Expense, ExpenseSplit } from "@prisma/client";
+import type { Expense, ExpenseSplit, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { handlePrismaError } from "../lib/prisma-errors.js";
 import { numberToDecimal } from "../lib/decimal.js";
@@ -14,6 +14,22 @@ export class ExpenseRepository {
     return prisma.expense.findMany({
       where: { householdId },
       orderBy: { date: "desc" },
+    });
+  }
+
+  async countByWhere(where: Prisma.ExpenseWhereInput): Promise<number> {
+    return prisma.expense.count({ where });
+  }
+
+  async findPageByWhere(
+    where: Prisma.ExpenseWhereInput,
+    options: { skip: number; take: number },
+  ): Promise<Expense[]> {
+    return prisma.expense.findMany({
+      where,
+      orderBy: { date: "desc" },
+      skip: options.skip,
+      take: options.take,
     });
   }
 
@@ -34,6 +50,7 @@ export class ExpenseRepository {
     paidByTenantId: string;
     householdId: string;
     date: Date;
+    splitMode?: "default" | "custom";
   }): Promise<Expense> {
     try {
       return await prisma.expense.create({
@@ -44,7 +61,19 @@ export class ExpenseRepository {
           paidByTenantId: data.paidByTenantId,
           householdId: data.householdId,
           date: data.date,
+          splitMode: data.splitMode ?? "default",
         },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
+  async updateSplitMode(id: string, splitMode: "default" | "custom"): Promise<Expense> {
+    try {
+      return await prisma.expense.update({
+        where: { id },
+        data: { splitMode },
       });
     } catch (error) {
       handlePrismaError(error);

@@ -73,12 +73,13 @@ The Prisma client singleton is in [`src/lib/prisma.ts`](src/lib/prisma.ts). Use 
 |--------|------|-------------|
 | GET | `/api/categories?householdId=` | List categories for a household |
 | POST | `/api/categories` | Create `{ "name", "householdId" }` |
+| DELETE | `/api/categories/:id` | Delete category (fails if expenses exist) |
 
 ### Expenses
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/expenses?householdId=` | List expenses for a household |
+| GET | `/api/expenses?householdId=&page=&limit=&month=&categoryId=` | Paginated list. `page` default 1, `limit` default 10 (max 100). Optional `month` (`YYYY-MM`), `categoryId`. Response: `{ data, total, page, totalPages }` |
 | POST | `/api/expenses` | Create expense (requires valid `categoryId` in household) |
 | GET | `/api/expenses/:id` | Get by id |
 | DELETE | `/api/expenses/:id` | Delete by id |

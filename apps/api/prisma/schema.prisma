@@ -8,12 +8,13 @@ datasource db {
 }
 
 model Household {
-  id         String     @id @default(cuid())
-  name       String
-  createdAt  DateTime   @default(now())
-  tenants    Tenant[]
-  categories Category[]
-  expenses   Expense[]
+  id            String         @id @default(cuid())
+  name          String
+  createdAt     DateTime       @default(now())
+  tenants       Tenant[]
+  categories    Category[]
+  expenses      Expense[]
+  defaultSplits DefaultSplit[]
 }
 
 model Tenant {
@@ -25,6 +26,7 @@ model Tenant {
   household     Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
   expensesPaid  Expense[]      @relation("PaidBy")
   expenseSplits ExpenseSplit[]
+  defaultSplits DefaultSplit[]
 
   @@index([householdId])
 }
@@ -33,8 +35,9 @@ model Category {
   id          String    @id @default(cuid())
   name        String
   householdId String
-  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  expenses    Expense[]
+  household     Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  expenses      Expense[]
+  defaultSplits DefaultSplit[]
 
   @@index([householdId])
 }
@@ -46,6 +49,7 @@ model Expense {
   categoryId       String
   paidByTenantId   String
   householdId      String
+  splitMode        String         @default("default")
   date             DateTime
   createdAt        DateTime       @default(now())
   category         Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -64,4 +68,20 @@ model ExpenseSplit {
   percentage Float?
   expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model DefaultSplit {
+  id          String    @id @default(cuid())
+  householdId String
+  categoryId  String?
+  tenantId    String
+  percentage  Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, categoryId, tenantId])
+  @@index([householdId])
 }

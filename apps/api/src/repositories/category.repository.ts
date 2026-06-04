@@ -21,6 +21,18 @@ export class CategoryRepository {
       handlePrismaError(error);
     }
   }
+
+  async countExpenses(categoryId: string): Promise<number> {
+    return prisma.expense.count({ where: { categoryId } });
+  }
+
+  async deleteById(id: string): Promise<Category> {
+    try {
+      return await prisma.category.delete({ where: { id } });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
 }
 
 export const categoryRepository = new CategoryRepository();

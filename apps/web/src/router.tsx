@@ -5,6 +5,7 @@ import { HouseholdsPage } from "./pages/HouseholdsPage.tsx";
 import { BalancesPage } from "./pages/BalancesPage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
 import { ExpensesPage } from "./pages/ExpensesPage.tsx";
+import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { TenantsPage } from "./pages/TenantsPage.tsx";
 
 export const router = createBrowserRouter([
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
           { path: "tenants", element: <TenantsPage /> },
           { path: "expenses", element: <ExpensesPage /> },
           { path: "balances", element: <BalancesPage /> },
+          { path: "settings", element: <SettingsPage /> },
         ],
       },
     ],

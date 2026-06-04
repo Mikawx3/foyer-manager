@@ -1,5 +1,5 @@
 import type { Category } from "@foyer/types";
-import { NotFoundError } from "../errors/app.errors.js";
+import { NotFoundError, ValidationError } from "../errors/app.errors.js";
 import { toCategoryDto } from "../lib/mappers.js";
 import {
   categoryRepository,
@@ -32,6 +32,21 @@ export class CategoryService {
     }
     const category = await this.repository.create(data);
     return toCategoryDto(category);
+  }
+
+  async delete(id: string): Promise<Category> {
+    const category = await this.repository.findById(id);
+    if (!category) {
+      throw new NotFoundError("Category not found");
+    }
+
+    const expenseCount = await this.repository.countExpenses(id);
+    if (expenseCount > 0) {
+      throw new ValidationError("Category has expenses and cannot be deleted");
+    }
+
+    const deleted = await this.repository.deleteById(id);
+    return toCategoryDto(deleted);
   }
 }
 

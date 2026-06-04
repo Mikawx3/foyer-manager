@@ -25,9 +25,9 @@ import {
   getApiErrorMessage,
   getBalances,
   getCategories,
-  getExpenses,
   getTenants,
 } from "../lib/api.ts";
+import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
 import {
   computeBalanceChartData,
   computeCategorySpending,
@@ -59,8 +59,8 @@ export function DashboardPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
 
   const expensesQuery = useQuery({
-    queryKey: queryKeys.expenses(householdId),
-    queryFn: () => getExpenses(householdId),
+    queryKey: queryKeys.expensesAll(householdId),
+    queryFn: () => fetchAllExpenses(householdId),
     enabled: Boolean(householdId),
   });
 

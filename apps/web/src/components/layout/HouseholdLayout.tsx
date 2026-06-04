@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Receipt, Scale, Users } from "lucide-react";
+import { LayoutDashboard, Receipt, Scale, Settings, Users } from "lucide-react";
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { getApiErrorMessage, getHousehold } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
@@ -43,18 +43,30 @@ export function HouseholdLayout() {
             </h2>
           </div>
         )}
-        <nav className="flex flex-row gap-2 lg:flex-col lg:gap-1">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
+        <nav className="flex flex-col gap-4">
+          <div className="flex flex-row gap-2 lg:flex-col lg:gap-1">
+            {navItems.map(({ to, label, icon: Icon, end }) => (
+              <NavLink
+                key={to}
+                to={`/households/${id}/${to}`}
+                className={householdNavLinkClass}
+                end={end}
+              >
+                <Icon className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+                {label}
+              </NavLink>
+            ))}
+          </div>
+          <div className="border-t border-border pt-3">
             <NavLink
-              key={to}
-              to={`/households/${id}/${to}`}
+              to={`/households/${id}/settings`}
               className={householdNavLinkClass}
-              end={end}
+              end={false}
             >
-              <Icon className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-              {label}
+              <Settings className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+              Settings
             </NavLink>
-          ))}
+          </div>
         </nav>
       </aside>
       <div className="min-w-0 flex-1">

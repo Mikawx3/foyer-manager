@@ -9,4 +9,8 @@ export const listCategoriesQuerySchema = z.object({
   householdId: z.string().cuid(),
 });
 
+export const categoryIdParamSchema = z.object({
+  id: z.string().cuid(),
+});
+
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;

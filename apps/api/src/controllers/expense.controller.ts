@@ -13,7 +13,7 @@ export class ExpenseController {
 
   list = async (c: Context) => {
     const query = parseOrThrow(listExpensesQuerySchema, c.req.query());
-    const expenses = await this.service.listByHousehold(query.householdId);
+    const expenses = await this.service.listByHousehold(query);
     return c.json(expenses, 200);
   };
 
@@ -45,6 +45,12 @@ export class ExpenseController {
   getSplits = async (c: Context) => {
     const { id } = parseOrThrow(expenseIdParamSchema, c.req.param());
     const splits = await this.service.getSplits(id);
+    return c.json(splits, 200);
+  };
+
+  resetSplits = async (c: Context) => {
+    const { id } = parseOrThrow(expenseIdParamSchema, c.req.param());
+    const splits = await this.service.resetSplitsToDefault(id);
     return c.json(splits, 200);
   };
 }

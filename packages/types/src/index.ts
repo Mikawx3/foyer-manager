@@ -19,6 +19,28 @@ export interface Category {
   householdId: string;
 }
 
+export type SplitMode = "default" | "custom";
+
+export interface DefaultSplit {
+  id: string;
+  householdId: string;
+  categoryId: string | null;
+  tenantId: string;
+  percentage: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DefaultSplitRules {
+  global: DefaultSplit[];
+  byCategory: Record<string, DefaultSplit[]>;
+}
+
+export interface ResolvedDefaultSplit {
+  tenantId: string;
+  percentage: number;
+}
+
 export interface Expense {
   id: string;
   amount: number;
@@ -26,8 +48,16 @@ export interface Expense {
   categoryId: string;
   paidByTenantId: string;
   householdId: string;
+  splitMode: SplitMode;
   date: string;
   createdAt: string;
+}
+
+export interface PaginatedExpenses {
+  data: Expense[];
+  total: number;
+  page: number;
+  totalPages: number;
 }
 
 export interface ExpenseSplit {
