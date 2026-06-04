@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Receipt, Scale, Users } from "lucide-react";
+import { LayoutDashboard, Receipt, Scale, Users } from "lucide-react";
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { getApiErrorMessage, getHousehold } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
@@ -8,7 +8,8 @@ import { ErrorMessage } from "../ui/ErrorMessage.tsx";
 import { Skeleton } from "../ui/Skeleton.tsx";
 
 const navItems = [
-  { to: "tenants", label: "Members", icon: Users, end: true },
+  { to: "dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "tenants", label: "Members", icon: Users, end: false },
   { to: "expenses", label: "Expenses", icon: Receipt, end: false },
   { to: "balances", label: "Balances", icon: Scale, end: false },
 ] as const;

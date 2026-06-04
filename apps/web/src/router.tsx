@@ -3,6 +3,7 @@ import { AppLayout } from "./components/layout/AppLayout.tsx";
 import { HouseholdDetailPage } from "./pages/HouseholdDetailPage.tsx";
 import { HouseholdsPage } from "./pages/HouseholdsPage.tsx";
 import { BalancesPage } from "./pages/BalancesPage.tsx";
+import { DashboardPage } from "./pages/DashboardPage.tsx";
 import { ExpensesPage } from "./pages/ExpensesPage.tsx";
 import { TenantsPage } from "./pages/TenantsPage.tsx";
 
@@ -17,7 +18,8 @@ export const router = createBrowserRouter([
         path: "households/:id",
         element: <HouseholdDetailPage />,
         children: [
-          { index: true, element: <Navigate to="tenants" replace /> },
+          { index: true, element: <Navigate to="dashboard" replace /> },
+          { path: "dashboard", element: <DashboardPage /> },
           { path: "tenants", element: <TenantsPage /> },
           { path: "expenses", element: <ExpensesPage /> },
           { path: "balances", element: <BalancesPage /> },

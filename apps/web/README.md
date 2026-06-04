@@ -8,6 +8,7 @@ React 18 frontend for Foyer Manager (Vite + TypeScript + Tailwind CSS v4).
 - **React Hook Form + Zod** — validated forms
 - **React Router** — client routing
 - **Axios** — HTTP client (`baseURL: /api`, proxied to the API in dev)
+- **Recharts** — dashboard charts
 
 ## Scripts
 
@@ -23,6 +24,8 @@ React 18 frontend for Foyer Manager (Vite + TypeScript + Tailwind CSS v4).
 |------|------|
 | `/` | Redirect to `/households` |
 | `/households` | List + create households |
+| `/households/:id` | Redirect to dashboard |
+| `/households/:id/dashboard` | Dashboard (KPIs + charts) |
 | `/households/:id/tenants` | Members |
 | `/households/:id/expenses` | Expenses + splits |
 | `/households/:id/balances` | Balance table |

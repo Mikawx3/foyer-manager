@@ -50,7 +50,7 @@ export function HouseholdsPage() {
             <ul className="space-y-3">
               {householdsQuery.data.map((household) => (
                 <li key={household.id}>
-                  <Link to={`/households/${household.id}/tenants`} className={cardInteractive}>
+                  <Link to={`/households/${household.id}`} className={cardInteractive}>
                     <p className="font-semibold tracking-tight text-stone-900">{household.name}</p>
                     <p className="mt-1 text-sm text-stone-500">
                       Created {formatDate(household.createdAt)}
