@@ -11,3 +11,6 @@ coverage/
 .vite/
 *.tsbuildinfo
 apps/api/prisma/*.db
+.DS_Store
+docs/.DS_Store
+.cursor/settings.json
