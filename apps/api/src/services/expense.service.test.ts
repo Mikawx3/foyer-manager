@@ -181,11 +181,12 @@ describe("ExpenseService", () => {
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("getBalances aggregates paid and owed amounts", async () => {
+  it("getBalances aggregates paid and owed amounts for custom-mode expenses", async () => {
     const expenses = createExpenseRepoMock({
       findAllByHouseholdWithSplits: vi.fn().mockResolvedValue([
         {
           ...prismaExpense,
+          splitMode: "custom",
           splits: [
             {
               id: "cls1",
@@ -229,7 +230,25 @@ describe("ExpenseService", () => {
 
     const service = new ExpenseService(
       expenses,
-      { findByExpenseId: vi.fn(), replaceForExpense: vi.fn() },
+      {
+        findByExpenseId: vi.fn().mockResolvedValue([
+          {
+            id: "cls1",
+            expenseId,
+            tenantId: tenantInHouse,
+            amount: new Prisma.Decimal(60),
+            percentage: 50,
+          },
+          {
+            id: "cls2",
+            expenseId,
+            tenantId: "clt22345678901234567890123",
+            amount: new Prisma.Decimal(60),
+            percentage: 50,
+          },
+        ]),
+        replaceForExpense: vi.fn(),
+      },
       households,
       tenants,
       { findById: vi.fn() },
@@ -287,16 +306,9 @@ describe("ExpenseService", () => {
     expect(expenses.updateSplitMode).toHaveBeenCalledWith(expenseId, "custom");
   });
 
-  it("resetSplitsToDefault applies resolved rules and sets splitMode default", async () => {
-    const replaceForExpense = vi.fn().mockResolvedValue([
-      {
-        id: "cls1",
-        expenseId,
-        tenantId: tenantInHouse,
-        amount: new Prisma.Decimal(60),
-        percentage: 50,
-      },
-    ]);
+  it("resetSplitsToDefault clears stored splits and returns dynamically resolved splits", async () => {
+    const replaceForExpense = vi.fn().mockResolvedValue([]);
+    const tenantB = "clt22345678901234567890124";
     const expenses = createExpenseRepoMock({
       findById: vi.fn().mockResolvedValue(prismaExpense),
       updateSplitMode: vi.fn().mockResolvedValue(prismaExpense),
@@ -306,7 +318,7 @@ describe("ExpenseService", () => {
       setRules: vi.fn(),
       resolveForExpense: vi.fn().mockResolvedValue([
         { tenantId: tenantInHouse, percentage: 50 },
-        { tenantId: "clt22345678901234567890124", percentage: 50 },
+        { tenantId: tenantB, percentage: 50 },
       ]),
       deleteCategoryRules: vi.fn(),
     };
@@ -334,10 +346,137 @@ describe("ExpenseService", () => {
       defaultSplits,
     );
 
-    await service.resetSplitsToDefault(expenseId);
+    const result = await service.resetSplitsToDefault(expenseId);
 
-    expect(replaceForExpense).toHaveBeenCalled();
+    expect(replaceForExpense).toHaveBeenCalledWith(expenseId, []);
     expect(expenses.updateSplitMode).toHaveBeenCalledWith(expenseId, "default");
+    expect(result).toHaveLength(2);
+    expect(result[0]?.percentage).toBe(50);
+    expect(result[0]?.amount).toBe(60);
+    expect(result[1]?.percentage).toBe(50);
+    expect(result[1]?.amount).toBe(60);
+  });
+
+  it("getSplits returns current default rule percentages, not stale stored splits", async () => {
+    const tenantB = "clt22345678901234567890123";
+    const findByExpenseId = vi.fn().mockResolvedValue([
+      {
+        id: "cls1",
+        expenseId,
+        tenantId: tenantInHouse,
+        amount: new Prisma.Decimal(60),
+        percentage: 50,
+      },
+      {
+        id: "cls2",
+        expenseId,
+        tenantId: tenantB,
+        amount: new Prisma.Decimal(60),
+        percentage: 50,
+      },
+    ]);
+    const expenses = createExpenseRepoMock({
+      findById: vi.fn().mockResolvedValue({
+        ...prismaExpense,
+        amount: new Prisma.Decimal(100),
+      }),
+    });
+    const defaultSplits: DefaultSplitService = {
+      getRules: vi.fn(),
+      setRules: vi.fn(),
+      resolveForExpense: vi.fn().mockResolvedValue([
+        { tenantId: tenantInHouse, percentage: 70 },
+        { tenantId: tenantB, percentage: 30 },
+      ]),
+      deleteCategoryRules: vi.fn(),
+    };
+
+    const service = new ExpenseService(
+      expenses,
+      { findByExpenseId, replaceForExpense: vi.fn() },
+      { findById: vi.fn(), findAll: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
+      { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
+      { findById: vi.fn() },
+      defaultSplits,
+    );
+
+    const result = await service.getSplits(expenseId);
+
+    expect(findByExpenseId).not.toHaveBeenCalled();
+    expect(defaultSplits.resolveForExpense).toHaveBeenCalledWith(householdId, categoryId);
+    expect(result).toHaveLength(2);
+    expect(result[0]?.percentage).toBe(70);
+    expect(result[0]?.amount).toBe(70);
+    expect(result[1]?.percentage).toBe(30);
+    expect(result[1]?.amount).toBe(30);
+  });
+
+  it("getBalances uses dynamic splits for default-mode expenses", async () => {
+    const tenantB = "clt22345678901234567890123";
+    const expenses = createExpenseRepoMock({
+      findAllByHouseholdWithSplits: vi.fn().mockResolvedValue([
+        {
+          ...prismaExpense,
+          amount: new Prisma.Decimal(100),
+          splits: [
+            {
+              id: "cls1",
+              expenseId,
+              tenantId: tenantInHouse,
+              amount: new Prisma.Decimal(60),
+              percentage: 50,
+            },
+            {
+              id: "cls2",
+              expenseId,
+              tenantId: tenantB,
+              amount: new Prisma.Decimal(40),
+              percentage: 50,
+            },
+          ],
+        },
+      ]),
+    });
+    const households: HouseholdRepository = {
+      findById: vi.fn().mockResolvedValue({ id: householdId, name: "Home", createdAt: new Date() }),
+      findAll: vi.fn(),
+      create: vi.fn(),
+      deleteById: vi.fn(),
+    };
+    const tenants: TenantRepository = {
+      findById: vi.fn(),
+      findAllByHousehold: vi.fn().mockResolvedValue([
+        { id: tenantInHouse, householdId, name: "A", email: "a@test.com", createdAt: new Date() },
+        { id: tenantB, householdId, name: "B", email: "b@test.com", createdAt: new Date() },
+      ]),
+      create: vi.fn(),
+      deleteById: vi.fn(),
+    };
+    const defaultSplits: DefaultSplitService = {
+      getRules: vi.fn(),
+      setRules: vi.fn(),
+      resolveForExpense: vi.fn().mockResolvedValue([
+        { tenantId: tenantInHouse, percentage: 70 },
+        { tenantId: tenantB, percentage: 30 },
+      ]),
+      deleteCategoryRules: vi.fn(),
+    };
+
+    const service = new ExpenseService(
+      expenses,
+      { findByExpenseId: vi.fn(), replaceForExpense: vi.fn() },
+      households,
+      tenants,
+      { findById: vi.fn() },
+      defaultSplits,
+    );
+
+    const balances = await service.getBalances(householdId);
+
+    expect(balances).toEqual([
+      { tenantId: tenantInHouse, totalPaid: 100, totalOwed: 70, balance: 30 },
+      { tenantId: tenantB, totalPaid: 0, totalOwed: 30, balance: -30 },
+    ]);
   });
 
   it("resetSplitsToDefault throws when no rules resolved", async () => {

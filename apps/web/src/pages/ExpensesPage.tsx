@@ -1,8 +1,9 @@
 import type { Category, Expense, ExpenseSplit, Tenant } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Download, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { CategoriesSection } from "../components/expenses/CategoriesSection.tsx";
 import { inputClassName, selectClassName } from "../components/forms/FormField.tsx";
 import { CategoryForm } from "../components/forms/CategoryForm.tsx";
@@ -12,19 +13,23 @@ import { CategoryBadge } from "../components/ui/CategoryBadge.tsx";
 import { SplitModeBadge } from "../components/ui/SplitModeBadge.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
+import { ConfirmModal } from "../components/ui/ConfirmModal.tsx";
 import { Modal } from "../components/ui/Modal.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import {
   createCategory,
   createExpense,
   createSplits,
+  deleteExpense,
   getApiErrorMessage,
   getCategories,
   getExpenses,
+  getHousehold,
   getSplits,
   getTenants,
   resetExpenseSplits,
 } from "../lib/api.ts";
+import { exportExpensesToCSV, slugifyHouseholdName } from "../lib/export.ts";
 import { formatCurrency, formatDate } from "../lib/format.ts";
 import { currentMonthValue, type ExpenseListFilters } from "../lib/expense-list-filters.ts";
 import { isExpenseSplitsComplete } from "../lib/expense-splits.ts";
@@ -233,6 +238,9 @@ export function ExpensesPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; description: string } | null>(
+    null,
+  );
   const [page, setPage] = useState(1);
   const [month, setMonth] = useState(currentMonthValue);
   const [categoryId, setCategoryId] = useState("");
@@ -269,6 +277,12 @@ export function ExpensesPage() {
     enabled: Boolean(householdId),
   });
 
+  const householdQuery = useQuery({
+    queryKey: queryKeys.household(householdId),
+    queryFn: () => getHousehold(householdId),
+    enabled: Boolean(householdId),
+  });
+
   const createExpenseMutation = useMutation({
     mutationFn: createExpense,
     ...mutationToastHandlers({
@@ -296,6 +310,21 @@ export function ExpensesPage() {
     }),
   });
 
+  const deleteExpenseMutation = useMutation({
+    mutationFn: deleteExpense,
+    ...mutationToastHandlers({
+      successMessage: "Expense deleted",
+      onSuccess: () => {
+        setPendingDelete(null);
+        void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.expenses(householdId, expenseFilters),
+        });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
+      },
+    }),
+  });
+
   const categoryNameById = new Map(categoriesQuery.data?.map((c) => [c.id, c.name]) ?? []);
   const tenantNameById = new Map(tenantsQuery.data?.map((t) => [t.id, t.name]) ?? []);
 
@@ -309,6 +338,16 @@ export function ExpensesPage() {
       categoriesQuery.data &&
       categoriesQuery.data.length > 0,
   );
+
+  const handleExportCsv = () => {
+    const householdSlug = slugifyHouseholdName(householdQuery.data?.name ?? "household");
+    const filename = `expenses-${householdSlug}-${month}.csv`;
+    exportExpensesToCSV(expenseList, filename, {
+      categoryNameById,
+      tenantNameById,
+    });
+    toast.success(`CSV exported — ${expenseList.length} expenses`);
+  };
 
   const formsAside =
     canAddExpense && categoriesQuery.data && tenantsQuery.data ? (
@@ -333,16 +372,27 @@ export function ExpensesPage() {
           <h1 className={pageTitle}>Expenses</h1>
           <p className={pageSubtitle}>Track spending and split costs.</p>
         </div>
-        {canAddExpense && (
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className={`${btnPrimary} inline-flex items-center gap-2 xl:hidden`}
-            onClick={() => setModalOpen(true)}
+            className={`${btnSecondary} inline-flex items-center gap-2`}
+            disabled={isLoading || expenseList.length === 0}
+            onClick={handleExportCsv}
           >
-            <Plus className="h-4 w-4" strokeWidth={2} />
-            New expense
+            <Download className="h-4 w-4" strokeWidth={2} />
+            Export CSV
           </button>
-        )}
+          {canAddExpense && (
+            <button
+              type="button"
+              className={`${btnPrimary} inline-flex items-center gap-2 xl:hidden`}
+              onClick={() => setModalOpen(true)}
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+              New expense
+            </button>
+          )}
+        </div>
       </div>
 
       {categoriesQuery.isSuccess && categoriesQuery.data.length === 0 && (
@@ -464,9 +514,23 @@ export function ExpensesPage() {
                           </p>
                           <p className="mt-1 text-xs text-stone-500">{formatDate(expense.date)}</p>
                         </div>
-                        <p className={`shrink-0 ${amount} text-lg`}>
-                          {formatCurrency(expense.amount)}
-                        </p>
+                        <div className="flex shrink-0 items-start gap-2">
+                          <p className={`${amount} text-lg`}>{formatCurrency(expense.amount)}</p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPendingDelete({
+                                id: expense.id,
+                                description: expense.description,
+                              })
+                            }
+                            disabled={deleteExpenseMutation.isPending}
+                            className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-negative disabled:opacity-50"
+                            aria-label={`Delete ${expense.description}`}
+                          >
+                            <Trash2 className="h-4 w-4" strokeWidth={2} />
+                          </button>
+                        </div>
                       </div>
                       {tenantsQuery.data && tenantsQuery.data.length > 0 && (
                         <ExpenseSplits
@@ -517,6 +581,23 @@ export function ExpensesPage() {
           {formsAside && <aside className={stickyFormPanel}>{formsAside}</aside>}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={pendingDelete !== null}
+        title="Delete expense"
+        message={
+          pendingDelete
+            ? `This will permanently delete "${pendingDelete.description}". This action cannot be undone.`
+            : ""
+        }
+        onConfirm={() => {
+          if (pendingDelete) {
+            deleteExpenseMutation.mutate(pendingDelete.id);
+          }
+        }}
+        onCancel={() => setPendingDelete(null)}
+        isLoading={deleteExpenseMutation.isPending}
+      />
 
       {canAddExpense && categoriesQuery.data && tenantsQuery.data && (
         <Modal title="New expense" open={modalOpen} onClose={() => setModalOpen(false)}>

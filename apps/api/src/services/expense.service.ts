@@ -1,4 +1,10 @@
-import type { Expense, ExpenseSplit, PaginatedExpenses, TenantBalance } from "@foyer/types";
+import type {
+  Expense,
+  ExpenseSplit,
+  PaginatedExpenses,
+  ResolvedDefaultSplit,
+  TenantBalance,
+} from "@foyer/types";
 import { NotFoundError, ValidationError } from "../errors/app.errors.js";
 import { decimalToNumber } from "../lib/decimal.js";
 import { toExpenseDto, toExpenseSplitDto } from "../lib/mappers.js";
@@ -100,16 +106,6 @@ export class ExpenseService {
 
     if (splitMode === "custom" && input.splits) {
       await this.applyPercentagesToExpense(expense, input.splits);
-      return toExpenseDto(expense);
-    }
-
-    const resolved = await this.defaultSplits.resolveForExpense(
-      input.householdId,
-      input.categoryId,
-    );
-
-    if (resolved.length > 0) {
-      await this.applyPercentagesToExpense(expense, resolved);
     }
 
     return toExpenseDto(expense);
@@ -163,10 +159,10 @@ export class ExpenseService {
       );
     }
 
-    const replaced = await this.applyPercentagesToExpense(expense, resolved);
-    await this.expenses.updateSplitMode(expenseId, "default");
+    await this.splits.replaceForExpense(expenseId, []);
+    const updated = await this.expenses.updateSplitMode(expenseId, "default");
 
-    return replaced;
+    return this.getSplitsForExpense(updated);
   }
 
   async getSplits(expenseId: string): Promise<ExpenseSplit[]> {
@@ -174,8 +170,7 @@ export class ExpenseService {
     if (!expense) {
       throw new NotFoundError("Expense not found");
     }
-    const items = await this.splits.findByExpenseId(expenseId);
-    return items.map(toExpenseSplitDto);
+    return this.getSplitsForExpense(expense);
   }
 
   async getBalances(householdId: string): Promise<TenantBalance[]> {
@@ -190,18 +185,63 @@ export class ExpenseService {
       amount: decimalToNumber(expense.amount),
     }));
 
-    const splits = expensesWithSplits.flatMap((expense) =>
-      expense.splits.map((split) => ({
+    const splitInputs = (
+      await Promise.all(
+        expensesWithSplits.map((expense) => this.getSplitsForExpense(expense)),
+      )
+    ).flatMap((expenseSplits) =>
+      expenseSplits.map((split) => ({
         tenantId: split.tenantId,
-        amount: decimalToNumber(split.amount),
+        amount: split.amount,
       })),
     );
 
     return computeTenantBalances(
       tenants.map((tenant) => ({ id: tenant.id })),
       expenses,
-      splits,
+      splitInputs,
     );
+  }
+
+  private async getSplitsForExpense(expense: PrismaExpense): Promise<ExpenseSplit[]> {
+    if (expense.splitMode === "custom") {
+      const items = await this.splits.findByExpenseId(expense.id);
+      return items.map(toExpenseSplitDto);
+    }
+
+    const resolved = await this.defaultSplits.resolveForExpense(
+      expense.householdId,
+      expense.categoryId,
+    );
+
+    return this.buildDynamicSplits(expense, resolved);
+  }
+
+  private buildDynamicSplits(
+    expense: PrismaExpense,
+    resolved: ResolvedDefaultSplit[],
+  ): ExpenseSplit[] {
+    if (resolved.length === 0) {
+      return [];
+    }
+
+    const percentages = resolved.map((split) => split.percentage);
+    const total = decimalToNumber(expense.amount);
+    const amounts = calculateSplitAmounts(total, percentages);
+
+    return resolved.map((split, index) => {
+      const amount = amounts[index];
+      if (amount === undefined) {
+        throw new ValidationError("Failed to calculate split amounts");
+      }
+      return {
+        id: `${expense.id}:${split.tenantId}`,
+        expenseId: expense.id,
+        tenantId: split.tenantId,
+        amount,
+        percentage: split.percentage,
+      };
+    });
   }
 
   private async applyPercentagesToExpense(

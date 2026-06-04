@@ -7,6 +7,7 @@ import {
   SmartPercentageInputs,
   totalFromValues,
 } from "../components/forms/SmartPercentageInputs.tsx";
+import { ConfirmModal } from "../components/ui/ConfirmModal.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
@@ -29,6 +30,7 @@ export function SettingsPage() {
   const [globalPercentages, setGlobalPercentages] = useState<Record<string, number>>({});
   const [categoryPercentages, setCategoryPercentages] = useState<Record<string, number>>({});
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [pendingReset, setPendingReset] = useState<{ id: string; name: string } | null>(null);
 
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
@@ -107,6 +109,7 @@ export function SettingsPage() {
     ...mutationToastHandlers({
       successMessage: "Rule reset to global",
       onSuccess: () => {
+        setPendingReset(null);
         void queryClient.invalidateQueries({ queryKey: queryKeys.defaultSplits(householdId) });
       },
     }),
@@ -266,7 +269,12 @@ export function SettingsPage() {
                             type="button"
                             className={btnSecondary}
                             disabled={deleteCategoryMutation.isPending}
-                            onClick={() => deleteCategoryMutation.mutate(catId)}
+                            onClick={() =>
+                              setPendingReset({
+                                id: catId,
+                                name: categoryNameById.get(catId) ?? catId,
+                              })
+                            }
                           >
                             Reset to global
                           </button>
@@ -285,6 +293,25 @@ export function SettingsPage() {
           </section>
         </>
       )}
+
+      <ConfirmModal
+        isOpen={pendingReset !== null}
+        title="Reset split rule"
+        message={
+          pendingReset
+            ? `Reset the split rule for "${pendingReset.name}" to the global default?`
+            : ""
+        }
+        confirmLabel="Reset"
+        variant="warning"
+        onConfirm={() => {
+          if (pendingReset) {
+            deleteCategoryMutation.mutate(pendingReset.id);
+          }
+        }}
+        onCancel={() => setPendingReset(null)}
+        isLoading={deleteCategoryMutation.isPending}
+      />
     </div>
   );
 }

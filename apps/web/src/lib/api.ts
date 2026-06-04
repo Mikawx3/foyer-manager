@@ -67,6 +67,10 @@ export async function createTenant(input: {
   return data;
 }
 
+export async function deleteTenant(id: string): Promise<void> {
+  await api.delete(`/tenants/${id}`);
+}
+
 export async function getCategories(householdId: string): Promise<Category[]> {
   const { data } = await api.get<Category[]>("/categories", {
     params: { householdId },
@@ -123,6 +127,10 @@ export async function createExpense(input: {
 }): Promise<Expense> {
   const { data } = await api.post<Expense>("/expenses", input);
   return data;
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  await api.delete(`/expenses/${id}`);
 }
 
 export async function createSplits(

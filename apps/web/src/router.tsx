@@ -6,6 +6,7 @@ import { BalancesPage } from "./pages/BalancesPage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
 import { ExpensesPage } from "./pages/ExpensesPage.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
+import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { TenantsPage } from "./pages/TenantsPage.tsx";
 
 export const router = createBrowserRouter([
@@ -29,4 +30,5 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  { path: "*", element: <NotFoundPage /> },
 ]);
