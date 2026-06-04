@@ -48,6 +48,26 @@ The Prisma client singleton is in [`src/lib/prisma.ts`](src/lib/prisma.ts). Use 
 
 - `GET /health` — service health check
 
+### Households
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/households` | List all households |
+| POST | `/api/households` | Create `{ "name": string }` |
+| GET | `/api/households/:id` | Get by id |
+| DELETE | `/api/households/:id` | Delete by id |
+
+### Tenants
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/tenants?householdId=` | List tenants for a household |
+| POST | `/api/tenants` | Create `{ "name", "email", "householdId" }` |
+| GET | `/api/tenants/:id` | Get by id |
+| DELETE | `/api/tenants/:id` | Delete by id |
+
+Errors return `{ "error": string, "details"?: unknown }`.
+
 ## Architecture
 
-Future routes should follow: Route → Controller → Service → Repository (Prisma). Do not call Prisma directly from routes or controllers.
+Route → Controller → Service → Repository (Prisma). Do not call Prisma directly from routes or controllers.
