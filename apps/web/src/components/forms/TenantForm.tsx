@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { btnPrimary, formCard } from "../../lib/ui-classes.ts";
 import { createTenantSchema, type CreateTenantForm } from "../../lib/schemas.ts";
 import { FormField, inputClassName } from "./FormField.tsx";
 
@@ -26,8 +27,8 @@ export function TenantForm({ householdId, onSubmit, isPending }: TenantFormProps
   });
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-slate-900">Add member</h3>
+    <form onSubmit={submit} className={formCard}>
+      <h3 className="text-sm font-semibold tracking-tight text-stone-900">Add member</h3>
       <input type="hidden" {...register("householdId")} />
       <FormField label="Name" error={errors.name?.message}>
         <input className={inputClassName} {...register("name")} />
@@ -35,11 +36,7 @@ export function TenantForm({ householdId, onSubmit, isPending }: TenantFormProps
       <FormField label="Email" error={errors.email?.message}>
         <input className={inputClassName} type="email" {...register("email")} />
       </FormField>
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-      >
+      <button type="submit" disabled={isPending} className={btnPrimary}>
         {isPending ? "Adding…" : "Add member"}
       </button>
     </form>

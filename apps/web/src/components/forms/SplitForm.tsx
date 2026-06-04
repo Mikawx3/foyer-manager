@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Tenant } from "@foyer/types";
 import { useFieldArray, useForm } from "react-hook-form";
+import { btnPrimary, btnSecondary } from "../../lib/ui-classes.ts";
 import { assignSplitsSchema, type AssignSplitsForm } from "../../lib/schemas.ts";
 import { FormField, inputClassName, selectClassName } from "./FormField.tsx";
 
@@ -31,10 +32,13 @@ export function SplitForm({ tenants, onSubmit, isPending }: SplitFormProps) {
   const submit = handleSubmit(onSubmit);
 
   return (
-    <form onSubmit={submit} className="mt-3 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs font-medium text-slate-600">Assign splits (must total 100%)</p>
+    <form
+      onSubmit={submit}
+      className="mt-3 space-y-3 rounded-lg border border-border bg-bg p-3"
+    >
+      <p className="text-xs font-medium text-stone-600">Assign splits (must total 100%)</p>
       {errors.splits?.message && (
-        <p className="text-sm text-red-600">{errors.splits.message}</p>
+        <p className="text-sm text-negative">{errors.splits.message}</p>
       )}
       {fields.map((field, index) => (
         <div key={field.id} className="flex flex-wrap items-end gap-2">
@@ -64,7 +68,7 @@ export function SplitForm({ tenants, onSubmit, isPending }: SplitFormProps) {
             <button
               type="button"
               onClick={() => remove(index)}
-              className="mb-0.5 text-sm text-slate-600 hover:text-slate-900"
+              className={`mb-0.5 ${btnSecondary}`}
             >
               Remove
             </button>
@@ -75,15 +79,11 @@ export function SplitForm({ tenants, onSubmit, isPending }: SplitFormProps) {
         <button
           type="button"
           onClick={() => append({ tenantId: "", percentage: 0 })}
-          className="text-sm text-slate-700 underline hover:no-underline"
+          className={btnSecondary}
         >
           Add row
         </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-        >
+        <button type="submit" disabled={isPending} className={btnPrimary}>
           {isPending ? "Saving…" : "Save splits"}
         </button>
       </div>

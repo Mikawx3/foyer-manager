@@ -7,6 +7,7 @@ import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { createTenant, getApiErrorMessage, getTenants } from "../lib/api.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { formatDate } from "../lib/format.ts";
+import { card, inlineError, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
 export function TenantsPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
@@ -29,8 +30,8 @@ export function TenantsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Members</h1>
-        <p className="mt-1 text-sm text-slate-600">People in this household.</p>
+        <h1 className={pageTitle}>Members</h1>
+        <p className={pageSubtitle}>People in this household.</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -47,20 +48,17 @@ export function TenantsPage() {
               title="No members yet"
               description="Add household members before creating expenses or splits."
               action={
-                <p className="text-sm text-slate-500">Use the form on the right to add someone.</p>
+                <p className="text-sm text-stone-500">Use the form on the right to add someone.</p>
               }
             />
           )}
           {tenantsQuery.isSuccess && tenantsQuery.data.length > 0 && (
             <ul className="space-y-3">
               {tenantsQuery.data.map((tenant) => (
-                <li
-                  key={tenant.id}
-                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-                >
-                  <p className="font-semibold text-slate-900">{tenant.name}</p>
-                  <p className="text-sm text-slate-600">{tenant.email}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                <li key={tenant.id} className={card}>
+                  <p className="font-semibold tracking-tight text-stone-900">{tenant.name}</p>
+                  <p className="text-sm text-stone-600">{tenant.email}</p>
+                  <p className="mt-1 text-xs text-stone-500">
                     Joined {formatDate(tenant.createdAt)}
                   </p>
                 </li>
@@ -76,7 +74,7 @@ export function TenantsPage() {
             isPending={createMutation.isPending}
           />
           {createMutation.isError && (
-            <p className="mt-2 text-sm text-red-600">{getApiErrorMessage(createMutation.error)}</p>
+            <p className={`mt-2 ${inlineError}`}>{getApiErrorMessage(createMutation.error)}</p>
           )}
         </aside>
       </div>
