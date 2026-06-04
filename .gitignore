@@ -5,4 +5,9 @@ dist/
 __pycache__/
 *.pyc
 .cursor/chat/
-.cursor/mcp.json      # si clés sensibles dedans
+.cursor/mcp.json
+*.log
+coverage/
+.vite/
+*.tsbuildinfo
+apps/api/prisma/*.db

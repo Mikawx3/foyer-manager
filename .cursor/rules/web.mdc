@@ -1,17 +1,17 @@
 ---
-description: Règles frontend React
+description: React frontend rules
 globs: ["apps/web/src/**/*.tsx", "apps/web/src/**/*.ts"]
 alwaysApply: false
 ---
 
-## Composants
-- Un composant = un fichier
-- Props typées avec interface, jamais de type inline
-- Pas de logique métier dans les composants → hooks personnalisés
+## Components
+- One component per file
+- Props typed with an interface, never inline types
+- No business logic in components → custom hooks
 
 ## Data fetching
-- TanStack Query pour tous les appels API
-- Pas de fetch() direct dans un composant
+- TanStack Query for all API calls
+- No direct `fetch()` in a component
 
-## Formulaires
-- React Hook Form + Zod pour validation
+## Forms
+- React Hook Form + Zod for validation

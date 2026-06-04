@@ -1,45 +1,49 @@
 ---
-description: Règles générales du projet Foyer Manager
+description: General rules for the Foyer Manager project
 alwaysApply: true
 ---
 
 # Foyer Manager — Project Rules
 
-## Stack technique
+## Tech Stack
 - Frontend : React 18 + TypeScript + Vite + Tailwind v4
-- Backend  : Node.js + Hono (ou Express) + TypeScript
+- Backend  : Node.js + Hono + TypeScript
 - ORM      : Prisma
-- BDD      : PostgreSQL
+- Database : PostgreSQL
 - Tests    : Vitest (unit) + Supertest (API)
-- CI/CD    : GitHub Actions (cloud)
-- Dev      : Vite dev server + nodemon, accès via IP locale Mac
+- CI/CD    : GitHub Actions
 
-## Monorepo structure
+## Monorepo Structure
 apps/
-├── web/          ← Frontend React
-└── api/          ← Backend Node.js
+├── web/          ← React frontend
+└── api/          ← Node.js backend
 packages/
-└── types/        ← Types TypeScript partagés front/back
+└── types/        ← Shared TypeScript types
 
-## Git — Conventional Commits obligatoires
+## Git — Conventional Commits
 Format : <type>(<scope>): <description>
 Types  : feat | fix | chore | docs | refactor | test
-Scope  : web | api | types | infra
-Exemples :
+Scopes : web | api | types | infra
+Examples:
   feat(api): add expense split endpoint
-  fix(web): calcul répartition dettes
+  fix(web): fix debt calculation
   chore(infra): add github actions workflow
 
-## Règles de code
-- TypeScript strict : pas de `any`, pas de `as unknown`
-- Validation des inputs : Zod obligatoire côté API
-- Logique métier dans apps/api/src/services/, jamais dans les routes
-- Composants React : fonctionnels uniquement, pas de class components
-- Pas de useEffect pour la logique métier → utiliser React Query (TanStack Query)
-- Types partagés importés depuis `@foyer/types`, jamais redéfinis localement
+## Code Rules
+- Strict TypeScript: no `any`, no `as unknown`
+- Input validation: Zod required on all API endpoints
+- Business logic in apps/api/src/services/ only, never in routes
+- React: functional components only
+- No useEffect for business logic → use TanStack Query
+- Shared types imported from `@foyer/types`, never redefined locally
 
-## Règles Cursor
-- Ne modifier QUE les fichiers concernés par la demande
-- Toujours demander confirmation avant de toucher à un fichier hors scope
-- Proposer le test unitaire avec chaque nouvelle fonction de service
-- Ne pas installer de dépendances sans le signaler explicitement
+## Cursor Rules
+- Only modify files directly related to the current request
+- Always ask before touching files outside the current scope
+- Suggest a unit test with every new service function
+- Never install dependencies without explicitly listing them
+
+## Language
+All code, comments, variable names, commit messages, branch names,
+PR titles and descriptions must be written in English.
+No French in the codebase.
