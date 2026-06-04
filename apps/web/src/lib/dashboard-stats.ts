@@ -34,7 +34,10 @@ export interface BalanceChartBar {
 /** Calendar date from `YYYY-MM-DD` or API ISO datetime (date portion only, local calendar). */
 function parseExpenseDate(isoDate: string): Date {
   const dateOnly = isoDate.slice(0, 10);
-  const [year, month, day] = dateOnly.split("-").map(Number);
+  const [yearStr, monthStr, dayStr] = dateOnly.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr ?? "1");
   return new Date(year, month - 1, day);
 }
 

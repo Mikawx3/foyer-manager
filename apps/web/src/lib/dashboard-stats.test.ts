@@ -73,15 +73,14 @@ describe("filterExpensesThisMonth", () => {
   });
 
   it("handles API ISO datetime strings", () => {
+    const june = expenses[0];
+    const january = expenses[2];
+    expect(june).toBeDefined();
+    expect(january).toBeDefined();
+
     const apiStyle: Expense[] = [
-      {
-        ...expenses[0],
-        date: "2026-06-01T00:00:00.000Z",
-      },
-      {
-        ...expenses[2],
-        date: "2026-01-05T00:00:00.000Z",
-      },
+      { ...june!, date: "2026-06-01T00:00:00.000Z" },
+      { ...january!, date: "2026-01-05T00:00:00.000Z" },
     ];
     const filtered = filterExpensesThisMonth(apiStyle, referenceDate);
     expect(filtered).toHaveLength(1);
