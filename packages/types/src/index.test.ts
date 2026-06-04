@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import type { Tenant } from "./index.js";
+import type { Household, Tenant } from "./index.js";
 
 describe("@foyer/types", () => {
+  it("exports Household shape", () => {
+    const household: Household = {
+      id: "h1",
+      name: "Home",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    };
+    expect(household.name).toBe("Home");
+  });
+
   it("exports Tenant shape", () => {
     const tenant: Tenant = {
       id: "1",

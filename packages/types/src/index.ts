@@ -1,3 +1,9 @@
+export interface Household {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 /** Household member (not a rental tenant). */
 export interface Tenant {
   id: string;

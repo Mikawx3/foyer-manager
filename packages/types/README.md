@@ -1,6 +1,8 @@
 # @foyer/types
 
-Shared TypeScript interfaces for Foyer Manager (Tenant, Expense, Category, ExpenseSplit).
+Shared TypeScript interfaces for Foyer Manager (Household, Tenant, Category, Expense, ExpenseSplit).
+
+These are API/JSON shapes only. Database persistence is defined in `apps/api/prisma/schema.prisma` (Prisma ORM), not here.
 
 ## Build
 
