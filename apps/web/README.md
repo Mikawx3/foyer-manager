@@ -2,30 +2,29 @@
 
 React 18 frontend for Foyer Manager (Vite + TypeScript + Tailwind CSS v4).
 
-## Prerequisites
+## Stack
 
-Build shared types from the monorepo root (or rely on `predev`):
-
-```bash
-npm run build -w @foyer/types
-```
+- **TanStack Query** — API data fetching
+- **React Hook Form + Zod** — validated forms
+- **React Router** — client routing
+- **Axios** — HTTP client (`baseURL: /api`, proxied to the API in dev)
 
 ## Scripts
 
 | Script | Description |
 |--------|-------------|
 | `npm run dev` | Dev server at http://localhost:5173 |
-| `npm run build` | Typecheck and production build |
+| `npm run build` | Production build |
 | `npm run preview` | Preview production build |
 
-## API proxy
+## Routes
 
-During development, requests to `/api/*` are proxied to the API at `http://localhost:3000` (path prefix stripped).
+| Path | Page |
+|------|------|
+| `/` | Redirect to `/households` |
+| `/households` | List + create households |
+| `/households/:id/tenants` | Members |
+| `/households/:id/expenses` | Expenses + splits |
+| `/households/:id/balances` | Balance table |
 
-## From monorepo root
-
-```bash
-npm run dev
-```
-
-Starts both web and API.
+Run from monorepo root: `npm run dev` (starts web + API).
