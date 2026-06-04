@@ -37,3 +37,10 @@ export interface ExpenseSplit {
   amount: number;
   percentage?: number;
 }
+
+export interface TenantBalance {
+  tenantId: string;
+  totalPaid: number;
+  totalOwed: number;
+  balance: number;
+}

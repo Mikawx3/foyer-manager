@@ -55,6 +55,7 @@ The Prisma client singleton is in [`src/lib/prisma.ts`](src/lib/prisma.ts). Use 
 | GET | `/api/households` | List all households |
 | POST | `/api/households` | Create `{ "name": string }` |
 | GET | `/api/households/:id` | Get by id |
+| GET | `/api/households/:id/balances` | Tenant balances (`totalPaid`, `totalOwed`, `balance`) |
 | DELETE | `/api/households/:id` | Delete by id |
 
 ### Tenants
@@ -65,6 +66,37 @@ The Prisma client singleton is in [`src/lib/prisma.ts`](src/lib/prisma.ts). Use 
 | POST | `/api/tenants` | Create `{ "name", "email", "householdId" }` |
 | GET | `/api/tenants/:id` | Get by id |
 | DELETE | `/api/tenants/:id` | Delete by id |
+
+### Categories
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/categories?householdId=` | List categories for a household |
+| POST | `/api/categories` | Create `{ "name", "householdId" }` |
+
+### Expenses
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/expenses?householdId=` | List expenses for a household |
+| POST | `/api/expenses` | Create expense (requires valid `categoryId` in household) |
+| GET | `/api/expenses/:id` | Get by id |
+| DELETE | `/api/expenses/:id` | Delete by id |
+| POST | `/api/expenses/:id/splits` | Replace splits `{ "splits": [{ "tenantId", "percentage" }] }` (sum = 100) |
+| GET | `/api/expenses/:id/splits` | List splits for an expense |
+
+`POST /api/expenses` body example:
+
+```json
+{
+  "amount": 120,
+  "description": "January rent",
+  "categoryId": "...",
+  "paidByTenantId": "...",
+  "householdId": "...",
+  "date": "2026-06-01"
+}
+```
 
 Errors return `{ "error": string, "details"?: unknown }`.
 
