@@ -1,0 +1,20 @@
+---
+description: Règles backend Node.js
+globs: ["apps/api/**/*.ts"]
+alwaysApply: false
+---
+
+## Architecture API
+Route → Controller → Service → Repository (Prisma)
+Jamais d'appel Prisma direct dans une route ou un controller.
+
+## Réponses HTTP
+- 200 : succès avec données
+- 201 : création réussie
+- 400 : erreur de validation (Zod)
+- 404 : ressource introuvable
+- 500 : erreur interne (logger obligatoire)
+
+## Erreurs
+Toujours retourner { error: string, details?: unknown }
+Jamais exposer le stack trace en réponse HTTP.

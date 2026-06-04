@@ -1,0 +1,45 @@
+---
+description: Règles générales du projet Foyer Manager
+alwaysApply: true
+---
+
+# Foyer Manager — Project Rules
+
+## Stack technique
+- Frontend : React 18 + TypeScript + Vite + Tailwind v4
+- Backend  : Node.js + Hono (ou Express) + TypeScript
+- ORM      : Prisma
+- BDD      : PostgreSQL
+- Tests    : Vitest (unit) + Supertest (API)
+- CI/CD    : GitHub Actions (cloud)
+- Dev      : Vite dev server + nodemon, accès via IP locale Mac
+
+## Monorepo structure
+apps/
+├── web/          ← Frontend React
+└── api/          ← Backend Node.js
+packages/
+└── types/        ← Types TypeScript partagés front/back
+
+## Git — Conventional Commits obligatoires
+Format : <type>(<scope>): <description>
+Types  : feat | fix | chore | docs | refactor | test
+Scope  : web | api | types | infra
+Exemples :
+  feat(api): add expense split endpoint
+  fix(web): calcul répartition dettes
+  chore(infra): add github actions workflow
+
+## Règles de code
+- TypeScript strict : pas de `any`, pas de `as unknown`
+- Validation des inputs : Zod obligatoire côté API
+- Logique métier dans apps/api/src/services/, jamais dans les routes
+- Composants React : fonctionnels uniquement, pas de class components
+- Pas de useEffect pour la logique métier → utiliser React Query (TanStack Query)
+- Types partagés importés depuis `@foyer/types`, jamais redéfinis localement
+
+## Règles Cursor
+- Ne modifier QUE les fichiers concernés par la demande
+- Toujours demander confirmation avant de toucher à un fichier hors scope
+- Proposer le test unitaire avec chaque nouvelle fonction de service
+- Ne pas installer de dépendances sans le signaler explicitement

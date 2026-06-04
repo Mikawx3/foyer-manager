@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.local
+dist/
+__pycache__/
+*.pyc
+.cursor/chat/
+.cursor/mcp.json      # si clés sensibles dedans

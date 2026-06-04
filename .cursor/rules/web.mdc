@@ -1,0 +1,17 @@
+---
+description: Règles frontend React
+globs: ["apps/web/src/**/*.tsx", "apps/web/src/**/*.ts"]
+alwaysApply: false
+---
+
+## Composants
+- Un composant = un fichier
+- Props typées avec interface, jamais de type inline
+- Pas de logique métier dans les composants → hooks personnalisés
+
+## Data fetching
+- TanStack Query pour tous les appels API
+- Pas de fetch() direct dans un composant
+
+## Formulaires
+- React Hook Form + Zod pour validation
