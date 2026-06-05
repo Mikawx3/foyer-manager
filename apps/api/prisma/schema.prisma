@@ -15,8 +15,9 @@ model Household {
   tenants           Tenant[]
   categories        Category[]
   expenses          Expense[]
-  defaultSplits     DefaultSplit[]
-  settlements       Settlement[]
+  defaultSplits      DefaultSplit[]
+  settlements        Settlement[]
+  recurringExpenses  RecurringExpense[]
 }
 
 model Tenant {
@@ -29,8 +30,10 @@ model Tenant {
   expensesPaid     Expense[]    @relation("PaidBy")
   expenseSplits    ExpenseSplit[]
   defaultSplits    DefaultSplit[]
-  settlementsFrom  Settlement[] @relation("SettlementFrom")
-  settlementsTo    Settlement[] @relation("SettlementTo")
+  settlementsFrom       Settlement[]            @relation("SettlementFrom")
+  settlementsTo         Settlement[]            @relation("SettlementTo")
+  recurringExpensesPaid RecurringExpense[]      @relation("RecurringPaidBy")
+  recurringExpenseSplits RecurringExpenseSplit[]
 
   @@index([householdId])
 }
@@ -88,6 +91,34 @@ model ExpenseSplit {
   percentage Float?
   expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model RecurringExpense {
+  id          String                  @id @default(cuid())
+  householdId String
+  title       String
+  amount      Decimal                 @db.Decimal(12, 2)
+  category    String?
+  paidById    String
+  frequency   String
+  startDate   DateTime
+  nextDueDate DateTime
+  active      Boolean                 @default(true)
+  createdAt   DateTime                @default(now())
+  household   Household               @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  paidBy      Tenant                  @relation("RecurringPaidBy", fields: [paidById], references: [id], onDelete: Restrict)
+  splits      RecurringExpenseSplit[]
+
+  @@index([householdId])
+}
+
+model RecurringExpenseSplit {
+  id                 String           @id @default(cuid())
+  recurringExpenseId String
+  tenantId           String
+  percentage         Float
+  recurringExpense   RecurringExpense @relation(fields: [recurringExpenseId], references: [id], onDelete: Cascade)
+  tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model DefaultSplit {

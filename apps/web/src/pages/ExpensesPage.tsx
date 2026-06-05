@@ -1,11 +1,12 @@
 import type { Category, Expense, ExpenseSplit, Tenant } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CategoriesSection } from "../components/expenses/CategoriesSection.tsx";
 import { ExpenseEditModal } from "../components/expenses/ExpenseEditModal.tsx";
+import { RecurringExpensesSection } from "../components/expenses/RecurringExpensesSection.tsx";
 import { inputClassName, selectClassName } from "../components/forms/FormField.tsx";
 import { CategoryForm } from "../components/forms/CategoryForm.tsx";
 import { ExpenseForm } from "../components/forms/ExpenseForm.tsx";
@@ -266,6 +267,8 @@ export function ExpensesPage() {
   const [month, setMonth] = useState(currentMonthValue);
   const [categoryId, setCategoryId] = useState("");
   const [limit, setLimit] = useState(10);
+  const [activeTab, setActiveTab] = useState<"expenses" | "recurring">("expenses");
+  const lastGeneratedToastRef = useRef(0);
 
   const expenseFilters: ExpenseListFilters = {
     page,
@@ -320,6 +323,25 @@ export function ExpensesPage() {
   const expenseList = expensesQuery.data?.data ?? [];
   const totalExpenses = expensesQuery.data?.total ?? 0;
   const totalPages = expensesQuery.data?.totalPages ?? 1;
+  const recurringGeneratedCount = expensesQuery.data?.recurringGeneratedCount ?? 0;
+
+  useEffect(() => {
+    if (
+      recurringGeneratedCount > 0 &&
+      expensesQuery.isSuccess &&
+      recurringGeneratedCount !== lastGeneratedToastRef.current
+    ) {
+      lastGeneratedToastRef.current = recurringGeneratedCount;
+      const label = recurringGeneratedCount === 1 ? "expense was" : "expenses were";
+      toast.success(`${recurringGeneratedCount} recurring ${label} auto-generated`);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
+    }
+  }, [
+    recurringGeneratedCount,
+    expensesQuery.isSuccess,
+    householdId,
+    queryClient,
+  ]);
 
   const createCategoryMutation = useMutation({
     mutationFn: createCategory,
@@ -437,6 +459,41 @@ export function ExpensesPage() {
       {hasCategories && (
         <div className="flex flex-col gap-8 xl:flex-row xl:items-start">
           <section className="min-w-0 flex-1">
+            <div className="mb-4 flex gap-2 border-b border-border">
+              <button
+                type="button"
+                className={`border-b-2 px-3 py-2 text-sm font-medium transition ${
+                  activeTab === "expenses"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-stone-600 hover:text-stone-900"
+                }`}
+                onClick={() => setActiveTab("expenses")}
+              >
+                Expenses
+              </button>
+              <button
+                type="button"
+                className={`border-b-2 px-3 py-2 text-sm font-medium transition ${
+                  activeTab === "recurring"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-stone-600 hover:text-stone-900"
+                }`}
+                onClick={() => setActiveTab("recurring")}
+              >
+                Recurring
+              </button>
+            </div>
+
+            {activeTab === "recurring" && tenantsQuery.data && categoriesQuery.data && (
+              <RecurringExpensesSection
+                householdId={householdId}
+                categories={categoriesQuery.data}
+                tenants={tenantsQuery.data}
+              />
+            )}
+
+            {activeTab === "expenses" && (
+              <>
             <div className="mb-4 flex flex-wrap gap-3">
               <div className="space-y-1">
                 <label htmlFor="expense-filter-month" className="block text-sm font-medium text-stone-700">
@@ -609,9 +666,13 @@ export function ExpensesPage() {
                 </p>
               </div>
             )}
+              </>
+            )}
           </section>
 
-          {formsAside && <aside className={stickyFormPanel}>{formsAside}</aside>}
+          {activeTab === "expenses" && formsAside && (
+            <aside className={stickyFormPanel}>{formsAside}</aside>
+          )}
         </div>
       )}
 

@@ -7,10 +7,13 @@ import type {
   Expense,
   ExpenseSplit,
   Household,
+  CreateRecurringExpensePayload,
   PaginatedExpenses,
+  RecurringExpense,
   ResolvedDefaultSplit,
   Settlement,
   Tenant,
+  UpdateRecurringExpensePayload,
   TenantBalance,
   UpdateExpensePayload,
   UpdateHouseholdPayload,
@@ -227,6 +230,56 @@ export async function deleteSettlement(
 ): Promise<Settlement> {
   const { data } = await api.delete<Settlement>(
     `/households/${householdId}/settlements/${settlementId}`,
+  );
+  return data;
+}
+
+export async function getRecurringExpenses(householdId: string): Promise<RecurringExpense[]> {
+  const { data } = await api.get<RecurringExpense[]>(
+    `/households/${householdId}/recurring-expenses`,
+  );
+  return data;
+}
+
+export async function createRecurringExpense(
+  householdId: string,
+  input: CreateRecurringExpensePayload,
+): Promise<RecurringExpense> {
+  const { data } = await api.post<RecurringExpense>(
+    `/households/${householdId}/recurring-expenses`,
+    input,
+  );
+  return data;
+}
+
+export async function updateRecurringExpense(
+  householdId: string,
+  recurringId: string,
+  input: UpdateRecurringExpensePayload,
+): Promise<RecurringExpense> {
+  const { data } = await api.patch<RecurringExpense>(
+    `/households/${householdId}/recurring-expenses/${recurringId}`,
+    input,
+  );
+  return data;
+}
+
+export async function deleteRecurringExpense(
+  householdId: string,
+  recurringId: string,
+): Promise<RecurringExpense> {
+  const { data } = await api.delete<RecurringExpense>(
+    `/households/${householdId}/recurring-expenses/${recurringId}`,
+  );
+  return data;
+}
+
+export async function generateRecurringExpense(
+  householdId: string,
+  recurringId: string,
+): Promise<Expense> {
+  const { data } = await api.post<Expense>(
+    `/households/${householdId}/recurring-expenses/${recurringId}/generate`,
   );
   return data;
 }

@@ -1,6 +1,10 @@
 import type { Context } from "hono";
 import { parseOrThrow } from "../lib/validation.js";
 import { expenseService, type ExpenseService } from "../services/expense.service.js";
+import {
+  recurringExpenseService,
+  type RecurringExpenseService,
+} from "../services/recurring-expense.service.js";
 import { assignSplitsSchema } from "../validators/expense-split.validator.js";
 import {
   createExpenseSchema,
@@ -10,12 +14,16 @@ import {
 } from "../validators/expense.validator.js";
 
 export class ExpenseController {
-  constructor(private readonly service: ExpenseService = expenseService) {}
+  constructor(
+    private readonly service: ExpenseService = expenseService,
+    private readonly recurring: RecurringExpenseService = recurringExpenseService,
+  ) {}
 
   list = async (c: Context) => {
     const query = parseOrThrow(listExpensesQuerySchema, c.req.query());
+    const generated = await this.recurring.generateDueRecurringExpenses(query.householdId);
     const expenses = await this.service.listByHousehold(query);
-    return c.json(expenses, 200);
+    return c.json({ ...expenses, recurringGeneratedCount: generated.length }, 200);
   };
 
   get = async (c: Context) => {

@@ -99,9 +99,54 @@ export const assignSplitsSchema = z
     { message: "Percentages must sum to exactly 100", path: ["splits"] },
   );
 
+const recurringFrequencySchema = z.enum(["weekly", "monthly", "quarterly", "yearly"]);
+
+const recurringExpenseBodyFields = {
+  title: z.string().trim().min(1, "Title is required").max(500),
+  amount: z.number().positive("Amount must be positive").max(999_999_999.99),
+  category: z.string().cuid("Select a category"),
+  paidById: z.string().cuid("Select who pays"),
+  frequency: recurringFrequencySchema,
+  startDate: z.string().date("Use YYYY-MM-DD format"),
+  splits: z.array(splitItemSchema).min(1),
+};
+
+function withRecurringSplitRefinements<
+  T extends z.ZodType<{ splits?: { tenantId: string; percentage: number }[] }>,
+>(schema: T) {
+  return schema.refine(
+    (data) => {
+      if (!data.splits || data.splits.length === 0) {
+        return true;
+      }
+      return Math.abs(data.splits.reduce((sum, split) => sum + split.percentage, 0) - 100) < 0.01;
+    },
+    { message: "Percentages must sum to exactly 100", path: ["splits"] },
+  );
+}
+
+export const createRecurringExpenseSchema = withRecurringSplitRefinements(
+  z.object(recurringExpenseBodyFields),
+);
+
+export const updateRecurringExpenseSchema = withRecurringSplitRefinements(
+  z.object({
+    title: recurringExpenseBodyFields.title.optional(),
+    amount: recurringExpenseBodyFields.amount.optional(),
+    category: recurringExpenseBodyFields.category.optional(),
+    paidById: recurringExpenseBodyFields.paidById.optional(),
+    frequency: recurringExpenseBodyFields.frequency.optional(),
+    startDate: recurringExpenseBodyFields.startDate.optional(),
+    splits: z.array(splitItemSchema).min(1).optional(),
+    active: z.boolean().optional(),
+  }),
+);
+
 export type CreateHouseholdForm = z.infer<typeof createHouseholdSchema>;
 export type CreateTenantForm = z.infer<typeof createTenantSchema>;
 export type CreateCategoryForm = z.infer<typeof createCategorySchema>;
 export type CreateExpenseForm = z.infer<typeof createExpenseSchema>;
 export type UpdateExpenseForm = z.infer<typeof updateExpenseSchema>;
 export type AssignSplitsForm = z.infer<typeof assignSplitsSchema>;
+export type CreateRecurringExpenseForm = z.infer<typeof createRecurringExpenseSchema>;
+export type UpdateRecurringExpenseForm = z.infer<typeof updateRecurringExpenseSchema>;

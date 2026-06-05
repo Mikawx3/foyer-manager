@@ -109,11 +109,58 @@ export interface Expense {
   createdAt: string;
 }
 
+export type RecurringFrequency = "weekly" | "monthly" | "quarterly" | "yearly";
+
+export interface RecurringExpenseSplit {
+  tenantId: string;
+  tenant: { id: string; name: string };
+  percentage: number;
+}
+
+export interface RecurringExpense {
+  id: string;
+  householdId: string;
+  title: string;
+  amount: number;
+  category?: string;
+  paidById: string;
+  paidBy: { id: string; name: string };
+  frequency: RecurringFrequency;
+  startDate: string;
+  nextDueDate: string;
+  active: boolean;
+  splits: RecurringExpenseSplit[];
+  createdAt: string;
+}
+
+export interface CreateRecurringExpensePayload {
+  title: string;
+  amount: number;
+  category?: string;
+  paidById: string;
+  frequency: RecurringFrequency;
+  startDate: string;
+  splits: { tenantId: string; percentage: number }[];
+}
+
+export interface UpdateRecurringExpensePayload {
+  title?: string;
+  amount?: number;
+  category?: string | null;
+  paidById?: string;
+  frequency?: RecurringFrequency;
+  startDate?: string;
+  nextDueDate?: string;
+  active?: boolean;
+  splits?: { tenantId: string; percentage: number }[];
+}
+
 export interface PaginatedExpenses {
   data: Expense[];
   total: number;
   page: number;
   totalPages: number;
+  recurringGeneratedCount?: number;
 }
 
 export interface ExpenseSplit {
