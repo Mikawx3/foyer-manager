@@ -4,15 +4,15 @@
   --color-bg: #f9f8f5;
   --color-surface: #ffffff;
   --color-border: oklch(0.2 0.01 80 / 0.1);
-  --color-primary: #6d28d9;
-  --color-primary-hover: #5b21b6;
+  --color-primary: #01696f;
+  --color-primary-hover: #01555a;
   --color-rent: #f43f5e;
   --color-groceries: #3b82f6;
   --color-utilities: #f59e0b;
   --color-internet: #8b5cf6;
   --color-other: #6b7280;
-  --color-positive: #10b981;
-  --color-negative: #f43f5e;
+  --color-positive: #01696f;
+  --color-negative: #a12c7b;
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

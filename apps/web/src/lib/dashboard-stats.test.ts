@@ -121,6 +121,7 @@ describe("computeDashboardKpis", () => {
     expect(kpis.largestExpense).toEqual({ description: "Rent June", amount: 100 });
     expect(kpis.mostIndebted).toEqual({ name: "Bob", balance: -75 });
     expect(kpis.allSettled).toBe(false);
+    expect(kpis.pendingSettlementCount).toBe(1);
   });
 
   it("marks all settled when no negative balances", () => {
@@ -148,6 +149,7 @@ describe("computeDashboardKpis", () => {
 
     expect(kpis.allSettled).toBe(true);
     expect(kpis.mostIndebted).toBeNull();
+    expect(kpis.pendingSettlementCount).toBe(0);
   });
 });
 
@@ -197,7 +199,7 @@ describe("computeBalanceChartData", () => {
       },
     ];
     const bars = computeBalanceChartData(balances, tenants);
-    expect(bars[0]).toMatchObject({ name: "Alice", balance: 50, fill: "#10b981" });
-    expect(bars[1]).toMatchObject({ name: "Bob", balance: -50, fill: "#f43f5e" });
+    expect(bars[0]).toMatchObject({ name: "Alice", balance: 50, fill: "var(--color-primary)" });
+    expect(bars[1]).toMatchObject({ name: "Bob", balance: -50, fill: "var(--color-negative)" });
   });
 });

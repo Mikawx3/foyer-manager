@@ -113,7 +113,7 @@ export async function getExpenses(
       householdId,
       page: params.page ?? 1,
       limit: params.limit ?? 10,
-      ...(params.month !== undefined && { month: params.month }),
+      ...(params.month !== undefined && params.month !== "" && { month: params.month }),
       ...(params.categoryId !== undefined && params.categoryId !== "" && {
         categoryId: params.categoryId,
       }),

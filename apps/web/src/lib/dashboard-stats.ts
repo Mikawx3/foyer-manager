@@ -1,8 +1,9 @@
 import type { Category, Expense, Tenant, TenantBalance } from "@foyer/types";
 import { getCategoryHexForName } from "./category-colors.ts";
+import { computeSuggestedSettlements } from "./suggested-settlements.ts";
 
-const BALANCE_POSITIVE_FILL = "#10b981";
-const BALANCE_NEGATIVE_FILL = "#f43f5e";
+const BALANCE_POSITIVE_FILL = "var(--color-primary)";
+const BALANCE_NEGATIVE_FILL = "var(--color-negative)";
 const BALANCE_NEUTRAL_FILL = "#6b7280";
 
 export interface DashboardKpis {
@@ -11,6 +12,7 @@ export interface DashboardKpis {
   largestExpense: { description: string; amount: number } | null;
   mostIndebted: { name: string; balance: number } | null;
   allSettled: boolean;
+  pendingSettlementCount: number;
 }
 
 export interface CategorySpendingSlice {
@@ -96,6 +98,7 @@ export function computeDashboardKpis(
   }
 
   const allSettled = balances.length === 0 || minBalance >= 0;
+  const pendingSettlementCount = computeSuggestedSettlements(balances).length;
 
   return {
     totalThisMonth,
@@ -103,6 +106,7 @@ export function computeDashboardKpis(
     largestExpense,
     mostIndebted: allSettled ? null : mostIndebted,
     allSettled,
+    pendingSettlementCount,
   };
 }
 
