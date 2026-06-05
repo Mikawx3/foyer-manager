@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { WizardProgressBar } from "../components/wizard/WizardProgressBar.tsx";
 import { WizardStepBalancePeriod } from "../components/wizard/WizardStepBalancePeriod.tsx";
 import { WizardStepDefaultSplit } from "../components/wizard/WizardStepDefaultSplit.tsx";
@@ -32,6 +33,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
   const navigate = useNavigate();
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { isLocalMode } = useDeploymentMode();
   const [state, setState] = useState<WizardState>(initialWizardState);
   const [stepError, setStepError] = useState<string | undefined>();
 
@@ -246,7 +248,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
         </footer>
       )}
 
-      {state.step === 1 && (
+      {state.step === 1 && !(isLocalMode && mode === "create") && (
         <footer className="mt-10 border-t border-border pt-6">
           <button
             type="button"
