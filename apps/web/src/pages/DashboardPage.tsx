@@ -33,6 +33,7 @@ import {
   getBalances,
   getCategories,
   getExpenses,
+  getHousehold,
   getTenants,
 } from "../lib/api.ts";
 import {
@@ -45,6 +46,7 @@ import {
 import type { ExpenseListFilters } from "../lib/expense-list-filters.ts";
 import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
 import { formatCurrency, formatDate, formatSignedCurrency } from "../lib/format.ts";
+import { isSoloHousehold } from "../lib/household-mode.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { computeSuggestedSettlements } from "../lib/suggested-settlements.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
@@ -110,6 +112,12 @@ export function DashboardPage() {
   const [modalDate, setModalDate] = useState(toDateInputValue());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
+  const householdQuery = useQuery({
+    queryKey: queryKeys.household(householdId),
+    queryFn: () => getHousehold(householdId),
+    enabled: Boolean(householdId),
+  });
+
   const expensesQuery = useQuery({
     queryKey: queryKeys.expensesAll(householdId),
     queryFn: () => fetchAllExpenses(householdId),
@@ -144,10 +152,17 @@ export function DashboardPage() {
     expensesQuery.isLoading ||
     balancesQuery.isLoading ||
     categoriesQuery.isLoading ||
-    tenantsQuery.isLoading;
+    tenantsQuery.isLoading ||
+    householdQuery.isLoading;
 
   const queryError =
-    expensesQuery.error ?? balancesQuery.error ?? categoriesQuery.error ?? tenantsQuery.error;
+    expensesQuery.error ??
+    balancesQuery.error ??
+    categoriesQuery.error ??
+    tenantsQuery.error ??
+    householdQuery.error;
+
+  const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
 
   const refetchAll = () => {
     void expensesQuery.refetch();
@@ -155,6 +170,7 @@ export function DashboardPage() {
     void balancesQuery.refetch();
     void categoriesQuery.refetch();
     void tenantsQuery.refetch();
+    void householdQuery.refetch();
   };
 
   const tenantNameById = useMemo(
@@ -283,7 +299,7 @@ export function DashboardPage() {
 
       {!isLoading && stats && (
         <>
-          <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <section className={`grid grid-cols-2 gap-4 ${isSolo ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
             <KpiCard
               title="Total this month"
               value={<span className={amount}>{formatCurrency(stats.kpis.totalThisMonth)}</span>}
@@ -303,16 +319,18 @@ export function DashboardPage() {
               }
               subtitle={stats.kpis.largestExpense?.description}
             />
-            <KpiCard
-              to={`/households/${householdId}/balances`}
-              title="Pending settlements"
-              value={stats.kpis.pendingSettlementCount}
-              subtitle={
-                stats.kpis.mostIndebted
-                  ? `${stats.kpis.mostIndebted.name} · ${formatSignedCurrency(stats.kpis.mostIndebted.balance)}`
-                  : undefined
-              }
-            />
+            {!isSolo && (
+              <KpiCard
+                to={`/households/${householdId}/balances`}
+                title="Pending settlements"
+                value={stats.kpis.pendingSettlementCount}
+                subtitle={
+                  stats.kpis.mostIndebted
+                    ? `${stats.kpis.mostIndebted.name} · ${formatSignedCurrency(stats.kpis.mostIndebted.balance)}`
+                    : undefined
+                }
+              />
+            )}
           </section>
 
           <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -382,6 +400,7 @@ export function DashboardPage() {
               </ResponsiveContainer>
             </ChartCard>
 
+            {!isSolo && (
             <div className="lg:col-span-2">
               <ChartCard
                 title="Balances"
@@ -410,8 +429,10 @@ export function DashboardPage() {
                 </ResponsiveContainer>
               </ChartCard>
             </div>
+            )}
           </section>
 
+          {!isSolo && (
           <section className={card}>
             <h2 className="text-sm font-semibold tracking-tight text-stone-900">
               Pending settlements
@@ -465,6 +486,7 @@ export function DashboardPage() {
               </Link>
             </div>
           </section>
+          )}
 
           <section className={card}>
             <h2 className="text-sm font-semibold tracking-tight text-stone-900">Recent expenses</h2>
@@ -570,6 +592,7 @@ export function DashboardPage() {
           householdId={householdId}
           categories={categoriesQuery.data}
           tenants={tenantsQuery.data}
+          isSolo={isSolo}
           expenseFilters={RECENT_FILTERS}
           open
           onClose={() => setEditingExpense(null)}

@@ -1,10 +1,19 @@
 export type SettlementPeriod = "none" | "monthly" | "quarterly" | "yearly";
 
+export type HouseholdType = "solo" | "shared";
+
 export interface Household {
   id: string;
   name: string;
+  type: HouseholdType;
   settlementPeriod: SettlementPeriod;
   createdAt: string;
+}
+
+export interface CreateHouseholdPayload {
+  name: string;
+  type: HouseholdType;
+  settlementPeriod: SettlementPeriod;
 }
 
 export interface Settlement {
@@ -35,8 +44,16 @@ export interface Tenant {
   id: string;
   name: string;
   email: string;
+  color?: string | null;
   householdId: string;
   createdAt: string;
+}
+
+export interface CreateTenantPayload {
+  name: string;
+  email?: string;
+  color?: string;
+  householdId: string;
 }
 
 export interface Category {

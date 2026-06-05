@@ -6,6 +6,8 @@ describe("@foyer/types", () => {
     const household: Household = {
       id: "h1",
       name: "Home",
+      type: "shared",
+      settlementPeriod: "monthly",
       createdAt: "2026-01-01T00:00:00.000Z",
     };
     expect(household.name).toBe("Home");

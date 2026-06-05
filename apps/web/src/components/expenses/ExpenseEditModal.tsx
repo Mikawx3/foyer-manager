@@ -15,6 +15,7 @@ interface ExpenseEditModalProps {
   householdId: string;
   categories: Category[];
   tenants: Tenant[];
+  isSolo?: boolean;
   expenseFilters: ExpenseListFilters;
   open: boolean;
   onClose: () => void;
@@ -25,6 +26,7 @@ export function ExpenseEditModal({
   householdId,
   categories,
   tenants,
+  isSolo = false,
   expenseFilters,
   open,
   onClose,
@@ -89,6 +91,7 @@ export function ExpenseEditModal({
           householdId={householdId}
           categories={categories}
           tenants={tenants}
+          isSolo={isSolo}
           initialExpense={expense}
           initialParticipantIds={initialParticipantIds}
           initialSplits={initialSplits}

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout.tsx";
 import { HouseholdDetailPage } from "./pages/HouseholdDetailPage.tsx";
+import { HouseholdWizardPage } from "./pages/HouseholdWizardPage.tsx";
 import { HouseholdsPage } from "./pages/HouseholdsPage.tsx";
 import { BalancesPage } from "./pages/BalancesPage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/households" replace /> },
       { path: "households", element: <HouseholdsPage /> },
+      { path: "households/new", element: <HouseholdWizardPage /> },
       {
         path: "households/:id",
         element: <HouseholdDetailPage />,

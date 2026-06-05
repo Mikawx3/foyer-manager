@@ -8,6 +8,7 @@ export const householdRoutes = new Hono();
 
 householdRoutes.get("/", householdController.list);
 householdRoutes.post("/", householdController.create);
+householdRoutes.post("/:id/tenants", householdController.createTenant);
 householdRoutes.get("/:id/default-splits/resolve", defaultSplitController.resolve);
 householdRoutes.get("/:id/default-splits", defaultSplitController.getRules);
 householdRoutes.put("/:id/default-splits", defaultSplitController.setRules);

@@ -14,11 +14,15 @@ import {
   deleteSettlement,
   getApiErrorMessage,
   getBalances,
+  getCategories,
   getHousehold,
   getSettlements,
   getTenants,
 } from "../lib/api.ts";
+import { computeCategorySpending } from "../lib/dashboard-stats.ts";
+import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
 import { formatCurrency } from "../lib/format.ts";
+import { isSoloHousehold } from "../lib/household-mode.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { computeSuggestedSettlements } from "../lib/suggested-settlements.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
@@ -59,7 +63,28 @@ export function BalancesPage() {
     enabled: Boolean(householdId),
   });
 
-  const showPeriodTabs = householdQuery.data?.settlementPeriod !== "none";
+  const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
+
+  const showPeriodTabs = !isSolo && householdQuery.data?.settlementPeriod !== "none";
+
+  const expensesQuery = useQuery({
+    queryKey: queryKeys.expensesAll(householdId),
+    queryFn: () => fetchAllExpenses(householdId),
+    enabled: Boolean(householdId) && isSolo,
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.categories(householdId),
+    queryFn: () => getCategories(householdId),
+    enabled: Boolean(householdId) && isSolo,
+  });
+
+  const categorySpending = useMemo(() => {
+    if (!expensesQuery.data || !categoriesQuery.data) {
+      return [];
+    }
+    return computeCategorySpending(expensesQuery.data, categoriesQuery.data);
+  }, [expensesQuery.data, categoriesQuery.data]);
 
   const balancesQuery = useQuery({
     queryKey: queryKeys.balances(householdId, balancePeriod),
@@ -121,8 +146,9 @@ export function BalancesPage() {
     }),
   });
 
-  const isLoading =
-    balancesQuery.isLoading || tenantsQuery.isLoading || householdQuery.isLoading;
+  const isLoading = isSolo
+    ? expensesQuery.isLoading || categoriesQuery.isLoading || householdQuery.isLoading
+    : balancesQuery.isLoading || tenantsQuery.isLoading || householdQuery.isLoading;
 
   const tenants = tenantsQuery.data ?? [];
 
@@ -182,10 +208,12 @@ export function BalancesPage() {
         <div>
           <h1 className={pageTitle}>Balances</h1>
           <p className={pageSubtitle}>
-            Positive balance means others owe this member; negative means they owe others.
+            {isSolo
+              ? "Total spending by category."
+              : "Positive balance means others owe this member; negative means they owe others."}
           </p>
         </div>
-        {tenants.length >= 2 && (
+        {!isSolo && tenants.length >= 2 && (
           <button
             type="button"
             className={`${btnSecondary} shrink-0 rounded-lg border border-border px-3 py-2`}
@@ -224,19 +252,62 @@ export function BalancesPage() {
       )}
 
       {isLoading && <ListSkeleton rows={3} />}
-      {balancesQuery.isError && (
+      {!isSolo && balancesQuery.isError && (
         <ErrorMessage
           message={getApiErrorMessage(balancesQuery.error)}
           onRetry={() => balancesQuery.refetch()}
         />
       )}
-      {balancesQuery.isSuccess && balancesQuery.data.length === 0 && (
+      {isSolo && (expensesQuery.isError || categoriesQuery.isError) && (
+        <ErrorMessage
+          message={getApiErrorMessage(expensesQuery.error ?? categoriesQuery.error)}
+          onRetry={() => {
+            void expensesQuery.refetch();
+            void categoriesQuery.refetch();
+          }}
+        />
+      )}
+      {isSolo && expensesQuery.isSuccess && categoriesQuery.isSuccess && categorySpending.length === 0 && (
+        <EmptyState
+          title="No spending yet"
+          description="Add expenses to see totals by category."
+        />
+      )}
+      {isSolo && expensesQuery.isSuccess && categoriesQuery.isSuccess && categorySpending.length > 0 && (
+        <div className={`${card} overflow-hidden p-0`}>
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead className="bg-bg">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">Category</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">Total spent</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border bg-surface">
+              {categorySpending.map((row) => (
+                <tr key={row.name}>
+                  <td className="px-4 py-3 font-medium text-stone-900">
+                    <span className="inline-flex items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: row.fill }}
+                      />
+                      {row.name}
+                    </span>
+                  </td>
+                  <td className={`px-4 py-3 text-right ${amount}`}>{formatCurrency(row.value)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {!isSolo && balancesQuery.isSuccess && balancesQuery.data.length === 0 && (
         <EmptyState
           title="No balance data"
           description="Add members and expenses with splits to see balances."
         />
       )}
-      {balancesQuery.isSuccess && balancesQuery.data.length > 0 && (
+      {!isSolo && balancesQuery.isSuccess && balancesQuery.data.length > 0 && (
         <div className={`${card} overflow-hidden p-0`}>
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-bg">
@@ -277,7 +348,7 @@ export function BalancesPage() {
         </div>
       )}
 
-      {balancesQuery.isSuccess && suggestions.length > 0 && (
+      {!isSolo && balancesQuery.isSuccess && suggestions.length > 0 && (
         <section className={card}>
           <h2 className="text-base font-semibold text-stone-900">Suggested settlements</h2>
           <ul className="mt-3 space-y-2">
@@ -318,7 +389,7 @@ export function BalancesPage() {
         </section>
       )}
 
-      {settlementsQuery.isSuccess && settlementsQuery.data.length > 0 && (
+      {!isSolo && settlementsQuery.isSuccess && settlementsQuery.data.length > 0 && (
         <section className={card}>
           <button
             type="button"
@@ -372,6 +443,7 @@ export function BalancesPage() {
         </section>
       )}
 
+      {!isSolo && (
       <SettlementModal
         isOpen={modalDraft !== null}
         draft={modalDraft}
@@ -407,6 +479,7 @@ export function BalancesPage() {
         onCancel={() => setModalDraft(null)}
         isLoading={createSettlementMutation.isPending}
       />
+      )}
     </div>
   );
 }

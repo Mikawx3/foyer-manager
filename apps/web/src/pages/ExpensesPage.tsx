@@ -32,6 +32,7 @@ import {
   resetExpenseSplits,
 } from "../lib/api.ts";
 import { exportExpensesToCSV, slugifyHouseholdName } from "../lib/export.ts";
+import { isSoloHousehold } from "../lib/household-mode.ts";
 import { formatCurrency, formatDate } from "../lib/format.ts";
 import { currentMonthValue, type ExpenseListFilters } from "../lib/expense-list-filters.ts";
 import {
@@ -207,6 +208,7 @@ interface ExpenseFormsAsideProps {
   householdId: string;
   categories: Category[];
   tenants: Tenant[];
+  isSolo?: boolean;
   onCategorySubmit: (data: CreateCategoryForm) => void;
   onExpenseSubmit: (data: CreateExpenseForm | UpdateExpenseForm) => void;
   categoryPending: boolean;
@@ -220,6 +222,7 @@ function ExpenseFormsAside({
   householdId,
   categories,
   tenants,
+  isSolo = false,
   onCategorySubmit,
   onExpenseSubmit,
   categoryPending,
@@ -242,6 +245,7 @@ function ExpenseFormsAside({
         householdId={householdId}
         categories={categories}
         tenants={tenants}
+        isSolo={isSolo}
         onSubmit={onExpenseSubmit}
         isPending={expensePending}
       />
@@ -392,12 +396,15 @@ export function ExpensesPage() {
     toast.success(`CSV exported — ${expenseList.length} expenses`);
   };
 
+  const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
+
   const formsAside =
     canAddExpense && categoriesQuery.data && tenantsQuery.data ? (
       <ExpenseFormsAside
         householdId={householdId}
         categories={categoriesQuery.data}
         tenants={tenantsQuery.data}
+        isSolo={isSolo}
         onCategorySubmit={(data) => createCategoryMutation.mutate(data)}
         onExpenseSubmit={(data) => {
           if ("householdId" in data) {
@@ -622,7 +629,7 @@ export function ExpensesPage() {
                           </button>
                         </div>
                       </div>
-                      {tenantsQuery.data && tenantsQuery.data.length > 0 && (
+                      {tenantsQuery.data && tenantsQuery.data.length > 0 && !isSolo && (
                         <ExpenseSplits
                           expense={expense}
                           householdId={householdId}
@@ -682,6 +689,7 @@ export function ExpensesPage() {
           householdId={householdId}
           categories={categoriesQuery.data}
           tenants={tenantsQuery.data}
+          isSolo={isSolo}
           expenseFilters={expenseFilters}
           open={editingExpense !== null}
           onClose={() => setEditingExpense(null)}
@@ -711,6 +719,7 @@ export function ExpensesPage() {
             householdId={householdId}
             categories={categoriesQuery.data}
             tenants={tenantsQuery.data}
+            isSolo={isSolo}
             onCategorySubmit={(data) => createCategoryMutation.mutate(data)}
             onExpenseSubmit={(data) => {
           if ("householdId" in data) {

@@ -17,6 +17,7 @@ export class TenantRepository {
   async create(data: {
     name: string;
     email: string;
+    color?: string;
     householdId: string;
   }): Promise<Tenant> {
     try {

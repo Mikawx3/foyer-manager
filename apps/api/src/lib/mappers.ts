@@ -4,6 +4,7 @@ import type {
   Expense,
   ExpenseSplit,
   Household,
+  HouseholdType,
   Settlement,
   SettlementPeriod,
   SplitMode,
@@ -27,10 +28,15 @@ function toSettlementPeriod(value: string): SettlementPeriod {
   return "none";
 }
 
+function toHouseholdType(value: string): HouseholdType {
+  return value === "solo" ? "solo" : "shared";
+}
+
 export function toHouseholdDto(household: PrismaHousehold): Household {
   return {
     id: household.id,
     name: household.name,
+    type: toHouseholdType(household.type),
     settlementPeriod: toSettlementPeriod(household.settlementPeriod),
     createdAt: household.createdAt.toISOString(),
   };
@@ -62,6 +68,7 @@ export function toTenantDto(tenant: PrismaTenant): Tenant {
     id: tenant.id,
     name: tenant.name,
     email: tenant.email,
+    ...(tenant.color !== null && { color: tenant.color }),
     householdId: tenant.householdId,
     createdAt: tenant.createdAt.toISOString(),
   };

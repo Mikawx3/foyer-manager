@@ -1,4 +1,4 @@
-import type { Category } from "@prisma/client";
+import type { Category, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { handlePrismaError } from "../lib/prisma-errors.js";
 
@@ -20,6 +20,19 @@ export class CategoryRepository {
     } catch (error) {
       handlePrismaError(error);
     }
+  }
+
+  async createManyForHousehold(
+    householdId: string,
+    names: readonly string[],
+    client: Prisma.TransactionClient | typeof prisma = prisma,
+  ): Promise<void> {
+    if (names.length === 0) {
+      return;
+    }
+    await client.category.createMany({
+      data: names.map((name) => ({ name, householdId })),
+    });
   }
 
   async countExpenses(categoryId: string): Promise<number> {

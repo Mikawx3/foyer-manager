@@ -23,6 +23,7 @@ interface ExpenseFormProps {
   householdId: string;
   categories: Category[];
   tenants: Tenant[];
+  isSolo?: boolean;
   onSubmit: (data: ExpenseFormValues) => void;
   isPending: boolean;
   variant?: "create" | "edit";
@@ -37,6 +38,7 @@ export function ExpenseForm({
   householdId,
   categories,
   tenants,
+  isSolo = false,
   onSubmit,
   isPending,
   variant = "create",
@@ -48,6 +50,7 @@ export function ExpenseForm({
 }: ExpenseFormProps) {
   const today = new Date().toISOString().slice(0, 10);
   const allTenantIds = useMemo(() => tenants.map((tenant) => tenant.id), [tenants]);
+  const soleTenantId = allTenantIds[0] ?? "";
 
   const defaultValues: ExpenseFormValues =
     variant === "edit" && initialExpense
@@ -107,6 +110,13 @@ export function ExpenseForm({
       setValue("householdId", householdId);
     }
   }, [householdId, setValue, variant]);
+
+  useEffect(() => {
+    if (isSolo && soleTenantId) {
+      setValue("paidByTenantId", soleTenantId);
+      setSelectedParticipantIds([soleTenantId]);
+    }
+  }, [isSolo, soleTenantId, setValue]);
 
   const resolvedRulesQuery = useQuery({
     queryKey: queryKeys.resolvedDefaultSplits(householdId, categoryId),
@@ -174,6 +184,16 @@ export function ExpenseForm({
     allTenantIds.every((id) => selectedParticipantIds.includes(id));
 
   const buildPayload = (data: ExpenseFormValues): ExpenseFormValues => {
+    if (isSolo && soleTenantId) {
+      return {
+        ...data,
+        paidByTenantId: soleTenantId,
+        splitMode: "default",
+        participantIds: [soleTenantId],
+        splits: undefined,
+      };
+    }
+
     const participantIds = selectedParticipantIds;
 
     if (useAutoSplit) {
@@ -264,7 +284,7 @@ export function ExpenseForm({
         </select>
       </FormField>
 
-      {tenants.length > 0 && (
+      {tenants.length > 0 && !isSolo && (
         <ExpenseParticipantSplits
           tenants={tenants}
           selectedParticipantIds={selectedParticipantIds}
@@ -287,18 +307,23 @@ export function ExpenseForm({
         />
       )}
 
-      <FormField label="Paid by" error={errors.paidByTenantId?.message}>
-        <select className={selectClassName} {...register("paidByTenantId")} defaultValue="">
-          <option value="" disabled>
-            Select member
-          </option>
-          {tenants.map((tenant) => (
-            <option key={tenant.id} value={tenant.id}>
-              {tenant.name}
+      {!isSolo && (
+        <FormField label="Paid by" error={errors.paidByTenantId?.message}>
+          <select className={selectClassName} {...register("paidByTenantId")} defaultValue="">
+            <option value="" disabled>
+              Select member
             </option>
-          ))}
-        </select>
-      </FormField>
+            {tenants.map((tenant) => (
+              <option key={tenant.id} value={tenant.id}>
+                {tenant.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      )}
+      {isSolo && soleTenantId && (
+        <input type="hidden" {...register("paidByTenantId")} value={soleTenantId} />
+      )}
       <FormField label="Date" error={errors.date?.message}>
         <input className={inputClassName} type="date" {...register("date")} />
       </FormField>

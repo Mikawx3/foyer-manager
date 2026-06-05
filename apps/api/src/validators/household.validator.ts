@@ -2,8 +2,12 @@ import { z } from "zod";
 
 export const settlementPeriodSchema = z.enum(["none", "monthly", "quarterly", "yearly"]);
 
+export const householdTypeSchema = z.enum(["solo", "shared"]);
+
 export const createHouseholdSchema = z.object({
   name: z.string().trim().min(1).max(255),
+  type: householdTypeSchema,
+  settlementPeriod: settlementPeriodSchema,
 });
 
 export const updateHouseholdSchema = z.object({

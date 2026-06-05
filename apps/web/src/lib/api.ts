@@ -1,6 +1,7 @@
 import type {
   Category,
   CreateExpensePayload,
+  CreateHouseholdPayload,
   CreateSettlementPayload,
   DefaultSplit,
   DefaultSplitRules,
@@ -48,8 +49,16 @@ export async function getHouseholds(): Promise<Household[]> {
   return data;
 }
 
-export async function createHousehold(input: { name: string }): Promise<Household> {
+export async function createHousehold(input: CreateHouseholdPayload): Promise<Household> {
   const { data } = await api.post<Household>("/households", input);
+  return data;
+}
+
+export async function createHouseholdTenant(
+  householdId: string,
+  input: { name: string; color?: string; email?: string },
+): Promise<Tenant> {
+  const { data } = await api.post<Tenant>(`/households/${householdId}/tenants`, input);
   return data;
 }
 
@@ -208,6 +217,11 @@ export async function updateHousehold(
   input: UpdateHouseholdPayload,
 ): Promise<Household> {
   const { data } = await api.patch<Household>(`/households/${id}`, input);
+  return data;
+}
+
+export async function deleteHousehold(id: string): Promise<Household> {
+  const { data } = await api.delete<Household>(`/households/${id}`);
   return data;
 }
 
