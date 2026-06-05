@@ -15,6 +15,20 @@ export class HouseholdRepository {
     return prisma.household.create({ data });
   }
 
+  async updateById(
+    id: string,
+    data: { settlementPeriod: string },
+  ): Promise<Household> {
+    try {
+      return await prisma.household.update({
+        where: { id },
+        data: { settlementPeriod: data.settlementPeriod },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
   async deleteById(id: string): Promise<Household> {
     try {
       return await prisma.household.delete({ where: { id } });

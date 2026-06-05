@@ -6,6 +6,7 @@ import { HouseholdService } from "./household.service.js";
 const prismaHousehold = {
   id: "clh12345678901234567890123",
   name: "Home",
+  settlementPeriod: "none",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
 };
 
@@ -15,6 +16,7 @@ describe("HouseholdService", () => {
       findById: vi.fn().mockResolvedValue(null),
       findAll: vi.fn(),
       create: vi.fn(),
+      updateById: vi.fn(),
       deleteById: vi.fn(),
     };
     const service = new HouseholdService(repository);
@@ -29,6 +31,7 @@ describe("HouseholdService", () => {
       findById: vi.fn(),
       findAll: vi.fn(),
       create: vi.fn().mockResolvedValue(prismaHousehold),
+      updateById: vi.fn(),
       deleteById: vi.fn(),
     };
     const service = new HouseholdService(repository);
@@ -38,6 +41,7 @@ describe("HouseholdService", () => {
     expect(result).toEqual({
       id: prismaHousehold.id,
       name: "Home",
+      settlementPeriod: "none",
       createdAt: "2026-01-01T00:00:00.000Z",
     });
   });

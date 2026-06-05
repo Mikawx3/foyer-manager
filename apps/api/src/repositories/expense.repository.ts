@@ -35,9 +35,15 @@ export class ExpenseRepository {
 
   async findAllByHouseholdWithSplits(
     householdId: string,
+    options?: { dateFrom?: Date },
   ): Promise<ExpenseWithSplits[]> {
     return prisma.expense.findMany({
-      where: { householdId },
+      where: {
+        householdId,
+        ...(options?.dateFrom !== undefined && {
+          date: { gte: options.dateFrom },
+        }),
+      },
       include: { splits: true },
       orderBy: { date: "desc" },
     });

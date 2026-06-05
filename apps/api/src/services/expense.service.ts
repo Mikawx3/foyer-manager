@@ -6,8 +6,10 @@ import type {
   TenantBalance,
 } from "@foyer/types";
 import { NotFoundError, ValidationError } from "../errors/app.errors.js";
+import { applySettlements } from "../lib/apply-settlements.js";
 import { decimalToNumber } from "../lib/decimal.js";
-import { toExpenseDto, toExpenseSplitDto } from "../lib/mappers.js";
+import { toExpenseDto, toExpenseSplitDto, toHouseholdDto } from "../lib/mappers.js";
+import { getPeriodStart } from "../lib/period-start.js";
 import { redistributeSplitsToItems } from "../lib/redistribute-splits.js";
 import {
   assertPercentagesSumTo100,
@@ -30,6 +32,10 @@ import {
   householdRepository,
   type HouseholdRepository,
 } from "../repositories/household.repository.js";
+import {
+  settlementRepository,
+  type SettlementRepository,
+} from "../repositories/settlement.repository.js";
 import {
   tenantRepository,
   type TenantRepository,
@@ -55,6 +61,7 @@ export class ExpenseService {
     private readonly tenants: TenantRepository = tenantRepository,
     private readonly categories: CategoryRepository = categoryRepository,
     private readonly defaultSplits: DefaultSplitService = defaultSplitService,
+    private readonly settlements: SettlementRepository = settlementRepository,
   ) {}
 
   async listByHousehold(query: ListExpensesQuery): Promise<PaginatedExpenses> {
@@ -204,12 +211,33 @@ export class ExpenseService {
     return this.getSplitsForExpense(expense);
   }
 
-  async getBalances(householdId: string): Promise<TenantBalance[]> {
-    await this.assertHouseholdExists(householdId);
+  async getBalances(
+    householdId: string,
+    options?: { period?: "all" | "current" },
+  ): Promise<TenantBalance[]> {
+    const household = await this.households.findById(householdId);
+    if (!household) {
+      throw new NotFoundError("Household not found");
+    }
+
+    const householdDto = toHouseholdDto(household);
+    const period = options?.period ?? "all";
+
+    let dateFrom: Date | undefined;
+    if (period === "current" && householdDto.settlementPeriod !== "none") {
+      const since = getPeriodStart(householdDto.settlementPeriod);
+      if (since !== null) {
+        dateFrom = since;
+      }
+    }
 
     const tenants = await this.tenants.findAllByHousehold(householdId);
-    const expensesWithSplits =
-      await this.expenses.findAllByHouseholdWithSplits(householdId);
+    const tenantNameById = new Map(tenants.map((tenant) => [tenant.id, tenant.name]));
+
+    const expensesWithSplits = await this.expenses.findAllByHouseholdWithSplits(
+      householdId,
+      dateFrom !== undefined ? { dateFrom } : undefined,
+    );
 
     const expenses = expensesWithSplits.map((expense) => ({
       paidByTenantId: expense.paidByTenantId,
@@ -227,11 +255,27 @@ export class ExpenseService {
       })),
     );
 
-    return computeTenantBalances(
+    const expenseBalances = computeTenantBalances(
       tenants.map((tenant) => ({ id: tenant.id })),
       expenses,
       splitInputs,
+    ).map((row) => ({
+      ...row,
+      tenantName: tenantNameById.get(row.tenantId) ?? row.tenantId,
+    }));
+
+    const settlementRecords = await this.settlements.findAllByHousehold(
+      householdId,
+      dateFrom !== undefined ? { dateFrom } : undefined,
     );
+
+    const settlementInputs = settlementRecords.map((settlement) => ({
+      fromTenantId: settlement.fromTenantId,
+      toTenantId: settlement.toTenantId,
+      amount: decimalToNumber(settlement.amount),
+    }));
+
+    return applySettlements(expenseBalances, settlementInputs);
   }
 
   private async getSplitsForExpense(expense: PrismaExpense): Promise<ExpenseSplit[]> {

@@ -1,19 +1,75 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import {
+  SettlementModal,
+  type SettlementModalDraft,
+} from "../components/balances/SettlementModal.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
-import { getApiErrorMessage, getBalances, getTenants } from "../lib/api.ts";
+import {
+  createSettlement,
+  deleteSettlement,
+  getApiErrorMessage,
+  getBalances,
+  getHousehold,
+  getSettlements,
+  getTenants,
+} from "../lib/api.ts";
 import { formatCurrency } from "../lib/format.ts";
 import { queryKeys } from "../lib/query-keys.ts";
-import { amount, card, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
+import { computeSuggestedSettlements } from "../lib/suggested-settlements.ts";
+import { mutationToastHandlers } from "../lib/toast.ts";
+import { amount, btnPrimary, btnSecondary, card, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
+
+const UNDO_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function formatDateLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function toDateInputValue(iso?: string): string {
+  const date = iso !== undefined ? new Date(iso) : new Date();
+  return date.toISOString().slice(0, 10);
+}
+
+function isoFromDateInput(value: string): string {
+  return new Date(`${value}T12:00:00.000Z`).toISOString();
+}
 
 export function BalancesPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const [balancePeriod, setBalancePeriod] = useState<"all" | "current">("all");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [modalDraft, setModalDraft] = useState<SettlementModalDraft | null>(null);
+  const [modalAmount, setModalAmount] = useState("");
+  const [modalNote, setModalNote] = useState("");
+  const [modalDate, setModalDate] = useState(toDateInputValue());
+
+  const householdQuery = useQuery({
+    queryKey: queryKeys.household(householdId),
+    queryFn: () => getHousehold(householdId),
+    enabled: Boolean(householdId),
+  });
+
+  const showPeriodTabs = householdQuery.data?.settlementPeriod !== "none";
 
   const balancesQuery = useQuery({
-    queryKey: queryKeys.balances(householdId),
-    queryFn: () => getBalances(householdId),
+    queryKey: queryKeys.balances(householdId, balancePeriod),
+    queryFn: () => getBalances(householdId, balancePeriod),
+    enabled: Boolean(householdId),
+  });
+
+  const settlementsQuery = useQuery({
+    queryKey: queryKeys.settlements(householdId),
+    queryFn: () => getSettlements(householdId),
     enabled: Boolean(householdId),
   });
 
@@ -23,18 +79,149 @@ export function BalancesPage() {
     enabled: Boolean(householdId),
   });
 
-  const tenantNameById = new Map(tenantsQuery.data?.map((t) => [t.id, t.name]) ?? []);
+  const tenantNameById = useMemo(
+    () => new Map(tenantsQuery.data?.map((tenant) => [tenant.id, tenant.name]) ?? []),
+    [tenantsQuery.data],
+  );
 
-  const isLoading = balancesQuery.isLoading || tenantsQuery.isLoading;
+  const suggestions = useMemo(
+    () => computeSuggestedSettlements(balancesQuery.data ?? []),
+    [balancesQuery.data],
+  );
+
+  const createSettlementMutation = useMutation({
+    mutationFn: (input: {
+      fromTenantId: string;
+      toTenantId: string;
+      amount: number;
+      note?: string;
+      date: string;
+    }) => createSettlement(householdId, input),
+    ...mutationToastHandlers({
+      successMessage: "Settlement recorded",
+      onSuccess: () => {
+        setModalDraft(null);
+        setModalAmount("");
+        setModalNote("");
+        void queryClient.invalidateQueries({ queryKey: ["balances", householdId] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.settlements(householdId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.household(householdId) });
+      },
+    }),
+  });
+
+  const deleteSettlementMutation = useMutation({
+    mutationFn: (settlementId: string) => deleteSettlement(householdId, settlementId),
+    ...mutationToastHandlers({
+      successMessage: "Settlement undone",
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: ["balances", householdId] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.settlements(householdId) });
+      },
+    }),
+  });
+
+  const isLoading =
+    balancesQuery.isLoading || tenantsQuery.isLoading || householdQuery.isLoading;
+
+  const tenants = tenantsQuery.data ?? [];
+
+  const resetModalFields = () => {
+    setModalNote("");
+    setModalDate(toDateInputValue());
+  };
+
+  const openSuggestedSettlementModal = (
+    fromTenantId: string,
+    toTenantId: string,
+    fromName: string,
+    toName: string,
+    amount: number,
+  ) => {
+    setModalDraft({
+      mode: "suggested",
+      fromTenantId,
+      toTenantId,
+      fromName,
+      toName,
+    });
+    setModalAmount(String(amount));
+    resetModalFields();
+  };
+
+  const openManualSettlementModal = () => {
+    const firstTenant = tenants[0];
+    const secondTenant = tenants.find((tenant) => tenant.id !== firstTenant?.id);
+    setModalDraft({
+      mode: "manual",
+      fromTenantId: firstTenant?.id ?? "",
+      toTenantId: secondTenant?.id ?? "",
+    });
+    setModalAmount("");
+    resetModalFields();
+  };
+
+  const handleFromChange = (fromTenantId: string) => {
+    if (!modalDraft) {
+      return;
+    }
+    const nextToTenantId =
+      modalDraft.toTenantId === fromTenantId
+        ? (tenants.find((tenant) => tenant.id !== fromTenantId)?.id ?? "")
+        : modalDraft.toTenantId;
+    setModalDraft({
+      ...modalDraft,
+      fromTenantId,
+      toTenantId: nextToTenantId,
+    });
+  };
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className={pageTitle}>Balances</h1>
-        <p className={pageSubtitle}>
-          Positive balance means others owe this member; negative means they owe others.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className={pageTitle}>Balances</h1>
+          <p className={pageSubtitle}>
+            Positive balance means others owe this member; negative means they owe others.
+          </p>
+        </div>
+        {tenants.length >= 2 && (
+          <button
+            type="button"
+            className={`${btnSecondary} shrink-0 rounded-lg border border-border px-3 py-2`}
+            onClick={openManualSettlementModal}
+          >
+            Record a payment
+          </button>
+        )}
       </div>
+
+      {showPeriodTabs && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={
+              balancePeriod === "current"
+                ? btnPrimary
+                : `${btnSecondary} rounded-lg border border-border px-3 py-1.5`
+            }
+            onClick={() => setBalancePeriod("current")}
+          >
+            This period
+          </button>
+          <button
+            type="button"
+            className={
+              balancePeriod === "all"
+                ? btnPrimary
+                : `${btnSecondary} rounded-lg border border-border px-3 py-1.5`
+            }
+            onClick={() => setBalancePeriod("all")}
+          >
+            All time
+          </button>
+        </div>
+      )}
 
       {isLoading && <ListSkeleton rows={3} />}
       {balancesQuery.isError && (
@@ -57,6 +244,7 @@ export function BalancesPage() {
                 <th className="px-4 py-3 text-left font-medium text-stone-700">Member</th>
                 <th className="px-4 py-3 text-right font-medium text-stone-700">Paid</th>
                 <th className="px-4 py-3 text-right font-medium text-stone-700">Owed</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">Settled</th>
                 <th className="px-4 py-3 text-right font-medium text-stone-700">Balance</th>
               </tr>
             </thead>
@@ -64,13 +252,16 @@ export function BalancesPage() {
               {balancesQuery.data.map((row) => (
                 <tr key={row.tenantId}>
                   <td className="px-4 py-3 font-medium text-stone-900">
-                    {tenantNameById.get(row.tenantId) ?? row.tenantId}
+                    {row.tenantName || tenantNameById.get(row.tenantId) || row.tenantId}
                   </td>
                   <td className={`px-4 py-3 text-right text-stone-600 ${amount}`}>
-                    {formatCurrency(row.totalPaid)}
+                    {formatCurrency(row.paid)}
                   </td>
                   <td className={`px-4 py-3 text-right text-stone-600 ${amount}`}>
-                    {formatCurrency(row.totalOwed)}
+                    {formatCurrency(row.owed)}
+                  </td>
+                  <td className={`px-4 py-3 text-right text-stone-600 ${amount}`}>
+                    {formatCurrency(row.settledAmount)}
                   </td>
                   <td
                     className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${
@@ -85,6 +276,137 @@ export function BalancesPage() {
           </table>
         </div>
       )}
+
+      {balancesQuery.isSuccess && suggestions.length > 0 && (
+        <section className={card}>
+          <h2 className="text-base font-semibold text-stone-900">Suggested settlements</h2>
+          <ul className="mt-3 space-y-2">
+            {suggestions.map((suggestion) => {
+              const fromName =
+                tenantNameById.get(suggestion.fromTenantId) ?? suggestion.fromTenantId;
+              const toName = tenantNameById.get(suggestion.toTenantId) ?? suggestion.toTenantId;
+              return (
+                <li
+                  key={`${suggestion.fromTenantId}-${suggestion.toTenantId}-${suggestion.amount}`}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-bg px-3 py-2"
+                >
+                  <span className="text-sm text-stone-800">
+                    {fromName} should pay {toName}{" "}
+                    <span className={`${amount} text-stone-900`}>
+                      {formatCurrency(suggestion.amount)}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    onClick={() =>
+                      openSuggestedSettlementModal(
+                        suggestion.fromTenantId,
+                        suggestion.toTenantId,
+                        fromName,
+                        toName,
+                        suggestion.amount,
+                      )
+                    }
+                  >
+                    Mark as paid
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {settlementsQuery.isSuccess && settlementsQuery.data.length > 0 && (
+        <section className={card}>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 text-left text-base font-semibold text-stone-900"
+            onClick={() => setHistoryOpen((open) => !open)}
+          >
+            {historyOpen ? (
+              <ChevronDown className="h-4 w-4" aria-hidden />
+            ) : (
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            )}
+            Settlement history
+          </button>
+          {historyOpen && (
+            <ul className="mt-3 space-y-2">
+              {settlementsQuery.data.map((settlement) => {
+                const fromName =
+                  tenantNameById.get(settlement.fromTenantId) ?? settlement.fromTenantId;
+                const toName =
+                  tenantNameById.get(settlement.toTenantId) ?? settlement.toTenantId;
+                const canUndo =
+                  Date.now() - new Date(settlement.createdAt).getTime() < UNDO_WINDOW_MS;
+
+                return (
+                  <li
+                    key={settlement.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-bg px-3 py-2 text-sm"
+                  >
+                    <span className="text-stone-800">
+                      {formatDateLabel(settlement.date)} — {fromName} → {toName}{" "}
+                      <span className={amount}>{formatCurrency(settlement.amount)}</span>
+                      {settlement.note !== null && settlement.note !== "" && (
+                        <span className="text-stone-500"> &quot;{settlement.note}&quot;</span>
+                      )}
+                    </span>
+                    {canUndo && (
+                      <button
+                        type="button"
+                        className={btnSecondary}
+                        disabled={deleteSettlementMutation.isPending}
+                        onClick={() => deleteSettlementMutation.mutate(settlement.id)}
+                      >
+                        Undo
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <SettlementModal
+        isOpen={modalDraft !== null}
+        draft={modalDraft}
+        tenants={tenants.map((tenant) => ({ id: tenant.id, name: tenant.name }))}
+        amount={modalAmount}
+        note={modalNote}
+        date={modalDate}
+        onFromChange={handleFromChange}
+        onToChange={(toTenantId) => {
+          if (modalDraft) {
+            setModalDraft({ ...modalDraft, toTenantId });
+          }
+        }}
+        onAmountChange={setModalAmount}
+        onNoteChange={setModalNote}
+        onDateChange={setModalDate}
+        onConfirm={() => {
+          if (!modalDraft) {
+            return;
+          }
+          const parsedAmount = Number(modalAmount);
+          if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+            return;
+          }
+          createSettlementMutation.mutate({
+            fromTenantId: modalDraft.fromTenantId,
+            toTenantId: modalDraft.toTenantId,
+            amount: parsedAmount,
+            ...(modalNote.trim() !== "" && { note: modalNote.trim() }),
+            date: isoFromDateInput(modalDate),
+          });
+        }}
+        onCancel={() => setModalDraft(null)}
+        isLoading={createSettlementMutation.isPending}
+      />
     </div>
   );
 }

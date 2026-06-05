@@ -95,8 +95,22 @@ describe("computeDashboardKpis", () => {
   it("aggregates month totals and finds largest expense", () => {
     const monthExpenses = filterExpensesThisMonth(expenses, referenceDate);
     const balances: TenantBalance[] = [
-      { tenantId: "t1", totalPaid: 150, totalOwed: 75, balance: 75 },
-      { tenantId: "t2", totalPaid: 0, totalOwed: 75, balance: -75 },
+      {
+        tenantId: "t1",
+        tenantName: "Alice",
+        paid: 150,
+        owed: 75,
+        balance: 75,
+        settledAmount: 0,
+      },
+      {
+        tenantId: "t2",
+        tenantName: "Bob",
+        paid: 0,
+        owed: 75,
+        balance: -75,
+        settledAmount: 0,
+      },
     ];
     const tenantNames = new Map(tenants.map((t) => [t.id, t.name]));
 
@@ -111,8 +125,22 @@ describe("computeDashboardKpis", () => {
 
   it("marks all settled when no negative balances", () => {
     const balances: TenantBalance[] = [
-      { tenantId: "t1", totalPaid: 100, totalOwed: 50, balance: 50 },
-      { tenantId: "t2", totalPaid: 50, totalOwed: 50, balance: 0 },
+      {
+        tenantId: "t1",
+        tenantName: "Alice",
+        paid: 100,
+        owed: 50,
+        balance: 50,
+        settledAmount: 0,
+      },
+      {
+        tenantId: "t2",
+        tenantName: "Bob",
+        paid: 50,
+        owed: 50,
+        balance: 0,
+        settledAmount: 0,
+      },
     ];
     const tenantNames = new Map(tenants.map((t) => [t.id, t.name]));
 
@@ -151,8 +179,22 @@ describe("computeMonthlyTrend", () => {
 describe("computeBalanceChartData", () => {
   it("assigns fill colors by balance sign", () => {
     const balances: TenantBalance[] = [
-      { tenantId: "t1", totalPaid: 100, totalOwed: 50, balance: 50 },
-      { tenantId: "t2", totalPaid: 0, totalOwed: 50, balance: -50 },
+      {
+        tenantId: "t1",
+        tenantName: "Alice",
+        paid: 100,
+        owed: 50,
+        balance: 50,
+        settledAmount: 0,
+      },
+      {
+        tenantId: "t2",
+        tenantName: "Bob",
+        paid: 0,
+        owed: 50,
+        balance: -50,
+        settledAmount: 0,
+      },
     ];
     const bars = computeBalanceChartData(balances, tenants);
     expect(bars[0]).toMatchObject({ name: "Alice", balance: 50, fill: "#10b981" });

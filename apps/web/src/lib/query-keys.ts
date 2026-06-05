@@ -9,7 +9,9 @@ export const queryKeys = {
     ["expenses", householdId, filters] as const,
   expensesAll: (householdId: string) => ["expenses", householdId, "all"] as const,
   splits: (expenseId: string) => ["splits", expenseId] as const,
-  balances: (householdId: string) => ["balances", householdId] as const,
+  balances: (householdId: string, period: "all" | "current" = "all") =>
+    ["balances", householdId, period] as const,
+  settlements: (householdId: string) => ["settlements", householdId] as const,
   defaultSplits: (householdId: string) => ["default-splits", householdId] as const,
   resolvedDefaultSplits: (householdId: string, categoryId: string) =>
     ["default-splits", householdId, "resolve", categoryId] as const,

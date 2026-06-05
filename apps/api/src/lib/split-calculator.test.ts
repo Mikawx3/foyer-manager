@@ -31,8 +31,22 @@ describe("split-calculator", () => {
     );
 
     expect(balances).toEqual([
-      { tenantId: "t1", totalPaid: 120, totalOwed: 60, balance: 60 },
-      { tenantId: "t2", totalPaid: 0, totalOwed: 60, balance: -60 },
+      {
+        tenantId: "t1",
+        tenantName: "",
+        paid: 120,
+        owed: 60,
+        balance: 60,
+        settledAmount: 0,
+      },
+      {
+        tenantId: "t2",
+        tenantName: "",
+        paid: 0,
+        owed: 60,
+        balance: -60,
+        settledAmount: 0,
+      },
     ]);
   });
 });

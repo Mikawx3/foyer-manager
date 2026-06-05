@@ -60,7 +60,14 @@ describe("ExpenseService", () => {
       findPageByWhere: vi.fn().mockResolvedValue([prismaExpense]),
     });
     const households: HouseholdRepository = {
-      findById: vi.fn().mockResolvedValue({ id: householdId, name: "Home", createdAt: new Date() }),
+      findById: vi
+        .fn()
+        .mockResolvedValue({
+          id: householdId,
+          name: "Home",
+          settlementPeriod: "none",
+          createdAt: new Date(),
+        }),
       findAll: vi.fn(),
       create: vi.fn(),
       deleteById: vi.fn(),
@@ -102,7 +109,14 @@ describe("ExpenseService", () => {
       findPageByWhere: vi.fn().mockResolvedValue([prismaExpense]),
     });
     const households: HouseholdRepository = {
-      findById: vi.fn().mockResolvedValue({ id: householdId, name: "Home", createdAt: new Date() }),
+      findById: vi
+        .fn()
+        .mockResolvedValue({
+          id: householdId,
+          name: "Home",
+          settlementPeriod: "none",
+          createdAt: new Date(),
+        }),
       findAll: vi.fn(),
       create: vi.fn(),
       deleteById: vi.fn(),
@@ -208,7 +222,14 @@ describe("ExpenseService", () => {
       ]),
     });
     const households: HouseholdRepository = {
-      findById: vi.fn().mockResolvedValue({ id: householdId, name: "Home", createdAt: new Date() }),
+      findById: vi
+        .fn()
+        .mockResolvedValue({
+          id: householdId,
+          name: "Home",
+          settlementPeriod: "none",
+          createdAt: new Date(),
+        }),
       findAll: vi.fn(),
       create: vi.fn(),
       deleteById: vi.fn(),
@@ -259,8 +280,22 @@ describe("ExpenseService", () => {
     const balances = await service.getBalances(householdId);
 
     expect(balances).toEqual([
-      { tenantId: tenantInHouse, totalPaid: 120, totalOwed: 60, balance: 60 },
-      { tenantId: "clt22345678901234567890123", totalPaid: 0, totalOwed: 60, balance: -60 },
+      {
+        tenantId: tenantInHouse,
+        tenantName: "A",
+        paid: 120,
+        owed: 60,
+        balance: 60,
+        settledAmount: 0,
+      },
+      {
+        tenantId: "clt22345678901234567890123",
+        tenantName: "B",
+        paid: 0,
+        owed: 60,
+        balance: -60,
+        settledAmount: 0,
+      },
     ]);
   });
 
@@ -439,7 +474,14 @@ describe("ExpenseService", () => {
       ]),
     });
     const households: HouseholdRepository = {
-      findById: vi.fn().mockResolvedValue({ id: householdId, name: "Home", createdAt: new Date() }),
+      findById: vi
+        .fn()
+        .mockResolvedValue({
+          id: householdId,
+          name: "Home",
+          settlementPeriod: "none",
+          createdAt: new Date(),
+        }),
       findAll: vi.fn(),
       create: vi.fn(),
       deleteById: vi.fn(),
@@ -475,8 +517,22 @@ describe("ExpenseService", () => {
     const balances = await service.getBalances(householdId);
 
     expect(balances).toEqual([
-      { tenantId: tenantInHouse, totalPaid: 100, totalOwed: 70, balance: 30 },
-      { tenantId: tenantB, totalPaid: 0, totalOwed: 30, balance: -30 },
+      {
+        tenantId: tenantInHouse,
+        tenantName: "A",
+        paid: 100,
+        owed: 70,
+        balance: 30,
+        settledAmount: 0,
+      },
+      {
+        tenantId: tenantB,
+        tenantName: "B",
+        paid: 0,
+        owed: 30,
+        balance: -30,
+        settledAmount: 0,
+      },
     ]);
   });
 
@@ -523,7 +579,14 @@ describe("ExpenseService", () => {
       expenses,
       { findByExpenseId: vi.fn(), replaceForExpense },
       {
-        findById: vi.fn().mockResolvedValue({ id: householdId, name: "Home", createdAt: new Date() }),
+        findById: vi
+        .fn()
+        .mockResolvedValue({
+          id: householdId,
+          name: "Home",
+          settlementPeriod: "none",
+          createdAt: new Date(),
+        }),
         findAll: vi.fn(),
         create: vi.fn(),
         deleteById: vi.fn(),

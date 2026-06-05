@@ -5,6 +5,7 @@ import {
   householdRepository,
   type HouseholdRepository,
 } from "../repositories/household.repository.js";
+import type { UpdateHouseholdInput } from "../validators/household.validator.js";
 
 export class HouseholdService {
   constructor(private readonly repository: HouseholdRepository = householdRepository) {}
@@ -24,6 +25,14 @@ export class HouseholdService {
 
   async create(data: { name: string }): Promise<Household> {
     const household = await this.repository.create(data);
+    return toHouseholdDto(household);
+  }
+
+  async update(id: string, input: UpdateHouseholdInput): Promise<Household> {
+    await this.getById(id);
+    const household = await this.repository.updateById(id, {
+      settlementPeriod: input.settlementPeriod,
+    });
     return toHouseholdDto(household);
   }
 

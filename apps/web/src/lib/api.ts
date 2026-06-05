@@ -1,6 +1,7 @@
 import type {
   Category,
   CreateExpensePayload,
+  CreateSettlementPayload,
   DefaultSplit,
   DefaultSplitRules,
   Expense,
@@ -8,9 +9,11 @@ import type {
   Household,
   PaginatedExpenses,
   ResolvedDefaultSplit,
+  Settlement,
   Tenant,
   TenantBalance,
   UpdateExpensePayload,
+  UpdateHouseholdPayload,
 } from "@foyer/types";
 import axios, { isAxiosError } from "axios";
 
@@ -187,7 +190,43 @@ export async function resolveDefaultSplits(
   return data;
 }
 
-export async function getBalances(householdId: string): Promise<TenantBalance[]> {
-  const { data } = await api.get<TenantBalance[]>(`/households/${householdId}/balances`);
+export async function getBalances(
+  householdId: string,
+  period: "all" | "current" = "all",
+): Promise<TenantBalance[]> {
+  const { data } = await api.get<TenantBalance[]>(`/households/${householdId}/balances`, {
+    params: { period },
+  });
+  return data;
+}
+
+export async function updateHousehold(
+  id: string,
+  input: UpdateHouseholdPayload,
+): Promise<Household> {
+  const { data } = await api.patch<Household>(`/households/${id}`, input);
+  return data;
+}
+
+export async function getSettlements(householdId: string): Promise<Settlement[]> {
+  const { data } = await api.get<Settlement[]>(`/households/${householdId}/settlements`);
+  return data;
+}
+
+export async function createSettlement(
+  householdId: string,
+  input: CreateSettlementPayload,
+): Promise<Settlement> {
+  const { data } = await api.post<Settlement>(`/households/${householdId}/settlements`, input);
+  return data;
+}
+
+export async function deleteSettlement(
+  householdId: string,
+  settlementId: string,
+): Promise<Settlement> {
+  const { data } = await api.delete<Settlement>(
+    `/households/${householdId}/settlements/${settlementId}`,
+  );
   return data;
 }

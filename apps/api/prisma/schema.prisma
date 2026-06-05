@@ -8,13 +8,15 @@ datasource db {
 }
 
 model Household {
-  id            String         @id @default(cuid())
-  name          String
-  createdAt     DateTime       @default(now())
-  tenants       Tenant[]
-  categories    Category[]
-  expenses      Expense[]
-  defaultSplits DefaultSplit[]
+  id                String         @id @default(cuid())
+  name              String
+  settlementPeriod  String         @default("none")
+  createdAt         DateTime       @default(now())
+  tenants           Tenant[]
+  categories        Category[]
+  expenses          Expense[]
+  defaultSplits     DefaultSplit[]
+  settlements       Settlement[]
 }
 
 model Tenant {
@@ -23,10 +25,28 @@ model Tenant {
   email         String         @unique
   householdId   String
   createdAt     DateTime       @default(now())
-  household     Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  expensesPaid  Expense[]      @relation("PaidBy")
-  expenseSplits ExpenseSplit[]
-  defaultSplits DefaultSplit[]
+  household        Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  expensesPaid     Expense[]    @relation("PaidBy")
+  expenseSplits    ExpenseSplit[]
+  defaultSplits    DefaultSplit[]
+  settlementsFrom  Settlement[] @relation("SettlementFrom")
+  settlementsTo    Settlement[] @relation("SettlementTo")
+
+  @@index([householdId])
+}
+
+model Settlement {
+  id           String    @id @default(cuid())
+  householdId  String
+  fromTenantId String
+  toTenantId   String
+  amount       Decimal   @db.Decimal(12, 2)
+  note         String?
+  date         DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  household    Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  fromTenant   Tenant    @relation("SettlementFrom", fields: [fromTenantId], references: [id], onDelete: Restrict)
+  toTenant     Tenant    @relation("SettlementTo", fields: [toTenantId], references: [id], onDelete: Restrict)
 
   @@index([householdId])
 }

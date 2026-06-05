@@ -1,7 +1,33 @@
+export type SettlementPeriod = "none" | "monthly" | "quarterly" | "yearly";
+
 export interface Household {
   id: string;
   name: string;
+  settlementPeriod: SettlementPeriod;
   createdAt: string;
+}
+
+export interface Settlement {
+  id: string;
+  householdId: string;
+  fromTenantId: string;
+  toTenantId: string;
+  amount: number;
+  note: string | null;
+  date: string;
+  createdAt: string;
+}
+
+export interface CreateSettlementPayload {
+  fromTenantId: string;
+  toTenantId: string;
+  amount: number;
+  note?: string;
+  date?: string;
+}
+
+export interface UpdateHouseholdPayload {
+  settlementPeriod: SettlementPeriod;
 }
 
 /** Household member (not a rental tenant). */
@@ -100,7 +126,9 @@ export interface ExpenseSplit {
 
 export interface TenantBalance {
   tenantId: string;
-  totalPaid: number;
-  totalOwed: number;
+  tenantName: string;
+  paid: number;
+  owed: number;
   balance: number;
+  settledAmount: number;
 }

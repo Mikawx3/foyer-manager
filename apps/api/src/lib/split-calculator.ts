@@ -82,13 +82,15 @@ export function computeTenantBalances(
   }
 
   return tenants.map((tenant) => {
-    const totalPaid = paidByTenant.get(tenant.id) ?? 0;
-    const totalOwed = owedByTenant.get(tenant.id) ?? 0;
+    const paid = paidByTenant.get(tenant.id) ?? 0;
+    const owed = owedByTenant.get(tenant.id) ?? 0;
     return {
       tenantId: tenant.id,
-      totalPaid: round2(totalPaid),
-      totalOwed: round2(totalOwed),
-      balance: round2(totalPaid - totalOwed),
+      tenantName: "",
+      paid: round2(paid),
+      owed: round2(owed),
+      balance: round2(paid - owed),
+      settledAmount: 0,
     };
   });
 }
