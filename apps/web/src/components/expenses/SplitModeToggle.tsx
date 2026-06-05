@@ -1,14 +1,18 @@
+import { useTranslation } from "react-i18next";
+
 interface SplitModeToggleProps {
   useAutoSplit: boolean;
   onChange: (useAutoSplit: boolean) => void;
 }
 
 export function SplitModeToggle({ useAutoSplit, onChange }: SplitModeToggleProps) {
+  const { t } = useTranslation("common");
+
   return (
     <div
       className="inline-flex rounded-lg border border-border bg-stone-100 p-0.5"
       role="group"
-      aria-label="Split mode"
+      aria-label={t("splitMode")}
     >
       <button
         type="button"
@@ -19,7 +23,7 @@ export function SplitModeToggle({ useAutoSplit, onChange }: SplitModeToggleProps
             : "text-stone-600 hover:text-stone-900"
         }`}
       >
-        Auto split ✓
+        {t("autoSplit")}
       </button>
       <button
         type="button"
@@ -30,7 +34,7 @@ export function SplitModeToggle({ useAutoSplit, onChange }: SplitModeToggleProps
             : "text-stone-600 hover:text-stone-900"
         }`}
       >
-        Customize
+        {t("customize")}
       </button>
     </div>
   );

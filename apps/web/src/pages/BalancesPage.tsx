@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import {
   SettlementModal,
@@ -9,6 +10,7 @@ import {
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
+import { useFormat } from "../hooks/useFormat.ts";
 import {
   createSettlement,
   deleteSettlement,
@@ -21,7 +23,6 @@ import {
 } from "../lib/api.ts";
 import { computeCategorySpending } from "../lib/dashboard-stats.ts";
 import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
-import { formatCurrency } from "../lib/format.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { computeSuggestedSettlements } from "../lib/suggested-settlements.ts";
@@ -29,14 +30,6 @@ import { mutationToastHandlers } from "../lib/toast.ts";
 import { amount, btnPrimary, btnSecondary, card, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
 const UNDO_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-function formatDateLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function toDateInputValue(iso?: string): string {
   const date = iso !== undefined ? new Date(iso) : new Date();
@@ -50,6 +43,11 @@ function isoFromDateInput(value: string): string {
 export function BalancesPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { t } = useTranslation("balances");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tToast } = useTranslation("toast");
+  const { formatCurrency, formatDate } = useFormat();
+
   const [balancePeriod, setBalancePeriod] = useState<"all" | "current">("all");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [modalDraft, setModalDraft] = useState<SettlementModalDraft | null>(null);
@@ -83,8 +81,12 @@ export function BalancesPage() {
     if (!expensesQuery.data || !categoriesQuery.data) {
       return [];
     }
-    return computeCategorySpending(expensesQuery.data, categoriesQuery.data);
-  }, [expensesQuery.data, categoriesQuery.data]);
+    return computeCategorySpending(
+      expensesQuery.data,
+      categoriesQuery.data,
+      tCommon("unknown"),
+    );
+  }, [expensesQuery.data, categoriesQuery.data, tCommon]);
 
   const balancesQuery = useQuery({
     queryKey: queryKeys.balances(householdId, balancePeriod),
@@ -128,7 +130,7 @@ export function BalancesPage() {
       date: string;
     }) => createSettlement(householdId, input),
     ...mutationToastHandlers({
-      successMessage: "Settlement recorded",
+      successMessage: tToast("settlementRecorded"),
       onSuccess: () => {
         setModalDraft(null);
         setModalAmount("");
@@ -143,7 +145,7 @@ export function BalancesPage() {
   const deleteSettlementMutation = useMutation({
     mutationFn: (settlementId: string) => deleteSettlement(householdId, settlementId),
     ...mutationToastHandlers({
-      successMessage: "Settlement undone",
+      successMessage: tToast("settlementUndone"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: ["balances", householdId] });
         void queryClient.invalidateQueries({ queryKey: queryKeys.settlements(householdId) });
@@ -167,7 +169,7 @@ export function BalancesPage() {
     toTenantId: string,
     fromName: string,
     toName: string,
-    amount: number,
+    settlementAmount: number,
   ) => {
     setModalDraft({
       mode: "suggested",
@@ -176,7 +178,7 @@ export function BalancesPage() {
       fromName,
       toName,
     });
-    setModalAmount(String(amount));
+    setModalAmount(String(settlementAmount));
     resetModalFields();
   };
 
@@ -211,11 +213,9 @@ export function BalancesPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className={pageTitle}>Balances</h1>
+          <h1 className={pageTitle}>{t("title")}</h1>
           <p className={pageSubtitle}>
-            {isSolo
-              ? "Total spending by category."
-              : "Positive balance means others owe this member; negative means they owe others."}
+            {isSolo ? t("subtitleSolo") : t("subtitleShared")}
           </p>
         </div>
         {!isSolo && tenants.length >= 2 && (
@@ -224,7 +224,7 @@ export function BalancesPage() {
             className={`${btnSecondary} shrink-0 rounded-lg border border-border px-3 py-2`}
             onClick={openManualSettlementModal}
           >
-            Record a payment
+            {tCommon("recordPayment")}
           </button>
         )}
       </div>
@@ -240,7 +240,7 @@ export function BalancesPage() {
             }
             onClick={() => setBalancePeriod("current")}
           >
-            This period
+            {tCommon("thisPeriod")}
           </button>
           <button
             type="button"
@@ -251,7 +251,7 @@ export function BalancesPage() {
             }
             onClick={() => setBalancePeriod("all")}
           >
-            All time
+            {tCommon("allTime")}
           </button>
         </div>
       )}
@@ -274,8 +274,8 @@ export function BalancesPage() {
       )}
       {isSolo && expensesQuery.isSuccess && categoriesQuery.isSuccess && categorySpending.length === 0 && (
         <EmptyState
-          title="No spending yet"
-          description="Add expenses to see totals by category."
+          title={t("noSpendingTitle")}
+          description={t("noSpendingDescription")}
         />
       )}
       {isSolo && expensesQuery.isSuccess && categoriesQuery.isSuccess && categorySpending.length > 0 && (
@@ -300,8 +300,8 @@ export function BalancesPage() {
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-bg">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">Category</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">Total spent</th>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableCategory")}</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableTotalSpent")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border bg-surface">
@@ -326,8 +326,8 @@ export function BalancesPage() {
       )}
       {!isSolo && balancesQuery.isSuccess && balancesQuery.data.length === 0 && (
         <EmptyState
-          title="No balance data"
-          description="Add members and expenses with splits to see balances."
+          title={t("noBalanceDataTitle")}
+          description={t("noBalanceDataDescription")}
         />
       )}
       {!isSolo && balancesQuery.isSuccess && balancesQuery.data.length > 0 && (
@@ -358,8 +358,11 @@ export function BalancesPage() {
                         {formatCurrency(row.balance)}
                       </p>
                       <p className="mt-1 text-sm text-stone-600">
-                        Paid {formatCurrency(row.paid)} · Owed {formatCurrency(row.owed)} · Settled{" "}
-                        {formatCurrency(row.settledAmount)}
+                        {tCommon("paidOwedSettled", {
+                          paid: formatCurrency(row.paid),
+                          owed: formatCurrency(row.owed),
+                          settled: formatCurrency(row.settledAmount),
+                        })}
                       </p>
                     </div>
                   </div>
@@ -371,11 +374,11 @@ export function BalancesPage() {
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-bg">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">Member</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">Paid</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">Owed</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">Settled</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">Balance</th>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableMember")}</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tablePaid")}</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableOwed")}</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableSettled")}</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableBalance")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border bg-surface">
@@ -410,7 +413,7 @@ export function BalancesPage() {
 
       {!isSolo && balancesQuery.isSuccess && suggestions.length > 0 && (
         <section className={card}>
-          <h2 className="text-base font-semibold text-stone-900">Suggested settlements</h2>
+          <h2 className="text-base font-semibold text-stone-900">{t("suggestedSettlements")}</h2>
           <ul className="mt-3 space-y-2">
             {suggestions.map((suggestion) => {
               const fromName =
@@ -422,10 +425,11 @@ export function BalancesPage() {
                   className="flex flex-col gap-2 rounded-lg border border-border bg-bg px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                 >
                   <span className="text-sm text-stone-800">
-                    {fromName} should pay {toName}{" "}
-                    <span className={`${amount} text-stone-900`}>
-                      {formatCurrency(suggestion.amount)}
-                    </span>
+                    {tCommon("shouldPay", {
+                      fromName,
+                      toName,
+                      amount: formatCurrency(suggestion.amount),
+                    })}
                   </span>
                   <button
                     type="button"
@@ -440,7 +444,7 @@ export function BalancesPage() {
                       )
                     }
                   >
-                    Mark as paid
+                    {tCommon("markAsPaid")}
                   </button>
                 </li>
               );
@@ -461,7 +465,7 @@ export function BalancesPage() {
             ) : (
               <ChevronRight className="h-4 w-4" aria-hidden />
             )}
-            Settlement history
+            {t("settlementHistory")}
           </button>
           {historyOpen && (
             <ul className="mt-3 space-y-2">
@@ -479,10 +483,17 @@ export function BalancesPage() {
                     className="flex items-start justify-between gap-3 rounded-lg border border-border bg-bg px-3 py-3 text-sm"
                   >
                     <span className="min-w-0 flex-1 text-stone-800">
-                      {formatDateLabel(settlement.date)} — {fromName} → {toName}{" "}
-                      <span className={amount}>{formatCurrency(settlement.amount)}</span>
+                      {tCommon("settlementHistoryEntry", {
+                        date: formatDate(settlement.date),
+                        fromName,
+                        toName,
+                        amount: formatCurrency(settlement.amount),
+                      })}
                       {settlement.note !== null && settlement.note !== "" && (
-                        <span className="text-stone-500"> &quot;{settlement.note}&quot;</span>
+                        <span className="text-stone-500">
+                          {" "}
+                          {tCommon("settlementNoteQuote", { note: settlement.note })}
+                        </span>
                       )}
                     </span>
                     {canUndo && (
@@ -492,7 +503,7 @@ export function BalancesPage() {
                         disabled={deleteSettlementMutation.isPending}
                         onClick={() => deleteSettlementMutation.mutate(settlement.id)}
                       >
-                        Undo
+                        {tCommon("undo")}
                       </button>
                     )}
                   </li>

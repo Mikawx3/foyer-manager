@@ -1,4 +1,5 @@
 import type { HouseholdType } from "@foyer/types";
+import { useTranslation } from "react-i18next";
 import { WizardCard } from "./WizardCard.tsx";
 
 interface WizardStepTypeProps {
@@ -7,11 +8,13 @@ interface WizardStepTypeProps {
 }
 
 export function WizardStepType({ value, onSelect }: WizardStepTypeProps) {
+  const { t } = useTranslation("wizard");
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-stone-900">
-          What kind of household is this?
+          {t("typeTitle")}
         </h2>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -19,15 +22,15 @@ export function WizardStepType({ value, onSelect }: WizardStepTypeProps) {
           selected={value === "solo"}
           onClick={() => onSelect("solo")}
           emoji="🏠"
-          title="Solo"
-          description="Just me, I want to track my own expenses"
+          title={t("typeSoloTitle")}
+          description={t("typeSoloDescription")}
         />
         <WizardCard
           selected={value === "shared"}
           onClick={() => onSelect("shared")}
           emoji="👥"
-          title="Shared"
-          description="Multiple people, split expenses together"
+          title={t("typeSharedTitle")}
+          description={t("typeSharedDescription")}
         />
       </div>
     </div>

@@ -1,5 +1,6 @@
 import type { SplitPreview, Tenant } from "@foyer/types";
-import { formatCurrency } from "../../lib/format.ts";
+import { useTranslation } from "react-i18next";
+import { useFormat } from "../../hooks/useFormat.ts";
 import { amount } from "../../lib/ui-classes.ts";
 
 interface SplitPreviewCardProps {
@@ -13,13 +14,15 @@ export function SplitPreviewCard({
   excludedTenants,
   expenseAmount,
 }: SplitPreviewCardProps) {
+  const { t } = useTranslation("common");
+  const { formatCurrency } = useFormat();
   const previewTotal = activePreview.reduce((sum, row) => sum + row.amount, 0);
   const totalMatches =
     expenseAmount > 0 && Math.abs(previewTotal - expenseAmount) < 0.01;
 
   return (
     <div className="rounded-lg border border-border bg-bg p-4">
-      <h4 className="text-sm font-semibold text-stone-800">Split preview</h4>
+      <h4 className="text-sm font-semibold text-stone-800">{t("splitPreview")}</h4>
       <ul className="mt-3 space-y-2">
         {activePreview.map((row) => (
           <li
@@ -40,15 +43,16 @@ export function SplitPreviewCard({
             className="flex items-center justify-between gap-3 text-sm text-stone-400"
           >
             <span className="min-w-0 flex-1 truncate line-through">{tenant.name}</span>
-            <span className="shrink-0 italic">(excluded)</span>
+            <span className="shrink-0 italic">{t("excluded")}</span>
           </li>
         ))}
       </ul>
       <p
         className={`mt-3 text-sm font-medium ${totalMatches ? "text-positive" : "text-negative"}`}
       >
-        Total: {formatCurrency(previewTotal)}
-        {expenseAmount > 0 && (totalMatches ? " ✓" : " — does not match expense amount")}
+        {t("splitPreviewTotal", { total: formatCurrency(previewTotal) })}
+        {expenseAmount > 0 &&
+          (totalMatches ? t("splitPreviewMatches") : t("splitPreviewMismatch"))}
       </p>
     </div>
   );

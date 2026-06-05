@@ -1,5 +1,6 @@
 import { Loader2, X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useSwipeToClose } from "../../hooks/useSwipeToClose.ts";
 import { bottomSheetPanel, btnSecondary, iconBtn } from "../../lib/ui-classes.ts";
 
@@ -29,13 +30,16 @@ export function ConfirmModal({
   isOpen,
   title,
   message,
-  confirmLabel = "Delete",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   variant = "danger",
   onConfirm,
   onCancel,
   isLoading = false,
 }: ConfirmModalProps) {
+  const { t } = useTranslation("common");
+  const resolvedConfirmLabel = confirmLabel ?? t("delete");
+  const resolvedCancelLabel = cancelLabel ?? t("cancel");
   const titleId = useId();
   const messageId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -95,7 +99,7 @@ export function ConfirmModal({
       <button
         type="button"
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        aria-label="Close dialog"
+        aria-label={t("closeDialog")}
         onClick={onCancel}
       />
       <div
@@ -117,7 +121,7 @@ export function ConfirmModal({
           <h2 id={titleId} className="font-semibold text-stone-900">
             {title}
           </h2>
-          <button type="button" onClick={onCancel} className={`${iconBtn} md:hidden`} aria-label="Close">
+          <button type="button" onClick={onCancel} className={`${iconBtn} md:hidden`} aria-label={t("close")}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -133,7 +137,7 @@ export function ConfirmModal({
               disabled={isLoading}
               onClick={onCancel}
             >
-              {cancelLabel}
+              {resolvedCancelLabel}
             </button>
             <button
               type="button"
@@ -142,7 +146,7 @@ export function ConfirmModal({
               onClick={onConfirm}
             >
               {isLoading && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}
-              {confirmLabel}
+              {resolvedConfirmLabel}
             </button>
           </div>
         </div>

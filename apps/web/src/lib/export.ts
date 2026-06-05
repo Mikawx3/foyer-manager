@@ -1,17 +1,19 @@
 import type { Expense } from "@foyer/types";
 
-const CSV_HEADERS = [
-  "Date",
-  "Description",
-  "Category",
-  "Amount (€)",
-  "Paid by",
-  "Split mode",
-] as const;
-
 export interface ExpenseExportMaps {
   categoryNameById: Map<string, string>;
   tenantNameById: Map<string, string>;
+}
+
+export function getCsvHeaders(t: (key: string) => string): string[] {
+  return [
+    t("export:csvHeaderDate"),
+    t("export:csvHeaderDescription"),
+    t("export:csvHeaderCategory"),
+    t("export:csvHeaderAmount"),
+    t("export:csvHeaderPaidBy"),
+    t("export:csvHeaderSplitMode"),
+  ];
 }
 
 export function formatExportDate(iso: string): string {
@@ -36,6 +38,7 @@ function escapeCsvField(value: string): string {
 export function buildExpensesCsv(
   expenses: Expense[],
   maps: ExpenseExportMaps,
+  headers: string[],
 ): string {
   const rows = expenses.map((expense) => {
     const categoryName = maps.categoryNameById.get(expense.categoryId) ?? "—";
@@ -52,15 +55,16 @@ export function buildExpensesCsv(
       .join(",");
   });
 
-  return [CSV_HEADERS.join(","), ...rows].join("\n");
+  return [headers.join(","), ...rows].join("\n");
 }
 
 export function exportExpensesToCSV(
   expenses: Expense[],
   filename: string,
   maps: ExpenseExportMaps,
+  headers: string[],
 ): void {
-  const csv = buildExpensesCsv(expenses, maps);
+  const csv = buildExpensesCsv(expenses, maps, headers);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

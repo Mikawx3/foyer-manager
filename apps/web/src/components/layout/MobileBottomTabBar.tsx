@@ -1,4 +1,5 @@
 import { LayoutDashboard, Receipt, Scale, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
 interface MobileBottomTabBarProps {
@@ -6,20 +7,22 @@ interface MobileBottomTabBarProps {
 }
 
 const tabs = [
-  { to: "dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "expenses", label: "Expenses", icon: Receipt, end: false },
-  { to: "balances", label: "Balances", icon: Scale, end: false },
-  { to: "settings", label: "Settings", icon: Settings, end: false },
+  { to: "dashboard", labelKey: "dashboard", icon: LayoutDashboard, end: true },
+  { to: "expenses", labelKey: "expenses", icon: Receipt, end: false },
+  { to: "balances", labelKey: "balances", icon: Scale, end: false },
+  { to: "settings", labelKey: "settings", icon: Settings, end: false },
 ] as const;
 
 export function MobileBottomTabBar({ householdId }: MobileBottomTabBarProps) {
+  const { t } = useTranslation("nav");
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/90 backdrop-blur-[12px] pb-[env(safe-area-inset-bottom,0px)] md:hidden"
-      aria-label="Main navigation"
+      aria-label={t("mainNavigation")}
     >
       <div className="mx-auto flex h-14 max-w-7xl items-stretch justify-around">
-        {tabs.map(({ to, label, icon: Icon, end }) => (
+        {tabs.map(({ to, labelKey, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={`/households/${householdId}/${to}`}
@@ -37,7 +40,7 @@ export function MobileBottomTabBar({ householdId }: MobileBottomTabBarProps) {
                   strokeWidth={isActive ? 2.5 : 2}
                   aria-hidden
                 />
-                <span className={isActive ? "text-primary" : "text-stone-600"}>{label}</span>
+                <span className={isActive ? "text-primary" : "text-stone-600"}>{t(labelKey)}</span>
                 {isActive && (
                   <span className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2px)] h-0.5 w-8 rounded-full bg-primary" />
                 )}

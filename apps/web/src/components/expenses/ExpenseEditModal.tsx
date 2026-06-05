@@ -1,6 +1,7 @@
 import type { Category, Expense, Tenant } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ExpenseForm } from "../forms/ExpenseForm.tsx";
 import { Modal } from "../ui/Modal.tsx";
 import { getApiErrorMessage, getSplits, updateExpense } from "../../lib/api.ts";
@@ -31,6 +32,9 @@ export function ExpenseEditModal({
   open,
   onClose,
 }: ExpenseEditModalProps) {
+  const { t } = useTranslation("expenses");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tToast } = useTranslation("toast");
   const queryClient = useQueryClient();
 
   const splitsQuery = useQuery({
@@ -67,7 +71,7 @@ export function ExpenseEditModal({
   const updateMutation = useMutation({
     mutationFn: (data: UpdateExpenseForm) => updateExpense(expense.id, data),
     ...mutationToastHandlers({
-      successMessage: "Expense updated",
+      successMessage: tToast("expenseUpdated"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
         void queryClient.invalidateQueries({
@@ -81,9 +85,9 @@ export function ExpenseEditModal({
   });
 
   return (
-    <Modal title="Edit expense" open={open} onClose={onClose}>
+    <Modal title={t("editExpense")} open={open} onClose={onClose}>
       {splitsQuery.isLoading && (
-        <p className="text-sm text-stone-500">Loading split details…</p>
+        <p className="text-sm text-stone-500">{tCommon("loadingSplitDetails")}</p>
       )}
       {splitsQuery.isSuccess && (
         <ExpenseForm

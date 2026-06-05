@@ -2,6 +2,8 @@ import type { Category, RecurringExpense, Tenant } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useFormat } from "../../hooks/useFormat.ts";
 import { RecurringExpenseForm } from "../forms/RecurringExpenseForm.tsx";
 import { ConfirmModal } from "../ui/ConfirmModal.tsx";
 import { EmptyState } from "../ui/EmptyState.tsx";
@@ -15,7 +17,6 @@ import {
   getRecurringExpenses,
   updateRecurringExpense,
 } from "../../lib/api.ts";
-import { formatCurrency, formatDate } from "../../lib/format.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import type { CreateRecurringExpenseForm } from "../../lib/schemas.ts";
 import { mutationToastHandlers } from "../../lib/toast.ts";
@@ -35,10 +36,6 @@ function dueStatus(nextDueDate: string): "due" | "overdue" | null {
   return null;
 }
 
-function formatFrequency(frequency: RecurringExpense["frequency"]): string {
-  return frequency.charAt(0).toUpperCase() + frequency.slice(1);
-}
-
 interface RecurringExpensesSectionProps {
   householdId: string;
   categories: Category[];
@@ -50,6 +47,10 @@ export function RecurringExpensesSection({
   categories,
   tenants,
 }: RecurringExpensesSectionProps) {
+  const { t } = useTranslation("recurring");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tToast } = useTranslation("toast");
+  const { formatCurrency, formatDate } = useFormat();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringExpense | null>(null);
@@ -80,7 +81,7 @@ export function RecurringExpensesSection({
         ...(input.category !== "" && { category: input.category }),
       }),
     ...mutationToastHandlers({
-      successMessage: "Recurring expense created",
+      successMessage: tToast("recurringCreated"),
       onSuccess: () => {
         setModalOpen(false);
         invalidateRecurringSideEffects();
@@ -104,7 +105,7 @@ export function RecurringExpensesSection({
         ...(active !== undefined && { active }),
       }),
     ...mutationToastHandlers({
-      successMessage: "Recurring expense updated",
+      successMessage: tToast("recurringUpdated"),
       onSuccess: () => {
         setEditing(null);
         invalidateRecurringSideEffects();
@@ -115,7 +116,7 @@ export function RecurringExpensesSection({
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteRecurringExpense(householdId, id),
     ...mutationToastHandlers({
-      successMessage: "Recurring expense deleted",
+      successMessage: tToast("recurringDeleted"),
       onSuccess: () => {
         setPendingDelete(null);
         invalidateRecurringSideEffects();
@@ -127,7 +128,7 @@ export function RecurringExpensesSection({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
       updateRecurringExpense(householdId, id, { active }),
     ...mutationToastHandlers({
-      successMessage: "Status updated",
+      successMessage: tToast("statusUpdated"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.recurringExpenses(householdId) });
       },
@@ -139,9 +140,7 @@ export function RecurringExpensesSection({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-stone-600">
-          Automatically generate expenses on a schedule.
-        </p>
+        <p className="text-sm text-stone-600">{t("sectionDescription")}</p>
         {canAdd && (
           <button
             type="button"
@@ -149,7 +148,7 @@ export function RecurringExpensesSection({
             onClick={() => setModalOpen(true)}
           >
             <Plus className="h-4 w-4" strokeWidth={2} />
-            Add recurring expense
+            {t("addRecurringExpense")}
           </button>
         )}
       </div>
@@ -163,8 +162,8 @@ export function RecurringExpensesSection({
       )}
       {recurringQuery.isSuccess && recurringQuery.data.length === 0 && (
         <EmptyState
-          title="No recurring expenses"
-          description="Add a recurring expense to auto-generate entries each period."
+          title={t("noRecurringTitle")}
+          description={t("noRecurringDescription")}
         />
       )}
       {recurringQuery.isSuccess && recurringQuery.data.length > 0 && (
@@ -184,20 +183,20 @@ export function RecurringExpensesSection({
                         <span>
                           {item.category
                             ? (categoryNameById.get(item.category) ?? item.category)
-                            : "—"}
+                            : tCommon("dash")}
                         </span>
-                        <span>· {formatFrequency(item.frequency)}</span>
+                        <span>· {tCommon(item.frequency)}</span>
                         <span>· {formatDate(item.nextDueDate)}</span>
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         {status === "due" && (
                           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
-                            Due today
+                            {tCommon("dueToday")}
                           </span>
                         )}
                         {status === "overdue" && (
                           <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">
-                            Overdue
+                            {tCommon("overdue")}
                           </span>
                         )}
                         <span
@@ -207,7 +206,7 @@ export function RecurringExpensesSection({
                               : "text-xs font-medium text-stone-500"
                           }
                         >
-                          {item.active ? "Active" : "Paused"}
+                          {item.active ? tCommon("active") : tCommon("paused")}
                         </span>
                       </div>
                     </div>
@@ -215,7 +214,7 @@ export function RecurringExpensesSection({
                       <button
                         type="button"
                         className={iconBtn}
-                        aria-label={`Edit ${item.title}`}
+                        aria-label={tCommon("editItem", { name: item.title })}
                         onClick={() => setEditing(item)}
                       >
                         <Pencil className="h-4 w-4" strokeWidth={2} />
@@ -223,7 +222,7 @@ export function RecurringExpensesSection({
                       <button
                         type="button"
                         className={`${iconBtn} hover:text-negative active:text-negative`}
-                        aria-label={`Delete ${item.title}`}
+                        aria-label={tCommon("deleteItem", { name: item.title })}
                         onClick={() =>
                           setPendingDelete({
                             id: item.id,
@@ -244,7 +243,7 @@ export function RecurringExpensesSection({
                       toggleActiveMutation.mutate({ id: item.id, active: !item.active })
                     }
                   >
-                    {item.active ? "Pause" : "Resume"}
+                    {item.active ? tCommon("pause") : tCommon("resume")}
                   </button>
                 </li>
               );
@@ -254,14 +253,14 @@ export function RecurringExpensesSection({
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-bg">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">Title</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">Amount</th>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">Category</th>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">Paid by</th>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">Frequency</th>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">Next due</th>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">Status</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">Actions</th>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableTitle")}</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableAmount")}</th>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableCategory")}</th>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tablePaidBy")}</th>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableFrequency")}</th>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableNextDue")}</th>
+                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableStatus")}</th>
+                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border bg-surface">
@@ -274,21 +273,21 @@ export function RecurringExpensesSection({
                       {formatCurrency(item.amount)}
                     </td>
                     <td className="px-4 py-3 text-stone-600">
-                      {item.category ? (categoryNameById.get(item.category) ?? item.category) : "—"}
+                      {item.category ? (categoryNameById.get(item.category) ?? item.category) : tCommon("dash")}
                     </td>
                     <td className="px-4 py-3 text-stone-600">{item.paidBy.name}</td>
-                    <td className="px-4 py-3 text-stone-600">{formatFrequency(item.frequency)}</td>
+                    <td className="px-4 py-3 text-stone-600">{tCommon(item.frequency)}</td>
                     <td className="px-4 py-3 text-stone-600">
                       <div className="flex flex-wrap items-center gap-2">
                         <span>{formatDate(item.nextDueDate)}</span>
                         {status === "due" && (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                            Due today
+                            {tCommon("dueToday")}
                           </span>
                         )}
                         {status === "overdue" && (
                           <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
-                            Overdue
+                            {tCommon("overdue")}
                           </span>
                         )}
                       </div>
@@ -301,7 +300,7 @@ export function RecurringExpensesSection({
                             : "text-stone-500 text-xs font-medium"
                         }
                       >
-                        {item.active ? "Active" : "Paused"}
+                        {item.active ? tCommon("active") : tCommon("paused")}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -314,12 +313,12 @@ export function RecurringExpensesSection({
                             toggleActiveMutation.mutate({ id: item.id, active: !item.active })
                           }
                         >
-                          {item.active ? "Pause" : "Resume"}
+                          {item.active ? tCommon("pause") : tCommon("resume")}
                         </button>
                         <button
                           type="button"
                           className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-900"
-                          aria-label={`Edit ${item.title}`}
+                          aria-label={tCommon("editItem", { name: item.title })}
                           onClick={() => setEditing(item)}
                         >
                           <Pencil className="h-4 w-4" strokeWidth={2} />
@@ -327,7 +326,7 @@ export function RecurringExpensesSection({
                         <button
                           type="button"
                           className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-negative"
-                          aria-label={`Delete ${item.title}`}
+                          aria-label={tCommon("deleteItem", { name: item.title })}
                           onClick={() =>
                             setPendingDelete({
                               id: item.id,
@@ -349,7 +348,7 @@ export function RecurringExpensesSection({
         </>
       )}
 
-      <Modal title="Add recurring expense" open={modalOpen} onClose={() => setModalOpen(false)}>
+      <Modal title={t("addRecurringExpense")} open={modalOpen} onClose={() => setModalOpen(false)}>
         <RecurringExpenseForm
           householdId={householdId}
           categories={categories}
@@ -360,7 +359,7 @@ export function RecurringExpensesSection({
       </Modal>
 
       {editing && (
-        <Modal title="Edit recurring expense" open={editing !== null} onClose={() => setEditing(null)}>
+        <Modal title={t("editRecurringExpense")} open={editing !== null} onClose={() => setEditing(null)}>
           <RecurringExpenseForm
             householdId={householdId}
             categories={categories}
@@ -368,19 +367,22 @@ export function RecurringExpensesSection({
             initialRecurring={editing}
             onSubmit={(data) => updateMutation.mutate({ id: editing.id, input: data })}
             isPending={updateMutation.isPending}
-            submitLabel={updateMutation.isPending ? "Saving…" : "Save changes"}
+            submitLabel={updateMutation.isPending ? tCommon("saving") : t("saveChanges")}
           />
         </Modal>
       )}
 
       <ConfirmModal
         isOpen={pendingDelete !== null}
-        title="Delete recurring expense"
+        title={t("deleteRecurringTitle")}
         message={
           pendingDelete
             ? pendingDelete.generatedExpenseCount > 0
-              ? `Delete "${pendingDelete.title}"? This will also delete ${pendingDelete.generatedExpenseCount} auto-generated expense${pendingDelete.generatedExpenseCount === 1 ? "" : "s"}. Continue?`
-              : `Delete "${pendingDelete.title}"?`
+              ? t("deleteRecurringWithGenerated", {
+                  title: pendingDelete.title,
+                  count: pendingDelete.generatedExpenseCount,
+                })
+              : t("deleteRecurringSimple", { title: pendingDelete.title })
             : ""
         }
         onConfirm={() => {

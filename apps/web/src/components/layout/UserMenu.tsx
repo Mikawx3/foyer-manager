@@ -1,11 +1,13 @@
 import { Home, LogOut, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { clearAuth } from "../../lib/auth-storage.ts";
 
 export function UserMenu() {
+  const { t } = useTranslation("nav");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -39,7 +41,7 @@ export function UserMenu() {
         className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-bg text-stone-600 transition hover:border-primary/30 hover:text-primary"
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label="Account menu"
+        aria-label={t("accountMenu")}
       >
         <User className="h-4 w-4" strokeWidth={2} />
       </button>
@@ -56,7 +58,7 @@ export function UserMenu() {
               onClick={() => setOpen(false)}
             >
               <Home className="h-4 w-4 shrink-0" strokeWidth={2} />
-              All households
+              {t("allHouseholds")}
             </Link>
           </CloudOnly>
           <CloudOnly>
@@ -67,7 +69,7 @@ export function UserMenu() {
               onClick={handleSignOut}
             >
               <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} />
-              Sign out
+              {t("signOut")}
             </button>
           </CloudOnly>
         </div>

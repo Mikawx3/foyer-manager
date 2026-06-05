@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { Tenant } from "@foyer/types";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { btnPrimary } from "../../lib/ui-classes.ts";
 import { equalSplitPercentages } from "../../lib/split-percentages.ts";
 import { assignSplitsSchema, type AssignSplitsForm } from "../../lib/schemas.ts";
@@ -24,6 +25,10 @@ export function SplitForm({
   onSubmit,
   isPending,
 }: SplitFormProps) {
+  const { t: tCommon } = useTranslation("common");
+  const { t: tValidation } = useTranslation("validation");
+  const schema = useMemo(() => assignSplitsSchema(tValidation), [tValidation]);
+
   const tenantItems = useMemo(
     () => tenants.map((tenant) => ({ id: tenant.id, label: tenant.name })),
     [tenants],
@@ -43,7 +48,7 @@ export function SplitForm({
     reset,
     formState: { errors },
   } = useForm<AssignSplitsForm>({
-    resolver: zodResolver(assignSplitsSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       splits: [],
     },
@@ -94,7 +99,7 @@ export function SplitForm({
       onSubmit={submit}
       className="mt-3 space-y-3 rounded-lg border border-border bg-bg p-3"
     >
-      <p className="text-xs font-medium text-stone-600">Customize splits (must total 100%)</p>
+      <p className="text-xs font-medium text-stone-600">{tCommon("customizeSplitsMustTotal")}</p>
       {errors.splits?.message && (
         <p className="text-sm text-negative">{errors.splits.message}</p>
       )}
@@ -114,7 +119,7 @@ export function SplitForm({
         />
       )}
       <button type="submit" disabled={isPending || !splitsValid} className={btnPrimary}>
-        {isPending ? "Saving…" : "Save splits"}
+        {isPending ? tCommon("saving") : tCommon("save")}
       </button>
     </form>
   );

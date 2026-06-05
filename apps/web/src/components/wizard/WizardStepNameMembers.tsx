@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { HouseholdType } from "@foyer/types";
+import { useTranslation } from "react-i18next";
 import type { WizardMember } from "../../lib/household-wizard-types.ts";
 import { createMemberId } from "../../lib/household-wizard-types.ts";
 import { nextAvailableColor } from "../../lib/tenant-colors.ts";
@@ -26,6 +27,9 @@ export function WizardStepNameMembers({
   onNameChange,
   onMembersChange,
 }: WizardStepNameMembersProps) {
+  const { t } = useTranslation("wizard");
+  const { t: tCommon } = useTranslation("common");
+
   const updateMember = (tempId: string, patch: Partial<WizardMember>) => {
     onMembersChange(
       members.map((member) => (member.tempId === tempId ? { ...member, ...patch } : member)),
@@ -51,25 +55,25 @@ export function WizardStepNameMembers({
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-stone-900">
-          Name your household
+          {t("nameTitle")}
         </h2>
         {type === "shared" && (
-          <p className="mt-1 text-sm text-stone-600">Add the people who share expenses.</p>
+          <p className="mt-1 text-sm text-stone-600">{t("nameSharedSubtitle")}</p>
         )}
       </div>
 
-      <FormField label="Household name" error={nameError}>
+      <FormField label={t("householdNameLabel")} error={nameError}>
         <input
           className={inputClassName}
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
-          placeholder="My apartment"
+          placeholder={t("householdNamePlaceholder")}
         />
       </FormField>
 
       {type === "shared" && (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-stone-800">Members</p>
+          <p className="text-sm font-medium text-stone-800">{t("membersLabel")}</p>
           <ul className="space-y-3">
             {members.map((member) => (
               <li
@@ -80,7 +84,7 @@ export function WizardStepNameMembers({
                   className={`${inputClassName} w-full sm:min-w-[140px] sm:flex-1`}
                   value={member.name}
                   onChange={(event) => updateMember(member.tempId, { name: event.target.value })}
-                  placeholder="Member name"
+                  placeholder={t("memberNamePlaceholder")}
                 />
                 <MemberColorPicker
                   value={member.color}
@@ -88,7 +92,7 @@ export function WizardStepNameMembers({
                 />
                 <button
                   type="button"
-                  aria-label="Remove member"
+                  aria-label={tCommon("removeMember")}
                   disabled={members.length <= 1}
                   onClick={() => removeMember(member.tempId)}
                   className={`${iconBtn} disabled:opacity-40`}
@@ -100,7 +104,7 @@ export function WizardStepNameMembers({
           </ul>
           {membersError && <p className="text-sm text-negative">{membersError}</p>}
           <button type="button" className={btnSecondary} onClick={addMember}>
-            + Add member
+            {tCommon("addMember")}
           </button>
         </div>
       )}

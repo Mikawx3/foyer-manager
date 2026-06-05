@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { TENANT_COLOR_PRESETS } from "../../lib/tenant-colors.ts";
 
 interface MemberColorPickerProps {
@@ -6,13 +7,15 @@ interface MemberColorPickerProps {
 }
 
 export function MemberColorPicker({ value, onChange }: MemberColorPickerProps) {
+  const { t } = useTranslation("common");
+
   return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Member color">
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("memberColor")}>
       {TENANT_COLOR_PRESETS.map((color) => (
         <button
           key={color}
           type="button"
-          aria-label={`Color ${color}`}
+          aria-label={t("colorOption", { color })}
           aria-pressed={value === color}
           onClick={() => onChange(color)}
           className={`h-10 w-10 rounded-full border-2 transition active:scale-95 md:h-6 md:w-6 ${

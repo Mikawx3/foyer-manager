@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useFormat } from "../../hooks/useFormat.ts";
 import { inputClassName } from "../forms/FormField.tsx";
 import { Modal } from "../ui/Modal.tsx";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
@@ -12,7 +14,6 @@ import {
   getHouseholdDeletionPreview,
 } from "../../lib/api.ts";
 import { clearAuth } from "../../lib/auth-storage.ts";
-import { formatCurrency } from "../../lib/format.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { showMutationError, showMutationSuccess } from "../../lib/toast.ts";
 import { btnSecondary } from "../../lib/ui-classes.ts";
@@ -29,16 +30,16 @@ interface DeleteHouseholdModalProps {
   onClose: () => void;
 }
 
-function pluralize(count: number, singular: string, plural: string): string {
-  return count === 1 ? `${count} ${singular}` : `${count} ${plural}`;
-}
-
 export function DeleteHouseholdModal({
   isOpen,
   householdId,
   householdName,
   onClose,
 }: DeleteHouseholdModalProps) {
+  const { t } = useTranslation("settings");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tToast } = useTranslation("toast");
+  const { formatCurrency } = useFormat();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<DeleteStep>("preview");
@@ -53,7 +54,7 @@ export function DeleteHouseholdModal({
   const deleteMutation = useMutation({
     mutationFn: () => deleteHousehold(householdId),
     onSuccess: () => {
-      showMutationSuccess("Household deleted.");
+      showMutationSuccess(tToast("householdDeleted"));
       clearAuth();
       void queryClient.clear();
       handleClose();
@@ -80,8 +81,8 @@ export function DeleteHouseholdModal({
 
   const modalTitle =
     step === "preview"
-      ? `You are about to delete "${householdName}"`
-      : "Confirm deletion";
+      ? t("deleteHouseholdPreviewTitle", { name: householdName })
+      : t("confirmDeletion");
 
   return (
     <Modal
@@ -91,7 +92,7 @@ export function DeleteHouseholdModal({
     >
       {step === "preview" && (
         <>
-          <p className="text-base text-stone-600 md:text-sm">This will permanently delete:</p>
+          <p className="text-base text-stone-600 md:text-sm">{t("deletePreviewIntro")}</p>
 
           {previewQuery.isLoading && (
             <div className="mt-4">
@@ -110,27 +111,28 @@ export function DeleteHouseholdModal({
 
           {previewQuery.isSuccess && preview && (
             <ul className="mt-3 list-disc space-y-1 pl-5 text-base text-stone-700 md:text-sm">
-              <li>{pluralize(preview.memberCount, "member", "members")}</li>
+              <li>{t("deletePreviewMembers", { count: preview.memberCount })}</li>
               <li>
-                {pluralize(preview.expenseCount, "expense", "expenses")} (
-                {formatCurrency(preview.expenseTotal)} total)
+                {t("deletePreviewExpenses", {
+                  count: preview.expenseCount,
+                  total: formatCurrency(preview.expenseTotal),
+                })}
               </li>
-              <li>
-                {pluralize(preview.recurringExpenseCount, "recurring expense", "recurring expenses")}
-              </li>
-              <li>All settlements and balance history</li>
+              <li>{t("deletePreviewRecurring", { count: preview.recurringExpenseCount })}</li>
+              <li>{t("deletePreviewSettlements")}</li>
             </ul>
           )}
 
           {previewQuery.isSuccess && preview && preview.outstandingBalanceTotal > 0 && (
             <p className="mt-4 text-sm text-negative">
-              {pluralize(preview.membersWithUnresolvedBalance, "member", "members")} have
-              unresolved balances totalling {formatCurrency(preview.outstandingBalanceTotal)}.
-              Deleting will permanently erase all debt records.
+              {t("deletePreviewUnresolvedBalances", {
+                count: preview.membersWithUnresolvedBalance,
+                total: formatCurrency(preview.outstandingBalanceTotal),
+              })}
             </p>
           )}
 
-          <p className="mt-4 text-base text-stone-600 md:text-sm">This action cannot be undone.</p>
+          <p className="mt-4 text-base text-stone-600 md:text-sm">{tCommon("cannotBeUndone")}</p>
 
           <div className="mt-6 flex flex-col-reverse gap-3 md:flex-row md:flex-wrap md:justify-end">
             <button
@@ -139,7 +141,7 @@ export function DeleteHouseholdModal({
               disabled={deleteMutation.isPending}
               onClick={handleClose}
             >
-              Cancel
+              {tCommon("cancel")}
             </button>
             <button
               type="button"
@@ -147,7 +149,7 @@ export function DeleteHouseholdModal({
               disabled={!previewQuery.isSuccess || deleteMutation.isPending}
               onClick={() => setStep("confirm")}
             >
-              Continue
+              {tCommon("continue")}
             </button>
           </div>
         </>
@@ -156,7 +158,7 @@ export function DeleteHouseholdModal({
       {step === "confirm" && (
         <>
           <p className="text-base text-stone-600 md:text-sm">
-            To confirm, type the household name &quot;{householdName}&quot; below:
+            {t("deleteConfirmInstruction", { name: householdName })}
           </p>
           <input
             className={`${inputClassName} mt-4`}
@@ -173,7 +175,7 @@ export function DeleteHouseholdModal({
               disabled={deleteMutation.isPending}
               onClick={handleClose}
             >
-              Cancel
+              {tCommon("cancel")}
             </button>
             <button
               type="button"
@@ -184,7 +186,7 @@ export function DeleteHouseholdModal({
               {deleteMutation.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
               )}
-              Delete permanently
+              {t("deletePermanently")}
             </button>
           </div>
         </>

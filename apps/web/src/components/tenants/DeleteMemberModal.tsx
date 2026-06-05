@@ -1,7 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useFormat } from "../../hooks/useFormat.ts";
 import type { TenantRemovalPreview } from "../../lib/api.ts";
-import { formatSignedCurrency } from "../../lib/format.ts";
 import { Modal } from "../ui/Modal.tsx";
 import { btnSecondary } from "../../lib/ui-classes.ts";
 
@@ -27,6 +28,10 @@ export function DeleteMemberModal({
   onCancel,
   isLoading = false,
 }: DeleteMemberModalProps) {
+  const { t } = useTranslation("members");
+  const { t: tCommon } = useTranslation("common");
+  const { formatSignedCurrency } = useFormat();
+
   if (!preview) {
     return null;
   }
@@ -34,21 +39,24 @@ export function DeleteMemberModal({
   const hasNonZeroBalance = Math.abs(preview.balance) > 0.005;
   const isBlocked = hasNonZeroBalance;
 
-  let title = "Remove member permanently";
-  let message = `${memberName} has no expense history. They will be permanently deleted. Continue?`;
-  let confirmLabel = "Delete permanently";
+  let title = t("removeMemberPermanently");
+  let message = t("removeMemberPermanentMessage", { name: memberName });
+  let confirmLabel = t("deletePermanently");
 
   if (isBlocked) {
-    title = "Cannot remove member";
-    message = `${memberName} has an outstanding balance of ${formatSignedCurrency(preview.balance)}. Settle up before removing.`;
+    title = t("cannotRemoveMember");
+    message = t("cannotRemoveMemberMessage", {
+      name: memberName,
+      balance: formatSignedCurrency(preview.balance),
+    });
   } else if (preview.hasHistory) {
-    title = "Archive member";
-    message = `${memberName} will be archived. Their expense history will be preserved and their name will remain on past expenses.`;
-    confirmLabel = "Archive";
+    title = t("archiveMember");
+    message = t("archiveMemberMessage", { name: memberName });
+    confirmLabel = tCommon("archive");
   }
 
   const soloWarning = preview.wouldSwitchToSolo
-    ? `${memberName} is the last other member. The household will switch to solo mode.`
+    ? t("soloModeWarning", { name: memberName })
     : "";
 
   return (
@@ -65,7 +73,7 @@ export function DeleteMemberModal({
           className="mt-4 inline-flex min-h-11 items-center text-base font-medium text-primary hover:text-primary-hover active:opacity-80 md:text-sm"
           onClick={onCancel}
         >
-          Go to balances →
+          {tCommon("goToBalances")}
         </Link>
       )}
       <div className="mt-6 flex flex-col-reverse gap-3 md:flex-row md:flex-wrap md:justify-end">
@@ -75,7 +83,7 @@ export function DeleteMemberModal({
           disabled={isLoading}
           onClick={onCancel}
         >
-          {isBlocked ? "Close" : "Cancel"}
+          {isBlocked ? t("blockedClose") : tCommon("cancel")}
         </button>
         {!isBlocked && (
           <button

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { inputClassName, selectClassName } from "../forms/FormField.tsx";
 import { Modal } from "../ui/Modal.tsx";
 import { btnPrimary, btnSecondary } from "../../lib/ui-classes.ts";
@@ -50,6 +51,9 @@ export function SettlementModal({
   onCancel,
   isLoading = false,
 }: SettlementModalProps) {
+  const { t } = useTranslation("balances");
+  const { t: tCommon } = useTranslation("common");
+
   if (!draft) {
     return null;
   }
@@ -64,10 +68,10 @@ export function SettlementModal({
   const canSubmit = amountValid && tenantsValid;
 
   return (
-    <Modal title="Record settlement" open={isOpen} onClose={onCancel}>
+    <Modal title={t("recordSettlement")} open={isOpen} onClose={onCancel}>
       {draft.mode === "suggested" && draft.fromName !== undefined && draft.toName !== undefined && (
         <p className="text-sm text-stone-600">
-          {draft.fromName} pays {draft.toName}
+          {tCommon("pays", { fromName: draft.fromName, toName: draft.toName })}
         </p>
       )}
 
@@ -82,7 +86,7 @@ export function SettlementModal({
           <>
             <div className="space-y-1">
               <label htmlFor="settlement-from" className="block text-sm font-medium text-stone-700">
-                From
+                {t("from")}
               </label>
               <select
                 id="settlement-from"
@@ -91,7 +95,7 @@ export function SettlementModal({
                 onChange={(event) => onFromChange(event.target.value)}
               >
                 <option value="" disabled>
-                  Select payer
+                  {tCommon("selectPayer")}
                 </option>
                 {tenants.map((tenant) => (
                   <option key={tenant.id} value={tenant.id}>
@@ -102,7 +106,7 @@ export function SettlementModal({
             </div>
             <div className="space-y-1">
               <label htmlFor="settlement-to" className="block text-sm font-medium text-stone-700">
-                To
+                {t("to")}
               </label>
               <select
                 id="settlement-to"
@@ -112,7 +116,7 @@ export function SettlementModal({
                 disabled={draft.fromTenantId === ""}
               >
                 <option value="" disabled>
-                  Select recipient
+                  {tCommon("selectRecipient")}
                 </option>
                 {recipientOptions.map((tenant) => (
                   <option key={tenant.id} value={tenant.id}>
@@ -126,7 +130,7 @@ export function SettlementModal({
 
         <div className="space-y-1">
           <label htmlFor="settlement-amount" className="block text-sm font-medium text-stone-700">
-            Amount
+            {tCommon("amount")}
           </label>
           <input
             id="settlement-amount"
@@ -135,13 +139,13 @@ export function SettlementModal({
             step={0.01}
             className={inputClassName}
             value={amount}
-            placeholder={draft.mode === "manual" ? "0.00" : undefined}
+            placeholder={draft.mode === "manual" ? t("amountPlaceholder") : undefined}
             onChange={(event) => onAmountChange(event.target.value)}
           />
         </div>
         <div className="space-y-1">
           <label htmlFor="settlement-note" className="block text-sm font-medium text-stone-700">
-            Note (optional)
+            {tCommon("noteOptional")}
           </label>
           <input
             id="settlement-note"
@@ -153,7 +157,7 @@ export function SettlementModal({
         </div>
         <div className="space-y-1">
           <label htmlFor="settlement-date" className="block text-sm font-medium text-stone-700">
-            Date
+            {tCommon("date")}
           </label>
           <input
             id="settlement-date"
@@ -171,14 +175,14 @@ export function SettlementModal({
             onClick={onCancel}
             disabled={isLoading}
           >
-            Cancel
+            {tCommon("cancel")}
           </button>
           <button
             type="submit"
             className={`${btnPrimary} w-full md:w-auto`}
             disabled={isLoading || !canSubmit}
           >
-            {isLoading ? "Saving…" : "Confirm"}
+            {isLoading ? tCommon("saving") : tCommon("confirm")}
           </button>
         </div>
       </form>

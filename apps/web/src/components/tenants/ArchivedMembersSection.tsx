@@ -1,10 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Tenant } from "@foyer/types";
+import { useFormat } from "../../hooks/useFormat.ts";
 import { updateHouseholdTenant } from "../../lib/api.ts";
 import { formatTenantName } from "../../lib/format-tenant-name.ts";
-import { formatDate } from "../../lib/format.ts";
 import { showMutationError, showMutationSuccess } from "../../lib/toast.ts";
 import { card, btnSecondary } from "../../lib/ui-classes.ts";
 
@@ -19,6 +20,10 @@ export function ArchivedMembersSection({
   tenants,
   onRestored,
 }: ArchivedMembersSectionProps) {
+  const { t } = useTranslation("members");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tToast } = useTranslation("toast");
+  const { formatDate } = useFormat();
   const [isOpen, setIsOpen] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
@@ -26,9 +31,9 @@ export function ArchivedMembersSection({
     mutationFn: (tenantId: string) =>
       updateHouseholdTenant(householdId, tenantId, { active: true }),
     onSuccess: (result) => {
-      showMutationSuccess("Member restored");
+      showMutationSuccess(tToast("memberRestored"));
       if (result.switchedToShared) {
-        showMutationSuccess("Household switched to shared mode");
+        showMutationSuccess(tToast("householdSwitchedToShared"));
       }
       onRestored();
     },
@@ -53,7 +58,7 @@ export function ArchivedMembersSection({
         ) : (
           <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={2} />
         )}
-        Archived members ({tenants.length})
+        {t("archivedMembers", { count: tenants.length })}
       </button>
       {isOpen && (
         <ul className="mt-3 space-y-3">
@@ -65,7 +70,9 @@ export function ArchivedMembersSection({
                     {formatTenantName(tenant)}
                   </p>
                   <p className="mt-1 text-xs text-stone-500">
-                    Archived {tenant.archivedAt ? formatDate(tenant.archivedAt) : "—"}
+                    {tenant.archivedAt
+                      ? tCommon("archivedOn", { date: formatDate(tenant.archivedAt) })
+                      : tCommon("dash")}
                   </p>
                 </div>
                 <button
@@ -77,7 +84,7 @@ export function ArchivedMembersSection({
                     restoreMutation.mutate(tenant.id);
                   }}
                 >
-                  Restore
+                  {tCommon("restore")}
                 </button>
               </div>
             </li>

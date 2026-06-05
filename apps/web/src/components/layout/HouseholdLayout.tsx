@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Home } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { getApiErrorMessage, getHousehold } from "../../lib/api.ts";
@@ -11,12 +12,14 @@ import { Skeleton } from "../ui/Skeleton.tsx";
 import { MobileBottomTabBar } from "./MobileBottomTabBar.tsx";
 
 const navItems = [
-  { to: "dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "expenses", label: "Expenses", icon: Receipt, end: false },
-  { to: "balances", label: "Balances", icon: Scale, end: false },
+  { to: "dashboard", labelKey: "dashboard", icon: LayoutDashboard, end: true },
+  { to: "expenses", labelKey: "expenses", icon: Receipt, end: false },
+  { to: "balances", labelKey: "balances", icon: Scale, end: false },
 ] as const;
 
 export function HouseholdLayout() {
+  const { t } = useTranslation("nav");
+  const { t: tCommon } = useTranslation("common");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -45,7 +48,7 @@ export function HouseholdLayout() {
           {householdQuery.data && (
             <div className="mb-5 border-b border-border pb-4">
               <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
-                Household
+                {tCommon("household")}
               </p>
               <h2 className="mt-1 text-lg font-semibold tracking-tight text-stone-900">
                 {householdQuery.data.name}
@@ -54,7 +57,7 @@ export function HouseholdLayout() {
           )}
           <nav className="flex flex-1 flex-col justify-between gap-4">
             <div className="flex flex-col gap-1.5">
-              {navItems.map(({ to, label, icon: Icon, end }) => (
+              {navItems.map(({ to, labelKey, icon: Icon, end }) => (
                 <NavLink
                   key={to}
                   to={`/households/${id}/${to}`}
@@ -62,7 +65,7 @@ export function HouseholdLayout() {
                   end={end}
                 >
                   <Icon className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-                  {label}
+                  {t(labelKey)}
                 </NavLink>
               ))}
             </div>
@@ -74,7 +77,7 @@ export function HouseholdLayout() {
                   end={false}
                 >
                   <Home className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-                  All households
+                  {t("allHouseholds")}
                 </NavLink>
               </CloudOnly>
               <NavLink
@@ -83,7 +86,7 @@ export function HouseholdLayout() {
                 end={false}
               >
                 <Settings className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-                Settings
+                {t("settings")}
               </NavLink>
 
               <CloudOnly>
@@ -93,7 +96,7 @@ export function HouseholdLayout() {
                   className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 active:bg-stone-200 active:opacity-80"
                 >
                   <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-                  Sign out
+                  {t("signOut")}
                 </button>
               </CloudOnly>
             </div>

@@ -1,15 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { Home } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
+import { useFormat } from "../hooks/useFormat.ts";
 import { getApiErrorMessage, getHouseholds } from "../lib/api.ts";
-import { formatDate } from "../lib/format.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { card, cardInteractive, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
 export function HouseholdsPage() {
+  const { t } = useTranslation("households");
+  const { t: tCommon } = useTranslation("common");
+  const { formatDate } = useFormat();
   const { isLocalMode, isLoading: isConfigLoading } = useDeploymentMode();
 
   const householdsQuery = useQuery({
@@ -22,8 +26,8 @@ export function HouseholdsPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className={pageTitle}>Households</h1>
-          <p className={pageSubtitle}>Your homes and shared expenses.</p>
+          <h1 className={pageTitle}>{t("title")}</h1>
+          <p className={pageSubtitle}>{t("subtitleList")}</p>
         </div>
         <ListSkeleton rows={4} />
       </div>
@@ -34,8 +38,8 @@ export function HouseholdsPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className={pageTitle}>Households</h1>
-          <p className={pageSubtitle}>Your homes and shared expenses.</p>
+          <h1 className={pageTitle}>{t("title")}</h1>
+          <p className={pageSubtitle}>{t("subtitleList")}</p>
         </div>
         <ErrorMessage
           message={getApiErrorMessage(householdsQuery.error)}
@@ -66,10 +70,10 @@ export function HouseholdsPage() {
           <Home className="h-8 w-8" strokeWidth={1.5} aria-hidden />
         </div>
         <h1 className="mt-8 text-2xl font-semibold tracking-tight text-stone-900">
-          Set up your household
+          {t("setupTitle")}
         </h1>
         <p className="mt-3 max-w-md text-sm text-stone-600">
-          Complete onboarding to add members and start tracking expenses.
+          {t("setupDescription")}
         </p>
       </div>
     );
@@ -78,8 +82,8 @@ export function HouseholdsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className={pageTitle}>Households</h1>
-        <p className={pageSubtitle}>Select a household or manage your home.</p>
+        <h1 className={pageTitle}>{t("title")}</h1>
+        <p className={pageSubtitle}>{t("subtitleSelect")}</p>
       </div>
 
       <ul className="space-y-3">
@@ -90,9 +94,11 @@ export function HouseholdsPage() {
               className={`${cardInteractive} block -m-1 p-1`}
             >
               <p className="font-semibold tracking-tight text-stone-900">{household.name}</p>
-              <p className="mt-1 text-sm capitalize text-stone-600">{household.type} household</p>
+              <p className="mt-1 text-sm capitalize text-stone-600">
+                {tCommon("householdType", { type: tCommon(household.type) })}
+              </p>
               <p className="mt-1 text-sm text-stone-500">
-                Created {formatDate(household.createdAt)}
+                {tCommon("created", { date: formatDate(household.createdAt) })}
               </p>
             </Link>
           </li>

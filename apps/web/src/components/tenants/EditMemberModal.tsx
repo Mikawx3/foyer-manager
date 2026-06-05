@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Tenant } from "@foyer/types";
 import { MemberColorPicker } from "../wizard/MemberColorPicker.tsx";
 import { FormField, inputClassName } from "../forms/FormField.tsx";
@@ -23,6 +24,9 @@ export function EditMemberModal({
   onClose,
   onSaved,
 }: EditMemberModalProps) {
+  const { t } = useTranslation("members");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tErrors } = useTranslation("errors");
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(DEFAULT_TENANT_COLOR);
 
@@ -36,7 +40,7 @@ export function EditMemberModal({
   const mutation = useMutation({
     mutationFn: () => {
       if (!tenant) {
-        throw new Error("No member selected");
+        throw new Error(tErrors("noMemberSelected"));
       }
       return updateHouseholdTenant(householdId, tenant.id, { name: name.trim(), color });
     },
@@ -59,9 +63,9 @@ export function EditMemberModal({
   };
 
   return (
-    <Modal title="Edit member" open={isOpen} onClose={onClose}>
+    <Modal title={t("editMember")} open={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <FormField label="Name">
+        <FormField label={tCommon("name")}>
           <input
             className={inputClassName}
             value={name}
@@ -70,7 +74,7 @@ export function EditMemberModal({
             autoFocus
           />
         </FormField>
-        <FormField label="Color">
+        <FormField label={tCommon("color")}>
           <MemberColorPicker value={color} onChange={setColor} />
         </FormField>
         {mutation.isError && (
@@ -83,14 +87,14 @@ export function EditMemberModal({
             disabled={mutation.isPending}
             onClick={onClose}
           >
-            Cancel
+            {tCommon("cancel")}
           </button>
           <button
             type="submit"
             className={`${btnPrimary} w-full md:w-auto`}
             disabled={mutation.isPending}
           >
-            {mutation.isPending ? "Saving…" : "Save"}
+            {mutation.isPending ? tCommon("saving") : tCommon("save")}
           </button>
         </div>
       </form>

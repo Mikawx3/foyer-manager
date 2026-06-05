@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useSwipeToClose } from "../../hooks/useSwipeToClose.ts";
 import { bottomSheetPanel, iconBtn } from "../../lib/ui-classes.ts";
 
@@ -14,6 +15,7 @@ interface ModalProps {
 }
 
 export function Modal({ title, open, onClose, children, fullHeightMobile = false }: ModalProps) {
+  const { t } = useTranslation("common");
   const { panelStyle, swipeHandlers } = useSwipeToClose(onClose, open);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export function Modal({ title, open, onClose, children, fullHeightMobile = false
       <button
         type="button"
         className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm transition-opacity"
-        aria-label="Close dialog"
+        aria-label={t("closeDialog")}
         onClick={onClose}
       />
       <div
@@ -67,7 +69,7 @@ export function Modal({ title, open, onClose, children, fullHeightMobile = false
           <h2 id="modal-title" className="text-base font-semibold tracking-tight text-stone-900">
             {title}
           </h2>
-          <button type="button" onClick={onClose} className={iconBtn} aria-label="Close">
+          <button type="button" onClick={onClose} className={iconBtn} aria-label={t("close")}>
             <X className="h-5 w-5" />
           </button>
         </div>

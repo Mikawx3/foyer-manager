@@ -1,4 +1,5 @@
 import type { SettlementPeriod } from "@foyer/types";
+import { useTranslation } from "react-i18next";
 import { WizardCard } from "./WizardCard.tsx";
 
 interface WizardStepBalancePeriodProps {
@@ -6,39 +7,41 @@ interface WizardStepBalancePeriodProps {
   onChange: (period: SettlementPeriod) => void;
 }
 
-const options: { value: SettlementPeriod; emoji: string; title: string; description: string }[] = [
+const options: { value: SettlementPeriod; emoji: string; titleKey: string; descriptionKey: string }[] = [
   {
     value: "monthly",
     emoji: "📅",
-    title: "Monthly",
-    description: "Review balances every month",
+    titleKey: "balancePeriodMonthlyTitle",
+    descriptionKey: "balancePeriodMonthlyDescription",
   },
   {
     value: "quarterly",
     emoji: "🗓️",
-    title: "Quarterly",
-    description: "Review balances every quarter",
+    titleKey: "balancePeriodQuarterlyTitle",
+    descriptionKey: "balancePeriodQuarterlyDescription",
   },
   {
     value: "yearly",
     emoji: "📆",
-    title: "Yearly",
-    description: "Review balances once a year",
+    titleKey: "balancePeriodYearlyTitle",
+    descriptionKey: "balancePeriodYearlyDescription",
   },
   {
     value: "none",
     emoji: "♾️",
-    title: "No period",
-    description: "All-time balances only",
+    titleKey: "balancePeriodNoneTitle",
+    descriptionKey: "balancePeriodNoneDescription",
   },
 ];
 
 export function WizardStepBalancePeriod({ value, onChange }: WizardStepBalancePeriodProps) {
+  const { t } = useTranslation("wizard");
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-stone-900">
-          How often do you want to review balances?
+          {t("balancePeriodTitle")}
         </h2>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -48,8 +51,8 @@ export function WizardStepBalancePeriod({ value, onChange }: WizardStepBalancePe
             selected={value === option.value}
             onClick={() => onChange(option.value)}
             emoji={option.emoji}
-            title={option.title}
-            description={option.description}
+            title={t(option.titleKey)}
+            description={t(option.descriptionKey)}
           />
         ))}
       </div>

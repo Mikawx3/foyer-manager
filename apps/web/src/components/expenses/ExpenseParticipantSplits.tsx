@@ -1,6 +1,7 @@
 import type { Tenant } from "@foyer/types";
 import type { SplitPreview } from "@foyer/types";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { inlineError } from "../../lib/ui-classes.ts";
 import {
   isPercentageTotalComplete,
@@ -36,6 +37,7 @@ export function ExpenseParticipantSplits({
   onCustomPercentagesChange,
   splitsError,
 }: ExpenseParticipantSplitsProps) {
+  const { t } = useTranslation("common");
   const selectedSet = new Set(selectedParticipantIds);
   const selectedTenants = useMemo(
     () => tenants.filter((tenant) => selectedSet.has(tenant.id)),
@@ -67,7 +69,7 @@ export function ExpenseParticipantSplits({
       />
 
       <div className="space-y-2">
-        <p className="text-sm font-medium text-stone-700">Split</p>
+        <p className="text-sm font-medium text-stone-700">{t("split")}</p>
         <SplitModeToggle useAutoSplit={useAutoSplit} onChange={onUseAutoSplitChange} />
       </div>
 
@@ -81,7 +83,7 @@ export function ExpenseParticipantSplits({
         <div className="space-y-2 rounded-lg border border-border bg-bg p-3">
           {splitsError && <p className={inlineError}>{splitsError}</p>}
           {!customValid && selectedTenants.length > 0 && (
-            <p className="text-sm text-stone-500">Percentages must sum to 100%</p>
+            <p className="text-sm text-stone-500">{t("percentagesMustSum100")}</p>
           )}
           <SmartPercentageInputs
             items={tenantItems}

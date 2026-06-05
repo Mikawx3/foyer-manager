@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { WizardProgressBar } from "../components/wizard/WizardProgressBar.tsx";
@@ -30,6 +31,8 @@ interface HouseholdWizardPageProps {
 }
 
 export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProps) {
+  const { t } = useTranslation("wizard");
+  const { t: tCommon } = useTranslation("common");
   const navigate = useNavigate();
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -80,7 +83,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
   const validateRecurringDrafts = (items: WizardState["recurring"]): boolean => {
     for (const item of items) {
       if (!isValidRecurringDraft(item)) {
-        setStepError("Each recurring expense needs a title and a valid amount.");
+        setStepError(t("errorRecurringDraft"));
         return false;
       }
     }
@@ -91,19 +94,19 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
     switch (state.step) {
       case 1:
         if (state.type === null) {
-          setStepError("Select a household type to continue.");
+          setStepError(t("errorSelectType"));
           return false;
         }
         return true;
       case 2: {
         if (state.name.trim().length === 0) {
-          setStepError("Household name is required.");
+          setStepError(t("errorNameRequired"));
           return false;
         }
         if (state.type === "shared") {
           const filled = state.members.filter((member) => member.name.trim().length > 0);
           if (filled.length === 0) {
-            setStepError("Add at least one member with a name.");
+            setStepError(t("errorAddMember"));
             return false;
           }
         }
@@ -117,7 +120,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
             0,
           );
           if (!isPercentageTotalComplete(total)) {
-            setStepError("Custom split percentages must total 100%.");
+            setStepError(t("errorCustomSplitTotal"));
             return false;
           }
         }
@@ -240,10 +243,10 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
       {state.step !== 1 && state.step !== 6 && (
         <footer className="mt-10 flex flex-col-reverse gap-3 border-t border-border pt-6 md:flex-row md:items-center md:justify-between">
           <button type="button" className={`${btnSecondary} w-full md:w-auto`} onClick={goBack}>
-            Back
+            {tCommon("back")}
           </button>
           <button type="button" className={`${btnPrimary} w-full md:w-auto`} onClick={goNext}>
-            Next
+            {tCommon("next")}
           </button>
         </footer>
       )}
@@ -255,7 +258,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
             className={`${btnSecondary} w-full md:w-auto`}
             onClick={() => navigate("/households")}
           >
-            Cancel
+            {tCommon("cancel")}
           </button>
         </footer>
       )}

@@ -1,4 +1,5 @@
 import type { Tenant } from "@foyer/types";
+import { useTranslation } from "react-i18next";
 import { DEFAULT_TENANT_COLOR } from "../../lib/tenant-colors.ts";
 
 interface MemberSelectorChipsProps {
@@ -16,12 +17,13 @@ export function MemberSelectorChips({
   selectedIds,
   onToggle,
 }: MemberSelectorChipsProps) {
+  const { t } = useTranslation("common");
   const selectedSet = new Set(selectedIds);
   const onlyOneSelected = selectedIds.length <= 1;
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-stone-700">Participants</p>
+      <p className="text-sm font-medium text-stone-700">{t("participants")}</p>
       <div className="flex flex-wrap gap-2">
         {tenants.map((tenant) => {
           const isSelected = selectedSet.has(tenant.id);
@@ -32,7 +34,7 @@ export function MemberSelectorChips({
             <button
               key={tenant.id}
               type="button"
-              title={isDisabled ? "At least one participant required" : undefined}
+              title={isDisabled ? t("atLeastOneParticipant") : undefined}
               disabled={isDisabled}
               onClick={() => onToggle(tenant.id)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition ${

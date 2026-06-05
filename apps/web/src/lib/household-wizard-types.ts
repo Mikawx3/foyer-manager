@@ -14,9 +14,48 @@ export interface WizardMember {
 
 export interface RecurringQuickAddChip {
   emoji: string;
-  label: string;
-  categoryName: string;
+  labelKey: keyof typeof RECURRING_QUICK_ADD_LABEL_KEYS;
+  categoryKey: keyof typeof RECURRING_QUICK_ADD_CATEGORY_KEYS;
 }
+
+export const RECURRING_QUICK_ADD_LABEL_KEYS = {
+  rent: "quickAddRent",
+  internet: "quickAddInternet",
+  electricity: "quickAddElectricity",
+  water: "quickAddWater",
+  streaming: "quickAddStreaming",
+  other: "quickAddOther",
+} as const;
+
+export const RECURRING_QUICK_ADD_CATEGORY_KEYS = {
+  rent: "quickAddCategoryRent",
+  internet: "quickAddCategoryInternet",
+  electricity: "quickAddCategoryUtilities",
+  water: "quickAddCategoryWater",
+  streaming: "quickAddCategoryStreaming",
+  other: "quickAddCategoryOther",
+} as const;
+
+export const RECURRING_QUICK_ADD: RecurringQuickAddChip[] = [
+  { emoji: "🏠", labelKey: "rent", categoryKey: "rent" },
+  { emoji: "🌐", labelKey: "internet", categoryKey: "internet" },
+  { emoji: "⚡", labelKey: "electricity", categoryKey: "electricity" },
+  { emoji: "💧", labelKey: "water", categoryKey: "water" },
+  { emoji: "📺", labelKey: "streaming", categoryKey: "streaming" },
+  { emoji: "➕", labelKey: "other", categoryKey: "other" },
+];
+
+export const RECURRING_QUICK_ADD_CANONICAL_CATEGORIES: Record<
+  RecurringQuickAddChip["categoryKey"],
+  string
+> = {
+  rent: "Rent",
+  internet: "Internet",
+  electricity: "Utilities",
+  water: "Water",
+  streaming: "Streaming",
+  other: "Other",
+};
 
 export interface RecurringDraft {
   tempId: string;
@@ -53,15 +92,6 @@ export interface WizardState {
   recurring: RecurringDraft[];
   settlementPeriod: SettlementPeriod;
 }
-
-export const RECURRING_QUICK_ADD: RecurringQuickAddChip[] = [
-  { emoji: "🏠", label: "Rent", categoryName: "Rent" },
-  { emoji: "🌐", label: "Internet", categoryName: "Internet" },
-  { emoji: "⚡", label: "Electricity", categoryName: "Utilities" },
-  { emoji: "💧", label: "Water", categoryName: "Water" },
-  { emoji: "📺", label: "Streaming", categoryName: "Streaming" },
-  { emoji: "➕", label: "Other", categoryName: "Other" },
-];
 
 export function createMemberId(): string {
   return generateUUID();
@@ -101,15 +131,26 @@ export function getPrevStep(step: WizardStep, type: HouseholdType | null): Wizar
   return Math.max(step - 1, 1) as WizardStep;
 }
 
-export function settlementPeriodLabel(period: SettlementPeriod): string {
+export function settlementPeriodTranslationKey(period: SettlementPeriod): string {
   switch (period) {
     case "monthly":
-      return "Monthly";
+      return "settlementPeriodMonthly";
     case "quarterly":
-      return "Quarterly";
+      return "settlementPeriodQuarterly";
     case "yearly":
-      return "Yearly";
+      return "settlementPeriodYearly";
     default:
-      return "No period — all-time balances";
+      return "settlementPeriodNone";
   }
+}
+
+export function recurringCategoryTranslationKey(
+  canonicalCategoryName: string,
+): keyof typeof RECURRING_QUICK_ADD_CATEGORY_KEYS | null {
+  for (const [key, name] of Object.entries(RECURRING_QUICK_ADD_CANONICAL_CATEGORIES)) {
+    if (name === canonicalCategoryName) {
+      return key as keyof typeof RECURRING_QUICK_ADD_CATEGORY_KEYS;
+    }
+  }
+  return null;
 }

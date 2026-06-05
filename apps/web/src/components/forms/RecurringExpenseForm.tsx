@@ -3,6 +3,7 @@ import type { Category, RecurringExpense, Tenant } from "@foyer/types";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { ExpenseParticipantSplits, isCustomSplitValid } from "../expenses/ExpenseParticipantSplits.tsx";
 import { resolveDefaultSplits } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
@@ -25,12 +26,7 @@ interface RecurringExpenseFormProps {
   submitLabel?: string;
 }
 
-const frequencyOptions = [
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "quarterly", label: "Quarterly" },
-  { value: "yearly", label: "Yearly" },
-] as const;
+const frequencyValues = ["weekly", "monthly", "quarterly", "yearly"] as const;
 
 export function RecurringExpenseForm({
   householdId,
@@ -41,6 +37,11 @@ export function RecurringExpenseForm({
   initialRecurring,
   submitLabel,
 }: RecurringExpenseFormProps) {
+  const { t } = useTranslation("recurring");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tValidation } = useTranslation("validation");
+  const schema = useMemo(() => createRecurringExpenseSchema(tValidation), [tValidation]);
+
   const today = new Date().toISOString().slice(0, 10);
   const allTenantIds = useMemo(() => tenants.map((tenant) => tenant.id), [tenants]);
   const isEdit = initialRecurring !== undefined;
@@ -76,7 +77,7 @@ export function RecurringExpenseForm({
     watch,
     formState: { errors },
   } = useForm<CreateRecurringExpenseForm>({
-    resolver: zodResolver(createRecurringExpenseSchema),
+    resolver: zodResolver(schema),
     defaultValues,
   });
 
@@ -207,10 +208,10 @@ export function RecurringExpenseForm({
 
   return (
     <form onSubmit={submit} className={formCard}>
-      <FormField label="Title" error={errors.title?.message}>
+      <FormField label={tCommon("title")} error={errors.title?.message}>
         <input className={inputClassName} {...register("title")} />
       </FormField>
-      <FormField label="Amount" error={errors.amount?.message}>
+      <FormField label={tCommon("amount")} error={errors.amount?.message}>
         <input
           className={inputClassName}
           type="number"
@@ -219,10 +220,10 @@ export function RecurringExpenseForm({
           {...register("amount", { valueAsNumber: true })}
         />
       </FormField>
-      <FormField label="Category" error={errors.category?.message}>
+      <FormField label={tCommon("category")} error={errors.category?.message}>
         <select className={selectClassName} {...register("category")} defaultValue="">
           <option value="" disabled>
-            Select category
+            {tCommon("selectCategory")}
           </option>
           {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>
@@ -231,10 +232,10 @@ export function RecurringExpenseForm({
           ))}
         </select>
       </FormField>
-      <FormField label="Paid by" error={errors.paidById?.message}>
+      <FormField label={tCommon("paidBy")} error={errors.paidById?.message}>
         <select className={selectClassName} {...register("paidById")} defaultValue="">
           <option value="" disabled>
-            Select member
+            {tCommon("selectMember")}
           </option>
           {tenants.map((tenant) => (
             <option key={tenant.id} value={tenant.id}>
@@ -243,16 +244,16 @@ export function RecurringExpenseForm({
           ))}
         </select>
       </FormField>
-      <FormField label="Frequency" error={errors.frequency?.message}>
+      <FormField label={tCommon("frequency")} error={errors.frequency?.message}>
         <select className={selectClassName} {...register("frequency")}>
-          {frequencyOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+          {frequencyValues.map((value) => (
+            <option key={value} value={value}>
+              {tCommon(value)}
             </option>
           ))}
         </select>
       </FormField>
-      <FormField label="Start date" error={errors.startDate?.message}>
+      <FormField label={tCommon("startDate")} error={errors.startDate?.message}>
         <input className={inputClassName} type="date" {...register("startDate")} />
       </FormField>
 
@@ -280,7 +281,8 @@ export function RecurringExpenseForm({
       )}
 
       <button type="submit" disabled={isPending || !customValid} className={btnPrimary}>
-        {submitLabel ?? (isPending ? "Saving…" : isEdit ? "Save changes" : "Add recurring expense")}
+        {submitLabel ??
+          (isPending ? tCommon("saving") : isEdit ? t("saveChanges") : t("addRecurringExpenseButton"))}
       </button>
     </form>
   );

@@ -1,5 +1,6 @@
 import type { Category, Expense, Tenant, TenantBalance } from "@foyer/types";
 import { getCategoryHexForName } from "./category-colors.ts";
+import { formatMonthShort } from "./format.ts";
 import { computeSuggestedSettlements } from "./suggested-settlements.ts";
 import { DEFAULT_TENANT_COLOR } from "./tenant-colors.ts";
 
@@ -62,8 +63,8 @@ function monthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function shortMonthLabel(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short" }).format(date);
+function shortMonthLabel(date: Date, locale: string): string {
+  return formatMonthShort(date, locale);
 }
 
 export function filterExpensesThisMonth(
@@ -116,6 +117,7 @@ export function computeDashboardKpis(
 export function computeCategorySpending(
   expenses: Expense[],
   categories: Category[],
+  unknownLabel: string,
 ): CategorySpendingSlice[] {
   const categoryNameById = new Map(categories.map((category) => [category.id, category.name]));
   const totalsByCategoryId = new Map<string, number>();
@@ -127,7 +129,7 @@ export function computeCategorySpending(
 
   const slices: CategorySpendingSlice[] = [];
   for (const [categoryId, value] of totalsByCategoryId) {
-    const name = categoryNameById.get(categoryId) ?? "Unknown";
+    const name = categoryNameById.get(categoryId) ?? unknownLabel;
     slices.push({
       name,
       value,
@@ -140,6 +142,7 @@ export function computeCategorySpending(
 
 export function computeMonthlyTrend(
   expenses: Expense[],
+  locale: string,
   referenceDate: Date = new Date(),
 ): MonthlyTrendPoint[] {
   const points: MonthlyTrendPoint[] = [];
@@ -152,7 +155,7 @@ export function computeMonthlyTrend(
       .reduce((sum, expense) => sum + expense.amount, 0);
 
     points.push({
-      label: shortMonthLabel(monthDate),
+      label: shortMonthLabel(monthDate, locale),
       total,
       monthKey: key,
     });

@@ -27,6 +27,7 @@ import type {
   UpdateHouseholdPayload,
 } from "@foyer/types";
 import axios, { isAxiosError } from "axios";
+import i18n from "../i18n.ts";
 import { clearAuth, getToken } from "./auth-storage.ts";
 
 export interface ApiErrorBody {
@@ -83,7 +84,7 @@ export function getApiErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-  return "Something went wrong";
+  return i18n.t("errors:somethingWentWrong");
 }
 
 export async function getConfig(): Promise<AppConfig> {

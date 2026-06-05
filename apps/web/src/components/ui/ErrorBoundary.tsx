@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import i18n from "../../i18n.ts";
 import { btnPrimary } from "../../lib/ui-classes.ts";
 
 interface ErrorBoundaryProps {
@@ -28,17 +29,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-bg px-4 text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-stone-900">
-            Something went wrong
+            {i18n.t("common:somethingWentWrong")}
           </h1>
           <p className="mt-2 max-w-md text-sm text-stone-600">
-            An unexpected error occurred. Reload the page to try again.
+            {i18n.t("common:unexpectedError")}
           </p>
           <button
             type="button"
             className={`${btnPrimary} mt-8`}
             onClick={() => window.location.reload()}
           >
-            Reload page
+            {i18n.t("common:reloadPage")}
           </button>
         </div>
       );

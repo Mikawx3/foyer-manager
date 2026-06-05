@@ -2,6 +2,7 @@ import type { Category, Expense, ExpenseSplit, Tenant } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CategoriesSection } from "../components/expenses/CategoriesSection.tsx";
@@ -18,6 +19,7 @@ import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ConfirmModal } from "../components/ui/ConfirmModal.tsx";
 import { Modal } from "../components/ui/Modal.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
+import { useFormat } from "../hooks/useFormat.ts";
 import {
   createCategory,
   createExpense,
@@ -31,9 +33,8 @@ import {
   getTenants,
   resetExpenseSplits,
 } from "../lib/api.ts";
-import { exportExpensesToCSV, slugifyHouseholdName } from "../lib/export.ts";
+import { exportExpensesToCSV, getCsvHeaders, slugifyHouseholdName } from "../lib/export.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
-import { formatCurrency, formatDate } from "../lib/format.ts";
 import { formatTenantName } from "../lib/format-tenant-name.ts";
 import { getActiveTenants } from "../lib/active-tenants.ts";
 import { currentMonthValue, type ExpenseListFilters } from "../lib/expense-list-filters.ts";
@@ -67,9 +68,11 @@ import {
 function SplitsSummaryList({
   splits,
   tenantNameById,
+  formatCurrency,
 }: {
   splits: ExpenseSplit[];
   tenantNameById: Map<string, string>;
+  formatCurrency: (amount: number) => string;
 }) {
   return (
     <ul className="space-y-1 text-sm text-stone-600">
@@ -98,6 +101,10 @@ function ExpenseSplits({
   const expenseId = expense.id;
   const [expanded, setExpanded] = useState(false);
   const queryClient = useQueryClient();
+  const { t } = useTranslation("expenses");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tToast } = useTranslation("toast");
+  const { formatCurrency } = useFormat();
 
   const splitsQuery = useQuery({
     queryKey: queryKeys.splits(expenseId),
@@ -109,7 +116,7 @@ function ExpenseSplits({
     mutationFn: (input: { splits: { tenantId: string; percentage: number }[] }) =>
       createSplits(expenseId, input),
     ...mutationToastHandlers({
-      successMessage: "Splits saved",
+      successMessage: tToast("splitsSaved"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.splits(expenseId) });
         void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
@@ -124,7 +131,7 @@ function ExpenseSplits({
   const resetMutation = useMutation({
     mutationFn: () => resetExpenseSplits(expenseId),
     ...mutationToastHandlers({
-      successMessage: "Splits reset to default",
+      successMessage: tToast("splitsResetToDefault"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.splits(expenseId) });
         void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
@@ -135,7 +142,7 @@ function ExpenseSplits({
     }),
   });
 
-  const tenantNameById = new Map(tenants.map((t) => [t.id, formatTenantName(t)]));
+  const tenantNameById = new Map(tenants.map((tenant) => [tenant.id, formatTenantName(tenant)]));
   const splits = splitsQuery.data ?? [];
   const splitsComplete = isExpenseSplitsComplete(splits, tenants);
 
@@ -150,10 +157,10 @@ function ExpenseSplits({
   );
 
   const toggleLabel = expanded
-    ? "Hide splits"
+    ? t("hideSplits")
     : splitsComplete
-      ? "Show splits"
-      : "Customize splits";
+      ? t("showSplits")
+      : t("customizeSplits");
 
   return (
     <div className="mt-3 border-t border-border pt-3">
@@ -164,7 +171,7 @@ function ExpenseSplits({
           className={btnSecondary}
           disabled={splitsQuery.isLoading}
         >
-          {splitsQuery.isLoading ? "Loading splits…" : toggleLabel}
+          {splitsQuery.isLoading ? tCommon("loadingSplits") : toggleLabel}
         </button>
         {expense.splitMode === "custom" && (
           <button
@@ -173,7 +180,7 @@ function ExpenseSplits({
             disabled={resetMutation.isPending}
             onClick={() => resetMutation.mutate()}
           >
-            {resetMutation.isPending ? "Resetting…" : "Reset to default"}
+            {resetMutation.isPending ? tCommon("resetting") : t("resetToDefault")}
           </button>
         )}
       </div>
@@ -183,11 +190,15 @@ function ExpenseSplits({
       {expanded && !splitsQuery.isLoading && (
         <>
           {splitsComplete && (
-            <p className="mt-2 text-xs font-medium text-stone-500">Split between all members</p>
+            <p className="mt-2 text-xs font-medium text-stone-500">{tCommon("splitBetweenAllMembers")}</p>
           )}
           {splits.length > 0 && (
             <div className="mt-2">
-              <SplitsSummaryList splits={splits} tenantNameById={tenantNameById} />
+              <SplitsSummaryList
+                splits={splits}
+                tenantNameById={tenantNameById}
+                formatCurrency={formatCurrency}
+              />
             </div>
           )}
           {!splitsComplete && tenants.length > 0 && (
@@ -267,6 +278,16 @@ function ExpenseFormsAside({
 export function ExpensesPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { t } = useTranslation("expenses");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tNav } = useTranslation("nav");
+  const { t: tToast } = useTranslation("toast");
+  const { t: tRecurring } = useTranslation("recurring");
+  const { t: tExport } = useTranslation("export");
+  const { formatCurrency, formatDate } = useFormat();
+
+  const csvHeaders = useMemo(() => getCsvHeaders(tExport), [tExport]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; description: string } | null>(
@@ -319,7 +340,7 @@ export function ExpensesPage() {
   const createExpenseMutation = useMutation({
     mutationFn: createExpense,
     ...mutationToastHandlers({
-      successMessage: "Expense recorded",
+      successMessage: tToast("expenseRecorded"),
       onSuccess: () => {
         setPage(1);
         void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
@@ -341,8 +362,7 @@ export function ExpensesPage() {
       recurringGeneratedCount !== lastGeneratedToastRef.current
     ) {
       lastGeneratedToastRef.current = recurringGeneratedCount;
-      const label = recurringGeneratedCount === 1 ? "expense was" : "expenses were";
-      toast.success(`${recurringGeneratedCount} recurring ${label} auto-generated`);
+      toast.success(tRecurring("recurringAutoGenerated", { count: recurringGeneratedCount }));
       void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
     }
   }, [
@@ -350,12 +370,13 @@ export function ExpensesPage() {
     expensesQuery.isSuccess,
     householdId,
     queryClient,
+    tRecurring,
   ]);
 
   const createCategoryMutation = useMutation({
     mutationFn: createCategory,
     ...mutationToastHandlers({
-      successMessage: "Category added",
+      successMessage: tToast("categoryAdded"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.categories(householdId) });
       },
@@ -365,7 +386,7 @@ export function ExpensesPage() {
   const deleteExpenseMutation = useMutation({
     mutationFn: deleteExpense,
     ...mutationToastHandlers({
-      successMessage: "Expense deleted",
+      successMessage: tToast("expenseDeleted"),
       onSuccess: () => {
         setPendingDelete(null);
         void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
@@ -377,9 +398,9 @@ export function ExpensesPage() {
     }),
   });
 
-  const categoryNameById = new Map(categoriesQuery.data?.map((c) => [c.id, c.name]) ?? []);
+  const categoryNameById = new Map(categoriesQuery.data?.map((category) => [category.id, category.name]) ?? []);
   const tenantNameById = new Map(
-    tenantsQuery.data?.map((t) => [t.id, formatTenantName(t)]) ?? [],
+    tenantsQuery.data?.map((tenant) => [tenant.id, formatTenantName(tenant)]) ?? [],
   );
   const activeTenantsForPickers = getActiveTenants(tenantsQuery.data ?? []);
 
@@ -394,13 +415,20 @@ export function ExpensesPage() {
   );
 
   const handleExportCsv = () => {
-    const householdSlug = slugifyHouseholdName(householdQuery.data?.name ?? "household");
+    const householdSlug = slugifyHouseholdName(
+      householdQuery.data?.name ?? tExport("defaultHouseholdSlug"),
+    );
     const filename = `expenses-${householdSlug}-${month}.csv`;
-    exportExpensesToCSV(expenseList, filename, {
-      categoryNameById,
-      tenantNameById,
-    });
-    toast.success(`CSV exported — ${expenseList.length} expenses`);
+    exportExpensesToCSV(
+      expenseList,
+      filename,
+      {
+        categoryNameById,
+        tenantNameById,
+      },
+      csvHeaders,
+    );
+    toast.success(tExport("csvExported", { count: expenseList.length }));
   };
 
   const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
@@ -430,8 +458,8 @@ export function ExpensesPage() {
     <div className="space-y-6">
       <div className={pageActionsRow}>
         <div>
-          <h1 className={pageTitle}>Expenses</h1>
-          <p className={pageSubtitle}>Track spending and split costs.</p>
+          <h1 className={pageTitle}>{t("title")}</h1>
+          <p className={pageSubtitle}>{t("subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -441,7 +469,7 @@ export function ExpensesPage() {
             onClick={handleExportCsv}
           >
             <Download className="h-4 w-4" strokeWidth={2} />
-            Export CSV
+            {t("exportCsv")}
           </button>
           {canAddExpense && (
             <button
@@ -450,7 +478,7 @@ export function ExpensesPage() {
               onClick={() => setModalOpen(true)}
             >
               <Plus className="h-4 w-4" strokeWidth={2} />
-              New expense
+              {t("newExpense")}
             </button>
           )}
         </div>
@@ -458,8 +486,8 @@ export function ExpensesPage() {
 
       {categoriesQuery.isSuccess && categoriesQuery.data.length === 0 && (
         <EmptyState
-          title="No categories yet"
-          description="Create at least one category before adding expenses."
+          title={t("noCategoriesTitle")}
+          description={t("noCategoriesDescription")}
           action={
             <CategoryForm
               householdId={householdId}
@@ -483,7 +511,7 @@ export function ExpensesPage() {
                 }`}
                 onClick={() => setActiveTab("expenses")}
               >
-                Expenses
+                {tNav("expensesTab")}
               </button>
               <button
                 type="button"
@@ -494,7 +522,7 @@ export function ExpensesPage() {
                 }`}
                 onClick={() => setActiveTab("recurring")}
               >
-                Recurring
+                {tNav("recurringTab")}
               </button>
             </div>
 
@@ -511,7 +539,7 @@ export function ExpensesPage() {
             <div className="mb-4 flex flex-wrap gap-3">
               <div className="space-y-1">
                 <label htmlFor="expense-filter-month" className="block text-sm font-medium text-stone-700">
-                  Month
+                  {tCommon("month")}
                 </label>
                 <input
                   id="expense-filter-month"
@@ -529,7 +557,7 @@ export function ExpensesPage() {
                   htmlFor="expense-filter-category"
                   className="block text-sm font-medium text-stone-700"
                 >
-                  Category
+                  {tCommon("category")}
                 </label>
                 <select
                   id="expense-filter-category"
@@ -540,7 +568,7 @@ export function ExpensesPage() {
                     setPage(1);
                   }}
                 >
-                  <option value="">All categories</option>
+                  <option value="">{tCommon("allCategories")}</option>
                   {categoriesQuery.data?.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -550,7 +578,7 @@ export function ExpensesPage() {
               </div>
               <div className="space-y-1">
                 <label htmlFor="expense-filter-limit" className="block text-sm font-medium text-stone-700">
-                  Per page
+                  {tCommon("perPage")}
                 </label>
                 <select
                   id="expense-filter-limit"
@@ -576,8 +604,8 @@ export function ExpensesPage() {
             )}
             {expensesQuery.isSuccess && expensesQuery.data.total === 0 && (
               <EmptyState
-                title="No expenses yet"
-                description="Add your first expense using the panel on the right, or the button above on smaller screens."
+                title={t("noExpensesTitle")}
+                description={t("noExpensesDescription")}
                 action={
                   canAddExpense ? (
                     <button
@@ -586,7 +614,7 @@ export function ExpensesPage() {
                       onClick={() => setModalOpen(true)}
                     >
                       <Plus className="h-4 w-4" strokeWidth={2} />
-                      New expense
+                      {t("newExpense")}
                     </button>
                   ) : undefined
                 }
@@ -595,7 +623,8 @@ export function ExpensesPage() {
             {expensesQuery.isSuccess && expenseList.length > 0 && (
               <ul className="space-y-4">
                 {expenseList.map((expense) => {
-                  const categoryName = categoryNameById.get(expense.categoryId) ?? "Category";
+                  const categoryName = categoryNameById.get(expense.categoryId) ?? tCommon("category");
+                  const paidByName = tenantNameById.get(expense.paidByTenantId) ?? tCommon("dash");
                   return (
                     <li key={expense.id} className={card}>
                       <div className="flex items-start justify-between gap-3">
@@ -612,7 +641,9 @@ export function ExpensesPage() {
                             <CategoryBadge name={categoryName} />
                             <SplitModeBadge splitMode={expense.splitMode} />
                             <span>{formatDate(expense.date)}</span>
-                            <span>· Paid by {tenantNameById.get(expense.paidByTenantId) ?? "—"}</span>
+                            <span>
+                              · {tCommon("paidByPrefix", { name: paidByName })}
+                            </span>
                           </p>
                         </div>
                         <div className="flex shrink-0 items-start gap-0">
@@ -620,7 +651,7 @@ export function ExpensesPage() {
                             type="button"
                             onClick={() => setEditingExpense(expense)}
                             className={iconBtn}
-                            aria-label={`Edit ${expense.description}`}
+                            aria-label={tCommon("editItem", { name: expense.description })}
                           >
                             <Pencil className="h-4 w-4" strokeWidth={2} />
                           </button>
@@ -634,7 +665,7 @@ export function ExpensesPage() {
                             }
                             disabled={deleteExpenseMutation.isPending}
                             className={`${iconBtn} hover:text-negative active:text-negative disabled:opacity-50`}
-                            aria-label={`Delete ${expense.description}`}
+                            aria-label={tCommon("deleteItem", { name: expense.description })}
                           >
                             <Trash2 className="h-4 w-4" strokeWidth={2} />
                           </button>
@@ -657,7 +688,7 @@ export function ExpensesPage() {
               <div className="mt-6 space-y-2">
                 <nav
                   className="flex flex-wrap items-center justify-center gap-4"
-                  aria-label="Expense list pagination"
+                  aria-label={tNav("expenseListPagination")}
                 >
                   <button
                     type="button"
@@ -665,10 +696,10 @@ export function ExpensesPage() {
                     disabled={page <= 1}
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                   >
-                    ← Previous
+                    {tCommon("previous")}
                   </button>
                   <span className="text-sm text-stone-600">
-                    Page {page} of {totalPages}
+                    {tCommon("pageOf", { page, totalPages })}
                   </span>
                   <button
                     type="button"
@@ -676,11 +707,11 @@ export function ExpensesPage() {
                     disabled={page >= totalPages}
                     onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                   >
-                    Next →
+                    {tCommon("nextPage")}
                   </button>
                 </nav>
                 <p className="text-center text-sm text-stone-500">
-                  Showing {expenseList.length} of {totalExpenses} expenses
+                  {tCommon("showingOf", { shown: expenseList.length, total: totalExpenses })}
                 </p>
               </div>
             )}
@@ -709,10 +740,10 @@ export function ExpensesPage() {
 
       <ConfirmModal
         isOpen={pendingDelete !== null}
-        title="Delete expense"
+        title={t("deleteExpenseTitle")}
         message={
           pendingDelete
-            ? `This will permanently delete "${pendingDelete.description}". This action cannot be undone.`
+            ? t("deleteExpenseMessage", { description: pendingDelete.description })
             : ""
         }
         onConfirm={() => {
@@ -726,7 +757,7 @@ export function ExpensesPage() {
 
       {canAddExpense && categoriesQuery.data && (
         <Modal
-          title="New expense"
+          title={t("newExpense")}
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           fullHeightMobile
@@ -757,7 +788,7 @@ export function ExpensesPage() {
           className={fabButton}
           style={{ bottom: fabBottomOffset }}
           onClick={() => setModalOpen(true)}
-          aria-label="New expense"
+          aria-label={t("newExpense")}
         >
           <Plus className="h-6 w-6" strokeWidth={2.5} />
         </button>

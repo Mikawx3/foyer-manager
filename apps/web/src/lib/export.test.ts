@@ -42,12 +42,25 @@ describe("slugifyHouseholdName", () => {
   });
 });
 
+const CSV_HEADERS = [
+  "Date",
+  "Description",
+  "Category",
+  "Amount (€)",
+  "Paid by",
+  "Split mode",
+];
+
 describe("buildExpensesCsv", () => {
   it("builds header and row with French amount and escaped description", () => {
-    const csv = buildExpensesCsv([sampleExpense], {
-      categoryNameById: new Map([["cat-1", "Food"]]),
-      tenantNameById: new Map([["tenant-1", "Alice"]]),
-    });
+    const csv = buildExpensesCsv(
+      [sampleExpense],
+      {
+        categoryNameById: new Map([["cat-1", "Food"]]),
+        tenantNameById: new Map([["tenant-1", "Alice"]]),
+      },
+      CSV_HEADERS,
+    );
 
     const lines = csv.split("\n");
     expect(lines[0]).toBe("Date,Description,Category,Amount (€),Paid by,Split mode");

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { SplitMode, WizardMember } from "../../lib/household-wizard-types.ts";
 import { equalSplitPercentages } from "../../lib/split-percentages.ts";
 import { isPercentageTotalComplete } from "../../lib/smart-percentages.ts";
@@ -21,6 +22,9 @@ export function WizardStepDefaultSplit({
   onSplitModeChange,
   onCustomSplitsChange,
 }: WizardStepDefaultSplitProps) {
+  const { t } = useTranslation("wizard");
+  const { t: tCommon } = useTranslation("common");
+
   const filledMembers = members.filter((member) => member.name.trim().length > 0);
   const memberCount = filledMembers.length;
   const equalPreview = equalSplitPercentages(memberCount);
@@ -29,7 +33,7 @@ export function WizardStepDefaultSplit({
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-stone-900">
-          How do you usually split expenses?
+          {t("splitTitle")}
         </h2>
       </div>
 
@@ -38,15 +42,15 @@ export function WizardStepDefaultSplit({
           selected={splitMode === "equal"}
           onClick={() => onSplitModeChange("equal")}
           emoji="⚖️"
-          title="Equal split"
-          description="Split every expense equally between all members"
+          title={t("splitEqualTitle")}
+          description={t("splitEqualDescription")}
         />
         <WizardCard
           selected={splitMode === "custom"}
           onClick={() => onSplitModeChange("custom")}
           emoji="✏️"
-          title="Custom split"
-          description="Set a percentage for each member"
+          title={t("splitCustomTitle")}
+          description={t("splitCustomDescription")}
         />
       </div>
 
@@ -58,7 +62,10 @@ export function WizardStepDefaultSplit({
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: member.color }}
               />
-              {member.name} — {equalPreview[index] ?? 0}%
+              {tCommon("memberEqualSplitPreview", {
+                name: member.name,
+                percent: equalPreview[index] ?? 0,
+              })}
             </li>
           ))}
         </ul>
@@ -79,7 +86,7 @@ export function WizardStepDefaultSplit({
       {splitMode === "custom" && !isPercentageTotalComplete(
         Object.values(customSplits).reduce((sum, value) => sum + value, 0),
       ) && (
-        <p className="text-sm text-stone-500">Percentages must total 100% to continue.</p>
+        <p className="text-sm text-stone-500">{tCommon("percentagesMustTotal100ToContinue")}</p>
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { pageTitle } from "../../lib/ui-classes.ts";
 
@@ -9,21 +10,23 @@ const settingsSubNavClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export function SettingsLayout() {
+  const { t } = useTranslation("settings");
+  const { t: tNav } = useTranslation("nav");
   const { id = "" } = useParams<{ id: string }>();
   const basePath = `/households/${id}/settings`;
 
   return (
     <div className="space-y-6">
-      <h1 className={pageTitle}>Settings</h1>
+      <h1 className={pageTitle}>{t("title")}</h1>
       <nav
         className="-mb-px flex gap-6 overflow-x-auto border-b border-border [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        aria-label="Settings sections"
+        aria-label={tNav("settingsSections")}
       >
         <NavLink to={basePath} end className={settingsSubNavClass}>
-          General
+          {tNav("general")}
         </NavLink>
         <NavLink to={`${basePath}/members`} className={settingsSubNavClass}>
-          Manage members
+          {tNav("manageMembers")}
         </NavLink>
       </nav>
       <Outlet />

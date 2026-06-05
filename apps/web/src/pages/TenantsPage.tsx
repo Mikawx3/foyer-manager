@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { Tenant } from "@foyer/types";
 import { ArchivedMembersSection } from "../components/tenants/ArchivedMembersSection.tsx";
@@ -10,6 +11,7 @@ import { TenantForm } from "../components/forms/TenantForm.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
+import { useFormat } from "../hooks/useFormat.ts";
 import {
   createTenant,
   deleteHouseholdTenant,
@@ -19,7 +21,6 @@ import {
   updateHouseholdTenant,
   type TenantRemovalPreview,
 } from "../lib/api.ts";
-import { formatDate } from "../lib/format.ts";
 import { formatMemberEmail } from "../lib/member-email.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { DEFAULT_TENANT_COLOR } from "../lib/tenant-colors.ts";
@@ -42,6 +43,11 @@ function invalidateMemberQueries(queryClient: ReturnType<typeof useQueryClient>,
 export function TenantsPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { t } = useTranslation("members");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tToast } = useTranslation("toast");
+  const { formatDate } = useFormat();
+
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingTenantDelete | null>(null);
   const [soloBanner, setSoloBanner] = useState(false);
@@ -56,7 +62,7 @@ export function TenantsPage() {
   const createMutation = useMutation({
     mutationFn: createTenant,
     ...mutationToastHandlers({
-      successMessage: "Member added",
+      successMessage: tToast("memberAdded"),
       onSuccess: () => invalidateMemberQueries(queryClient, householdId),
     }),
   });
@@ -70,7 +76,7 @@ export function TenantsPage() {
     },
     onSuccess: (result, variables) => {
       showMutationSuccess(
-        variables.preview.hasHistory ? "Member archived" : "Member removed",
+        variables.preview.hasHistory ? tToast("memberArchived") : tToast("memberRemoved"),
       );
       setPendingDelete(null);
       if ("switchedToSolo" in result && result.switchedToSolo) {
@@ -99,13 +105,13 @@ export function TenantsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className={pageTitle}>Manage members</h2>
-        <p className={pageSubtitle}>Add, edit, or archive household members.</p>
+        <h2 className={pageTitle}>{t("manageTitle")}</h2>
+        <p className={pageSubtitle}>{t("manageSubtitle")}</p>
       </div>
 
       {soloBanner && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-stone-700">
-          Your household is now in solo mode. Add a new member anytime to return to shared mode.
+          {tCommon("soloModeBanner")}
         </div>
       )}
 
@@ -120,10 +126,10 @@ export function TenantsPage() {
           )}
           {tenantsQuery.isSuccess && activeTenants.length === 0 && archivedTenants.length === 0 && (
             <EmptyState
-              title="No members yet"
-              description="Add household members before creating expenses or splits."
+              title={t("noMembersTitle")}
+              description={t("noMembersDescriptionExpenses")}
               action={
-                <p className="text-sm text-stone-500">Use the form on the right to add someone.</p>
+                <p className="text-sm text-stone-500">{tCommon("useFormOnRight")}</p>
               }
             />
           )}
@@ -146,7 +152,7 @@ export function TenantsPage() {
                           <p className="text-sm text-stone-600">{displayEmail}</p>
                         )}
                         <p className="mt-1 text-xs text-stone-500">
-                          Joined {formatDate(tenant.createdAt)}
+                          {tCommon("joined", { date: formatDate(tenant.createdAt) })}
                         </p>
                       </div>
                     </div>
@@ -155,7 +161,7 @@ export function TenantsPage() {
                         type="button"
                         onClick={() => setEditingTenant(tenant)}
                         className={iconBtn}
-                        aria-label={`Edit ${tenant.name}`}
+                        aria-label={tCommon("editItem", { name: tenant.name })}
                       >
                         <Pencil className="h-4 w-4" strokeWidth={2} />
                       </button>
@@ -164,7 +170,7 @@ export function TenantsPage() {
                         onClick={() => handleDeleteClick(tenant)}
                         disabled={removeMutation.isPending || previewLoadingId === tenant.id}
                         className={`${iconBtn} hover:text-negative active:text-negative disabled:opacity-50`}
-                        aria-label={`Remove ${tenant.name}`}
+                        aria-label={tCommon("removeItem", { name: tenant.name })}
                       >
                         <Trash2 className="h-4 w-4" strokeWidth={2} />
                       </button>
@@ -205,7 +211,7 @@ export function TenantsPage() {
         tenant={editingTenant}
         onClose={() => setEditingTenant(null)}
         onSaved={() => {
-          showMutationSuccess("Member updated");
+          showMutationSuccess(tToast("memberUpdated"));
           invalidateMemberQueries(queryClient, householdId);
         }}
       />

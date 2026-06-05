@@ -1,6 +1,12 @@
+import { useTranslation } from "react-i18next";
+import { useFormat } from "../../hooks/useFormat.ts";
 import type { WizardState } from "../../lib/household-wizard-types.ts";
-import { isValidRecurringDraft, settlementPeriodLabel } from "../../lib/household-wizard-types.ts";
-import { formatCurrency } from "../../lib/format.ts";
+import {
+  isValidRecurringDraft,
+  recurringCategoryTranslationKey,
+  RECURRING_QUICK_ADD_CATEGORY_KEYS,
+  settlementPeriodTranslationKey,
+} from "../../lib/household-wizard-types.ts";
 import { amount, btnPrimary, btnSecondary, card } from "../../lib/ui-classes.ts";
 
 interface WizardStepSummaryProps {
@@ -18,27 +24,44 @@ export function WizardStepSummary({
   onCreate,
   onBackToEdit,
 }: WizardStepSummaryProps) {
+  const { t } = useTranslation("wizard");
+  const { t: tCommon } = useTranslation("common");
+  const { formatCurrency } = useFormat();
+
   const filledMembers = state.members.filter((member) => member.name.trim().length > 0);
+
+  const categoryDisplayName = (categoryName: string): string => {
+    const key = recurringCategoryTranslationKey(categoryName);
+    return key !== null ? t(RECURRING_QUICK_ADD_CATEGORY_KEYS[key]) : categoryName;
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-stone-900">
-          Review your household
+          {t("summaryTitle")}
         </h2>
-        <p className="mt-1 text-sm text-stone-600">Everything look good? Create your household.</p>
+        <p className="mt-1 text-sm text-stone-600">{t("summarySubtitle")}</p>
       </div>
 
       <div className={`${card} space-y-4`}>
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Household</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+            {t("summaryHousehold")}
+          </p>
           <p className="mt-1 font-semibold text-stone-900">{state.name}</p>
-          <p className="text-sm text-stone-600 capitalize">{state.type}</p>
+          <p className="text-sm text-stone-600">
+            {tCommon("householdType", {
+              type: state.type === "solo" ? tCommon("solo") : tCommon("shared"),
+            })}
+          </p>
         </div>
 
         {state.type === "shared" && filledMembers.length > 0 && (
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Members</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+              {t("summaryMembers")}
+            </p>
             <ul className="mt-2 space-y-1">
               {filledMembers.map((member) => (
                 <li key={member.tempId} className="flex items-center gap-2 text-sm text-stone-800">
@@ -55,29 +78,31 @@ export function WizardStepSummary({
 
         {state.type === "shared" && (
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Split</p>
-            <p className="mt-1 text-sm text-stone-800 capitalize">
-              {state.splitMode === "equal" ? "Equal split" : "Custom split"}
+            <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+              {t("summarySplit")}
+            </p>
+            <p className="mt-1 text-sm text-stone-800">
+              {state.splitMode === "equal" ? tCommon("equalSplit") : tCommon("customSplit")}
             </p>
           </div>
         )}
 
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
-            Recurring expenses
+            {t("summaryRecurringExpenses")}
           </p>
           {state.recurring.filter(isValidRecurringDraft).length === 0 ? (
-            <p className="mt-1 text-sm text-stone-600">None</p>
+            <p className="mt-1 text-sm text-stone-600">{tCommon("none")}</p>
           ) : (
             <ul className="mt-2 space-y-1">
               {state.recurring.filter(isValidRecurringDraft).map((item) => (
                 <li key={item.tempId} className="flex justify-between gap-4 text-sm">
                   <span className="text-stone-800">
-                    {item.title || "Untitled"}
-                    <span className="text-stone-500"> · {item.categoryName}</span>
+                    {item.title || tCommon("untitled")}
+                    <span className="text-stone-500"> · {categoryDisplayName(item.categoryName)}</span>
                   </span>
                   <span className={amount}>
-                    {Number.isNaN(item.amount) ? "—" : formatCurrency(item.amount)}
+                    {Number.isNaN(item.amount) ? tCommon("dash") : formatCurrency(item.amount)}
                   </span>
                 </li>
               ))}
@@ -87,10 +112,10 @@ export function WizardStepSummary({
 
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
-            Balance period
+            {t("summaryBalancePeriod")}
           </p>
           <p className="mt-1 text-sm text-stone-800">
-            {settlementPeriodLabel(state.settlementPeriod)}
+            {t(settlementPeriodTranslationKey(state.settlementPeriod))}
           </p>
         </div>
       </div>
@@ -104,7 +129,7 @@ export function WizardStepSummary({
           disabled={isPending}
           onClick={onBackToEdit}
         >
-          ← Back to edit
+          {t("backToEdit")}
         </button>
         <button
           type="button"
@@ -112,7 +137,7 @@ export function WizardStepSummary({
           disabled={isPending}
           onClick={onCreate}
         >
-          {isPending ? "Creating…" : "Create household"}
+          {isPending ? tCommon("creating") : t("createHousehold")}
         </button>
       </div>
     </div>

@@ -1,23 +1,24 @@
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
+import i18n from "../i18n.ts";
 import { getApiErrorMessage } from "./api.ts";
 
 export function showMutationError(error: unknown): void {
   if (isAxiosError(error)) {
     if (!error.response) {
-      toast.error("Cannot reach the server. Check your connection.");
+      toast.error(i18n.t("errors:cannotReachServer"));
       return;
     }
 
     const status = error.response.status;
 
     if (status === 409) {
-      toast.error("Already exists");
+      toast.error(i18n.t("errors:alreadyExists"));
       return;
     }
 
     if (status >= 500) {
-      toast.error("Something went wrong. Please try again.");
+      toast.error(i18n.t("errors:somethingWentWrongRetry"));
       return;
     }
 

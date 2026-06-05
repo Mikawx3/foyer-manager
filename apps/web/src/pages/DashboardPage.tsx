@@ -1,6 +1,7 @@
 import type { Expense } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import {
   Bar,
@@ -27,6 +28,7 @@ import { ExpenseEditModal } from "../components/expenses/ExpenseEditModal.tsx";
 import { CategoryBadge } from "../components/ui/CategoryBadge.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
+import { useFormat } from "../hooks/useFormat.ts";
 import {
   createSettlement,
   getApiErrorMessage,
@@ -45,7 +47,6 @@ import {
 } from "../lib/dashboard-stats.ts";
 import type { ExpenseListFilters } from "../lib/expense-list-filters.ts";
 import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
-import { formatCurrency, formatDate, formatSignedCurrency } from "../lib/format.ts";
 import { formatTenantName } from "../lib/format-tenant-name.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { queryKeys } from "../lib/query-keys.ts";
@@ -60,17 +61,6 @@ const GRID_STROKE = "oklch(0.2 0.01 80 / 0.08)";
 
 const RECENT_FILTERS: ExpenseListFilters = { page: 1, limit: 5, month: "" };
 
-function currencyTooltipFormatter(value: unknown): string {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return formatCurrency(value);
-  }
-  if (typeof value === "string") {
-    const numeric = Number(value);
-    return formatCurrency(Number.isFinite(numeric) ? numeric : 0);
-  }
-  return formatCurrency(0);
-}
-
 function toDateInputValue(iso?: string): string {
   const date = iso !== undefined ? new Date(iso) : new Date();
   return date.toISOString().slice(0, 10);
@@ -80,14 +70,21 @@ function isoFromDateInput(value: string): string {
   return new Date(`${value}T12:00:00.000Z`).toISOString();
 }
 
-function BalanceBarLabel(props: {
+function BalanceBarLabel({
+  x = 0,
+  y = 0,
+  width = 0,
+  height = 0,
+  value = 0,
+  formatSignedCurrency,
+}: {
   x?: number;
   y?: number;
   width?: number;
   height?: number;
   value?: number;
+  formatSignedCurrency: (amount: number) => string;
 }) {
-  const { x = 0, y = 0, width = 0, height = 0, value = 0 } = props;
   const num = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(num)) {
     return null;
@@ -106,6 +103,21 @@ function BalanceBarLabel(props: {
 export function DashboardPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { t } = useTranslation("dashboard");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tToast } = useTranslation("toast");
+  const { locale, formatCurrency, formatDate, formatSignedCurrency } = useFormat();
+
+  const currencyTooltipFormatter = (value: unknown): string => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return formatCurrency(value);
+    }
+    if (typeof value === "string") {
+      const numeric = Number(value);
+      return formatCurrency(Number.isFinite(numeric) ? numeric : 0);
+    }
+    return formatCurrency(0);
+  };
 
   const [modalDraft, setModalDraft] = useState<SettlementModalDraft | null>(null);
   const [modalAmount, setModalAmount] = useState("");
@@ -175,12 +187,12 @@ export function DashboardPage() {
   };
 
   const tenantNameById = useMemo(
-    () => new Map(tenantsQuery.data?.map((t) => [t.id, formatTenantName(t)]) ?? []),
+    () => new Map(tenantsQuery.data?.map((tenant) => [tenant.id, formatTenantName(tenant)]) ?? []),
     [tenantsQuery.data],
   );
 
   const categoryNameById = useMemo(
-    () => new Map(categoriesQuery.data?.map((c) => [c.id, c.name]) ?? []),
+    () => new Map(categoriesQuery.data?.map((category) => [category.id, category.name]) ?? []),
     [categoriesQuery.data],
   );
 
@@ -200,7 +212,7 @@ export function DashboardPage() {
       date: string;
     }) => createSettlement(householdId, input),
     ...mutationToastHandlers({
-      successMessage: "Settlement recorded",
+      successMessage: tToast("settlementRecorded"),
       onSuccess: () => {
         setModalDraft(null);
         setModalAmount("");
@@ -264,11 +276,23 @@ export function DashboardPage() {
 
     return {
       kpis: computeDashboardKpis(monthExpenses, balancesQuery.data, tenantNameById),
-      categorySlices: computeCategorySpending(expensesQuery.data, categoriesQuery.data),
-      monthlyTrend: computeMonthlyTrend(expensesQuery.data),
+      categorySlices: computeCategorySpending(
+        expensesQuery.data,
+        categoriesQuery.data,
+        tCommon("unknown"),
+      ),
+      monthlyTrend: computeMonthlyTrend(expensesQuery.data, locale),
       balanceBars: computeBalanceChartData(balancesQuery.data, tenantsQuery.data),
     };
-  }, [expensesQuery.data, balancesQuery.data, categoriesQuery.data, tenantsQuery.data, tenantNameById]);
+  }, [
+    expensesQuery.data,
+    balancesQuery.data,
+    categoriesQuery.data,
+    tenantsQuery.data,
+    tenantNameById,
+    locale,
+    tCommon,
+  ]);
 
   const categoryChartHeight = stats
     ? Math.max(CHART_HEIGHT, stats.categorySlices.length * 40 + 40)
@@ -277,8 +301,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className={pageTitle}>Dashboard</h1>
-        <p className={pageSubtitle}>Household overview</p>
+        <h1 className={pageTitle}>{t("title")}</h1>
+        <p className={pageSubtitle}>{t("subtitle")}</p>
       </div>
 
       {queryError && (
@@ -302,22 +326,22 @@ export function DashboardPage() {
         <>
           <section className={`grid grid-cols-2 gap-4 ${isSolo ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
             <KpiCard
-              title="Total this month"
+              title={t("totalThisMonth")}
               value={
                 <span className={amount}>{formatCurrency(stats.kpis.totalThisMonth)}</span>
               }
             />
             <KpiCard
-              title="Expenses this month"
+              title={t("expensesThisMonth")}
               value={stats.kpis.expenseCountThisMonth}
             />
             <KpiCard
-              title="Largest expense"
+              title={t("largestExpense")}
               value={
                 stats.kpis.largestExpense ? (
                   <span className={amount}>{formatCurrency(stats.kpis.largestExpense.amount)}</span>
                 ) : (
-                  "—"
+                  tCommon("dash")
                 )
               }
               subtitle={stats.kpis.largestExpense?.description}
@@ -325,7 +349,7 @@ export function DashboardPage() {
             {!isSolo && (
               <KpiCard
                 to={`/households/${householdId}/balances`}
-                title="Pending settlements"
+                title={t("pendingSettlements")}
                 value={stats.kpis.pendingSettlementCount}
                 subtitle={
                   stats.kpis.mostIndebted
@@ -338,9 +362,9 @@ export function DashboardPage() {
 
           <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <ChartCard
-              title="Spending by category"
+              title={t("spendingByCategory")}
               isEmpty={stats.categorySlices.length === 0}
-              emptyMessage="No expenses yet. Add expenses to see category breakdown."
+              emptyMessage={t("spendingByCategoryEmpty")}
             >
               <ResponsiveContainer width="100%" height={categoryChartHeight}>
                 <BarChart
@@ -375,9 +399,9 @@ export function DashboardPage() {
             </ChartCard>
 
             <ChartCard
-              title="Monthly trend"
+              title={t("monthlyTrend")}
               isEmpty={stats.monthlyTrend.every((point) => point.total === 0)}
-              emptyMessage="No spending in the last 6 months."
+              emptyMessage={t("monthlyTrendEmpty")}
             >
               <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
                 <LineChart data={stats.monthlyTrend}>
@@ -406,9 +430,9 @@ export function DashboardPage() {
             {!isSolo && (
             <div className="lg:col-span-2">
               <ChartCard
-                title="Balances"
+                title={t("balancesChart")}
                 isEmpty={stats.balanceBars.length === 0}
-                emptyMessage="No members or balance data yet."
+                emptyMessage={t("balancesChartEmpty")}
               >
                 <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
                   <div className="min-w-[280px]">
@@ -428,7 +452,12 @@ export function DashboardPage() {
                           {stats.balanceBars.map((entry) => (
                             <Cell key={entry.name} fill={entry.fill} />
                           ))}
-                          <LabelList dataKey="balance" content={<BalanceBarLabel />} />
+                          <LabelList
+                            dataKey="balance"
+                            content={
+                              <BalanceBarLabel formatSignedCurrency={formatSignedCurrency} />
+                            }
+                          />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -442,7 +471,7 @@ export function DashboardPage() {
           {!isSolo && (
           <section className={card}>
             <h2 className="text-sm font-semibold tracking-tight text-stone-900">
-              Pending settlements
+              {t("pendingSettlementsSection")}
             </h2>
             {suggestions.length > 0 ? (
               <ul className="mt-3 space-y-2">
@@ -457,10 +486,11 @@ export function DashboardPage() {
                       className="flex flex-col gap-2 rounded-lg border border-border bg-bg px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                     >
                       <span className="text-sm text-stone-800">
-                        {fromName} should pay {toName}{" "}
-                        <span className={`${amount} text-stone-900`}>
-                          {formatCurrency(suggestion.amount)}
-                        </span>
+                        {tCommon("shouldPay", {
+                          fromName,
+                          toName,
+                          amount: formatCurrency(suggestion.amount),
+                        })}
                       </span>
                       <button
                         type="button"
@@ -475,38 +505,38 @@ export function DashboardPage() {
                           )
                         }
                       >
-                        Mark as paid
+                        {tCommon("markAsPaid")}
                       </button>
                     </li>
                   );
                 })}
               </ul>
             ) : (
-              <p className="mt-3 py-6 text-center text-sm text-stone-600">✅ All settled up!</p>
+              <p className="mt-3 py-6 text-center text-sm text-stone-600">{tCommon("allSettledUp")}</p>
             )}
             <div className="mt-4 border-t border-border pt-3">
               <Link
                 to={`/households/${householdId}/balances`}
                 className={btnSecondary}
               >
-                View all balances →
+                {tCommon("viewAllBalances")}
               </Link>
             </div>
           </section>
           )}
 
           <section className={card}>
-            <h2 className="text-sm font-semibold tracking-tight text-stone-900">Recent expenses</h2>
+            <h2 className="text-sm font-semibold tracking-tight text-stone-900">{t("recentExpenses")}</h2>
             {recentExpensesQuery.isLoading && <ListSkeleton />}
             {recentExpensesQuery.isSuccess && recentExpensesQuery.data.data.length === 0 && (
-              <p className="mt-3 py-6 text-center text-sm text-stone-500">No expenses yet.</p>
+              <p className="mt-3 py-6 text-center text-sm text-stone-500">{t("recentExpensesEmpty")}</p>
             )}
             {recentExpensesQuery.isSuccess && recentExpensesQuery.data.data.length > 0 && (
               <>
                 <ul className="mt-3 space-y-2 md:hidden">
                   {recentExpensesQuery.data.data.map((expense) => {
                     const categoryName =
-                      categoryNameById.get(expense.categoryId) ?? "Category";
+                      categoryNameById.get(expense.categoryId) ?? tCommon("category");
                     return (
                       <li key={expense.id}>
                         <button
@@ -535,17 +565,17 @@ export function DashboardPage() {
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-stone-500">
-                        <th className="px-3 py-2">Title</th>
-                        <th className="px-3 py-2">Category</th>
-                        <th className="px-3 py-2 text-right">Amount</th>
-                        <th className="px-3 py-2">Paid by</th>
-                        <th className="px-3 py-2">Date</th>
+                        <th className="px-3 py-2">{t("tableTitle")}</th>
+                        <th className="px-3 py-2">{t("tableCategory")}</th>
+                        <th className="px-3 py-2 text-right">{t("tableAmount")}</th>
+                        <th className="px-3 py-2">{t("tablePaidBy")}</th>
+                        <th className="px-3 py-2">{t("tableDate")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {recentExpensesQuery.data.data.map((expense) => {
                         const categoryName =
-                          categoryNameById.get(expense.categoryId) ?? "Category";
+                          categoryNameById.get(expense.categoryId) ?? tCommon("category");
                         return (
                           <tr
                             key={expense.id}
@@ -562,7 +592,7 @@ export function DashboardPage() {
                               {formatCurrency(expense.amount)}
                             </td>
                             <td className="px-3 py-2.5 text-stone-600">
-                              {tenantNameById.get(expense.paidByTenantId) ?? "—"}
+                              {tenantNameById.get(expense.paidByTenantId) ?? tCommon("dash")}
                             </td>
                             <td className="px-3 py-2.5 text-stone-600">
                               {formatDate(expense.date)}
@@ -580,7 +610,7 @@ export function DashboardPage() {
                 to={`/households/${householdId}/expenses`}
                 className={btnSecondary}
               >
-                View all expenses →
+                {tCommon("viewAllExpenses")}
               </Link>
             </div>
           </section>

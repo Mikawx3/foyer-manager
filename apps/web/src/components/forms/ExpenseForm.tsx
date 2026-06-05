@@ -3,6 +3,7 @@ import type { Category, Expense, Tenant } from "@foyer/types";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { ExpenseParticipantSplits, isCustomSplitValid } from "../expenses/ExpenseParticipantSplits.tsx";
 import { resolveDefaultSplits } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
@@ -48,6 +49,14 @@ export function ExpenseForm({
   title,
   submitLabel,
 }: ExpenseFormProps) {
+  const { t } = useTranslation("expenses");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tValidation } = useTranslation("validation");
+  const schema = useMemo(
+    () => (variant === "edit" ? updateExpenseSchema(tValidation) : createExpenseSchema(tValidation)),
+    [tValidation, variant],
+  );
+
   const today = new Date().toISOString().slice(0, 10);
   const allTenantIds = useMemo(() => tenants.map((tenant) => tenant.id), [tenants]);
   const soleTenantId = allTenantIds[0] ?? "";
@@ -75,8 +84,6 @@ export function ExpenseForm({
           splits: [],
           participantIds: allTenantIds,
         };
-
-  const schema = variant === "edit" ? updateExpenseSchema : createExpenseSchema;
 
   const {
     register,
@@ -249,9 +256,10 @@ export function ExpenseForm({
   const selectedTenantIds = selectedTenants.map((tenant) => tenant.id);
   const customValid = isCustomSplitValid(useAutoSplit, customPercentageValues, selectedTenantIds);
 
-  const heading = title ?? (variant === "edit" ? "Edit expense" : "New expense");
+  const heading = title ?? (variant === "edit" ? t("editExpense") : t("newExpense"));
   const buttonLabel =
-    submitLabel ?? (isPending ? "Saving…" : variant === "edit" ? "Save changes" : "Create expense");
+    submitLabel ??
+    (isPending ? tCommon("saving") : variant === "edit" ? t("saveChanges") : t("createExpense"));
 
   return (
     <form onSubmit={submit} className={formCard}>
@@ -259,7 +267,7 @@ export function ExpenseForm({
       {variant === "create" && <input type="hidden" {...register("householdId")} />}
       <input type="hidden" {...register("splitMode")} />
 
-      <FormField label="Amount" error={errors.amount?.message}>
+      <FormField label={tCommon("amount")} error={errors.amount?.message}>
         <input
           className={inputClassName}
           type="number"
@@ -268,13 +276,13 @@ export function ExpenseForm({
           {...register("amount", { valueAsNumber: true })}
         />
       </FormField>
-      <FormField label="Description" error={errors.description?.message}>
+      <FormField label={tCommon("description")} error={errors.description?.message}>
         <input className={inputClassName} {...register("description")} />
       </FormField>
-      <FormField label="Category" error={errors.categoryId?.message}>
+      <FormField label={tCommon("category")} error={errors.categoryId?.message}>
         <select className={selectClassName} {...register("categoryId")} defaultValue="">
           <option value="" disabled>
-            Select category
+            {tCommon("selectCategory")}
           </option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
@@ -308,10 +316,10 @@ export function ExpenseForm({
       )}
 
       {!isSolo && (
-        <FormField label="Paid by" error={errors.paidByTenantId?.message}>
+        <FormField label={tCommon("paidBy")} error={errors.paidByTenantId?.message}>
           <select className={selectClassName} {...register("paidByTenantId")} defaultValue="">
             <option value="" disabled>
-              Select member
+              {tCommon("selectMember")}
             </option>
             {tenants.map((tenant) => (
               <option key={tenant.id} value={tenant.id}>
@@ -324,7 +332,7 @@ export function ExpenseForm({
       {isSolo && soleTenantId && (
         <input type="hidden" {...register("paidByTenantId")} value={soleTenantId} />
       )}
-      <FormField label="Date" error={errors.date?.message}>
+      <FormField label={tCommon("date")} error={errors.date?.message}>
         <input className={inputClassName} type="date" {...register("date")} />
       </FormField>
 

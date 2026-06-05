@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
+import { DocumentLang } from "./components/ui/DocumentLang.tsx";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary.tsx";
 import { DeploymentModeProvider } from "./contexts/DeploymentModeContext.tsx";
 import { router } from "./router.tsx";
@@ -19,6 +20,7 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <DeploymentModeProvider>
+          <DocumentLang />
           <RouterProvider router={router} />
         </DeploymentModeProvider>
         <Toaster

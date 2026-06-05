@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
+import type { SettlementPeriod } from "@foyer/types";
 import { DeleteHouseholdModal } from "../components/settings/DeleteHouseholdModal.tsx";
 import { selectClassName } from "../components/forms/FormField.tsx";
 import {
@@ -11,8 +13,8 @@ import {
 import { ConfirmModal } from "../components/ui/ConfirmModal.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
+import { LanguageSwitcher } from "../components/ui/LanguageSwitcher.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
-import type { SettlementPeriod } from "@foyer/types";
 import {
   deleteCategoryDefaultSplits,
   getApiErrorMessage,
@@ -31,6 +33,11 @@ import { btnPrimary, btnSecondary, card, formCard, inlineError, pageSubtitle } f
 export function SettingsPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { t } = useTranslation("settings");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tMembers } = useTranslation("members");
+  const { t: tToast } = useTranslation("toast");
+
   const [globalPercentages, setGlobalPercentages] = useState<Record<string, number>>({});
   const [categoryPercentages, setCategoryPercentages] = useState<Record<string, number>>({});
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -98,7 +105,7 @@ export function SettingsPage() {
         })),
       }),
     ...mutationToastHandlers({
-      successMessage: "Default rule updated",
+      successMessage: tToast("defaultRuleUpdated"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.defaultSplits(householdId) });
       },
@@ -115,7 +122,7 @@ export function SettingsPage() {
         })),
       }),
     ...mutationToastHandlers({
-      successMessage: "Default rule updated",
+      successMessage: tToast("defaultRuleUpdated"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.defaultSplits(householdId) });
       },
@@ -125,7 +132,7 @@ export function SettingsPage() {
   const savePeriodMutation = useMutation({
     mutationFn: () => updateHousehold(householdId, { settlementPeriod }),
     ...mutationToastHandlers({
-      successMessage: "Balance period updated",
+      successMessage: tToast("balancePeriodUpdated"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.household(householdId) });
         void queryClient.invalidateQueries({ queryKey: ["balances", householdId] });
@@ -136,7 +143,7 @@ export function SettingsPage() {
   const deleteCategoryMutation = useMutation({
     mutationFn: (categoryId: string) => deleteCategoryDefaultSplits(householdId, categoryId),
     ...mutationToastHandlers({
-      successMessage: "Rule reset to global",
+      successMessage: tToast("ruleResetToGlobal"),
       onSuccess: () => {
         setPendingReset(null);
         void queryClient.invalidateQueries({ queryKey: queryKeys.defaultSplits(householdId) });
@@ -156,13 +163,13 @@ export function SettingsPage() {
     ? Object.entries(rulesQuery.data.byCategory)
     : [];
 
-  const categoryNameById = new Map(categoriesQuery.data?.map((c) => [c.id, c.name]) ?? []);
+  const categoryNameById = new Map(categoriesQuery.data?.map((category) => [category.id, category.name]) ?? []);
 
   const periodOptions: { value: SettlementPeriod; label: string }[] = [
-    { value: "none", label: "No reset (cumulative)" },
-    { value: "monthly", label: "Monthly" },
-    { value: "quarterly", label: "Quarterly" },
-    { value: "yearly", label: "Yearly" },
+    { value: "none", label: t("periodNone") },
+    { value: "monthly", label: tCommon("monthly") },
+    { value: "quarterly", label: tCommon("quarterly") },
+    { value: "yearly", label: tCommon("yearly") },
   ];
 
   const isLoading =
@@ -173,7 +180,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <p className={pageSubtitle}>Default split rules for this household.</p>
+      <p className={pageSubtitle}>{t("subtitle")}</p>
 
       {isLoading && <ListSkeleton />}
       {(tenantsQuery.isError || categoriesQuery.isError || rulesQuery.isError) && (
@@ -189,17 +196,25 @@ export function SettingsPage() {
         />
       )}
 
+      <section className={formCard}>
+        <h2 className="text-base font-semibold tracking-tight text-stone-900">{t("language")}</h2>
+        <p className="mt-1 text-sm text-stone-600">{t("languageDescription")}</p>
+        <div className="mt-4">
+          <LanguageSwitcher />
+        </div>
+      </section>
+
       {tenantsQuery.isSuccess && tenants.length === 0 && (
         <EmptyState
-          title="No members yet"
-          description="Add household members before configuring default splits."
+          title={tMembers("noMembersTitle")}
+          description={tMembers("noMembersDescriptionSettings")}
         />
       )}
 
       {householdQuery.isSuccess && (
         <section className={formCard}>
-          <h2 className="text-base font-semibold tracking-tight text-stone-900">Balance period</h2>
-          <p className="mt-1 text-sm text-stone-600">How often should balances reset?</p>
+          <h2 className="text-base font-semibold tracking-tight text-stone-900">{t("balancePeriod")}</h2>
+          <p className="mt-1 text-sm text-stone-600">{t("balancePeriodDescription")}</p>
           <fieldset className="mt-4">
             <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:gap-2">
               {periodOptions.map((option) => (
@@ -224,9 +239,7 @@ export function SettingsPage() {
               ))}
             </div>
           </fieldset>
-          <p className="mt-3 text-xs text-stone-500">
-            Changing this affects how balances are calculated for all members.
-          </p>
+          <p className="mt-3 text-xs text-stone-500">{t("balancePeriodHint")}</p>
           <button
             type="button"
             className={`${btnPrimary} mt-4`}
@@ -236,7 +249,7 @@ export function SettingsPage() {
             }
             onClick={() => savePeriodMutation.mutate()}
           >
-            {savePeriodMutation.isPending ? "Saving…" : "Save period setting"}
+            {savePeriodMutation.isPending ? tCommon("saving") : t("savePeriodSetting")}
           </button>
           {savePeriodMutation.isError && (
             <p className={`mt-2 ${inlineError}`}>
@@ -250,11 +263,9 @@ export function SettingsPage() {
         <>
           <section className={formCard}>
             <h2 className="text-base font-semibold tracking-tight text-stone-900">
-              Global default split
+              {t("globalDefaultSplit")}
             </h2>
-            <p className="mt-1 text-sm text-stone-600">
-              Applied to all expenses unless a category has its own rule.
-            </p>
+            <p className="mt-1 text-sm text-stone-600">{t("globalDefaultSplitDescription")}</p>
             <div className="mt-4">
               <SmartPercentageInputs
                 items={tenantItems}
@@ -268,7 +279,7 @@ export function SettingsPage() {
               disabled={!globalValid || saveGlobalMutation.isPending}
               onClick={() => saveGlobalMutation.mutate()}
             >
-              {saveGlobalMutation.isPending ? "Saving…" : "Save global rule"}
+              {saveGlobalMutation.isPending ? tCommon("saving") : t("saveGlobalRule")}
             </button>
             {saveGlobalMutation.isError && (
               <p className={`mt-2 ${inlineError}`}>
@@ -279,23 +290,19 @@ export function SettingsPage() {
 
           <section className={formCard}>
             <h2 className="text-base font-semibold tracking-tight text-stone-900">
-              Per-category rules
+              {t("perCategoryRules")}
             </h2>
-            <p className="mt-1 text-sm text-stone-600">
-              Override the global split for specific categories.
-            </p>
+            <p className="mt-1 text-sm text-stone-600">{t("perCategoryRulesDescription")}</p>
 
             {categoriesQuery.isSuccess && categoriesQuery.data.length === 0 && (
-              <p className="mt-4 text-sm text-stone-500">
-                Create categories on the Expenses page first.
-              </p>
+              <p className="mt-4 text-sm text-stone-500">{t("createCategoriesFirst")}</p>
             )}
 
             {categoriesQuery.isSuccess && categoriesQuery.data.length > 0 && (
               <>
                 <div className="mt-4 space-y-1">
                   <label htmlFor="settings-category" className="block text-sm font-medium text-stone-700">
-                    Category
+                    {tCommon("category")}
                   </label>
                   <select
                     id="settings-category"
@@ -304,7 +311,7 @@ export function SettingsPage() {
                     onChange={(event) => setSelectedCategoryId(event.target.value)}
                   >
                     <option value="" disabled>
-                      Select category
+                      {tCommon("selectCategory")}
                     </option>
                     {categoriesQuery.data.map((category) => (
                       <option key={category.id} value={category.id}>
@@ -329,7 +336,7 @@ export function SettingsPage() {
                       disabled={!categoryValid || saveCategoryMutation.isPending}
                       onClick={() => saveCategoryMutation.mutate()}
                     >
-                      {saveCategoryMutation.isPending ? "Saving…" : "Save rule for this category"}
+                      {saveCategoryMutation.isPending ? tCommon("saving") : t("saveRuleForCategory")}
                     </button>
                     {saveCategoryMutation.isError && (
                       <p className={`mt-2 ${inlineError}`}>
@@ -341,7 +348,7 @@ export function SettingsPage() {
 
                 {categoryOverrides.length > 0 && (
                   <div className="mt-6">
-                    <h3 className="text-sm font-semibold text-stone-800">Existing category rules</h3>
+                    <h3 className="text-sm font-semibold text-stone-800">{t("existingCategoryRules")}</h3>
                     <ul className="mt-2 space-y-2">
                       {categoryOverrides.map(([catId]) => (
                         <li
@@ -362,7 +369,7 @@ export function SettingsPage() {
                               })
                             }
                           >
-                            Reset to global
+                            {t("resetToGlobal")}
                           </button>
                         </li>
                       ))}
@@ -382,13 +389,13 @@ export function SettingsPage() {
 
       <ConfirmModal
         isOpen={pendingReset !== null}
-        title="Reset split rule"
+        title={t("resetSplitRuleTitle")}
         message={
           pendingReset
-            ? `Reset the split rule for "${pendingReset.name}" to the global default?`
+            ? t("resetSplitRuleMessage", { name: pendingReset.name })
             : ""
         }
-        confirmLabel="Reset"
+        confirmLabel={tCommon("reset")}
         variant="warning"
         onConfirm={() => {
           if (pendingReset) {
@@ -401,16 +408,14 @@ export function SettingsPage() {
 
       {householdQuery.isSuccess && (
         <section className={`${formCard} border-2 border-red-200`}>
-          <h2 className="text-base font-semibold tracking-tight text-stone-900">Danger zone</h2>
-          <p className="mt-1 text-sm text-stone-600">
-            Permanently delete this household and all its data.
-          </p>
+          <h2 className="text-base font-semibold tracking-tight text-stone-900">{t("dangerZone")}</h2>
+          <p className="mt-1 text-sm text-stone-600">{t("dangerZoneDescription")}</p>
           <button
             type="button"
             className="mt-4 min-h-11 w-full rounded-lg border-2 border-red-600 px-4 py-2 text-base font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100 active:scale-[0.99] md:w-auto md:text-sm"
             onClick={() => setDeleteModalOpen(true)}
           >
-            Delete household
+            {t("deleteHousehold")}
           </button>
         </section>
       )}

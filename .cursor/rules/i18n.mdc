@@ -1,0 +1,34 @@
+---
+description: i18n rule — apply to all components and pages
+globs: ["apps/web/src/**/*.tsx", "apps/web/src/**/*.ts"]
+---
+
+## i18n — mandatory for every change
+
+This project uses `react-i18next` for internationalization.
+Supported languages: English (`en`) and French (`fr`).
+Translation files: `apps/web/messages/en.json` and `apps/web/messages/fr.json`.
+
+### Rules (non-negotiable):
+
+1. **Never hardcode any user-visible string** in a component or page.
+   Always use `const { t } = useTranslation('namespace')` and `t('key')`.
+2. **Every new string must be added to BOTH** `messages/en.json` AND `messages/fr.json` in the same commit/change.
+3. **Use the correct namespace** matching the page or feature (e.g. `expenses`, `balances`, `wizard`).
+4. **Error messages, toast notifications, confirmation dialogs, empty states, placeholders, aria-labels** — all must be translated.
+5. **Use `formatCurrency(amount, locale)` and `formatDate(date, locale)`** via the `useFormat()` hook — never hardcode `toLocaleString()` or `Intl` inline.
+6. If you add a new feature namespace, create the namespace key in both JSON files before using it.
+
+### How to add a new translated string:
+
+```tsx
+// 1. Add to messages/en.json
+{ "expenses": { "addExpense": "Add expense" } }
+// 2. Add to messages/fr.json
+{ "expenses": { "addExpense": "Ajouter une dépense" } }
+// 3. Use in component
+const { t } = useTranslation('expenses')
+<button>{t('addExpense')}</button>
+```
+
+Violation of these rules = incomplete implementation.

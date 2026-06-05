@@ -159,7 +159,7 @@ describe("computeDashboardKpis", () => {
 
 describe("computeCategorySpending", () => {
   it("aggregates totals by category with colors", () => {
-    const slices = computeCategorySpending(expenses, categories);
+    const slices = computeCategorySpending(expenses, categories, "Unknown");
     expect(slices).toHaveLength(2);
     const rent = slices.find((s) => s.name === "Rent");
     const groceries = slices.find((s) => s.name === "Groceries");
@@ -172,7 +172,7 @@ describe("computeCategorySpending", () => {
 
 describe("computeMonthlyTrend", () => {
   it("returns six months ending at reference month", () => {
-    const trend = computeMonthlyTrend(expenses, referenceDate);
+    const trend = computeMonthlyTrend(expenses, "en-US", referenceDate);
     expect(trend).toHaveLength(6);
     const june = trend[5];
     const january = trend[0];

@@ -1,7 +1,7 @@
+import { useTranslation } from "react-i18next";
 import { inputClassName } from "./FormField.tsx";
 import {
   applyPercentageChange,
-  getPercentageTotalLabel,
   isPercentageTotalComplete,
   maxPercentageForKey,
   roundPercentageOneDecimal,
@@ -24,10 +24,30 @@ export function SmartPercentageInputs({
   values,
   onChange,
 }: SmartPercentageInputsProps) {
+  const { t } = useTranslation("common");
   const keys = items.map((item) => item.id);
   const total = totalFromValues(values, keys);
-  const totalLabel = getPercentageTotalLabel(total);
   const isComplete = isPercentageTotalComplete(total);
+  const rounded = roundPercentageOneDecimal(total);
+
+  let totalText: string;
+  let totalClassName: string;
+  if (isComplete) {
+    totalText = t("totalComplete");
+    totalClassName = "text-emerald-600";
+  } else if (rounded < 100) {
+    totalText = t("totalRemaining", {
+      total: rounded,
+      remaining: roundPercentageOneDecimal(100 - rounded),
+    });
+    totalClassName = "text-amber-600";
+  } else {
+    totalText = t("totalOver", {
+      total: rounded,
+      over: roundPercentageOneDecimal(rounded - 100),
+    });
+    totalClassName = "text-red-500";
+  }
 
   return (
     <div className="space-y-3">
@@ -53,22 +73,22 @@ export function SmartPercentageInputs({
                   onBlur={(event) => {
                     const raw = event.target.value === "" ? 0 : Number(event.target.value);
                     const next = applyPercentageChange(values, keys, item.id, raw);
-                    const rounded = roundPercentageOneDecimal(next[item.id] ?? 0);
-                    onChange({ ...next, [item.id]: rounded });
+                    const roundedValue = roundPercentageOneDecimal(next[item.id] ?? 0);
+                    onChange({ ...next, [item.id]: roundedValue });
                   }}
                   onFocus={(event) => event.target.select()}
                 />
-                <span className="text-sm text-stone-500">%</span>
+                <span className="text-sm text-stone-500">{t("percentSymbol")}</span>
               </div>
             </li>
           );
         })}
       </ul>
-      <p className={`text-sm ${totalLabel.className}`} aria-live="polite">
-        {totalLabel.text}
+      <p className={`text-sm ${totalClassName}`} aria-live="polite">
+        {totalText}
       </p>
       {!isComplete && (
-        <p className="sr-only">Percentages must total 100% before saving</p>
+        <p className="sr-only">{t("percentagesMustTotal100BeforeSaving")}</p>
       )}
     </div>
   );
