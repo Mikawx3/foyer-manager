@@ -1,4 +1,5 @@
 import type { HouseholdType, RecurringFrequency, SettlementPeriod } from "@foyer/types";
+import { generateUUID } from "./random-id.ts";
 import { DEFAULT_TENANT_COLOR } from "./tenant-colors.ts";
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
@@ -63,7 +64,7 @@ export const RECURRING_QUICK_ADD: RecurringQuickAddChip[] = [
 ];
 
 export function createMemberId(): string {
-  return crypto.randomUUID();
+  return generateUUID();
 }
 
 export function firstOfCurrentMonth(): string {

@@ -164,11 +164,20 @@ export function SettlementModal({
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-3">
-          <button type="button" className={btnSecondary} onClick={onCancel} disabled={isLoading}>
+        <div className="flex flex-col-reverse gap-3 pt-3 md:flex-row md:justify-end md:gap-2">
+          <button
+            type="button"
+            className={`${btnSecondary} w-full md:w-auto`}
+            onClick={onCancel}
+            disabled={isLoading}
+          >
             Cancel
           </button>
-          <button type="submit" className={btnPrimary} disabled={isLoading || !canSubmit}>
+          <button
+            type="submit"
+            className={`${btnPrimary} w-full md:w-auto`}
+            disabled={isLoading || !canSubmit}
+          >
             {isLoading ? "Saving…" : "Confirm"}
           </button>
         </div>

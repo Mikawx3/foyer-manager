@@ -17,6 +17,6 @@ export function FormField({ label, error, children }: FormFieldProps) {
 }
 
 export const inputClassName =
-  "w-full rounded-lg border border-gray-200 bg-surface px-3 py-2 text-sm text-stone-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
+  "w-full min-h-11 rounded-lg border border-gray-200 bg-surface px-3 py-2.5 text-base text-stone-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary md:min-h-0 md:py-2 md:text-sm";
 
 export const selectClassName = inputClassName;

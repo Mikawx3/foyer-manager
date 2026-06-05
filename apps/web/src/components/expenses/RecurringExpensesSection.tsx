@@ -19,7 +19,7 @@ import { formatCurrency, formatDate } from "../../lib/format.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import type { CreateRecurringExpenseForm } from "../../lib/schemas.ts";
 import { mutationToastHandlers } from "../../lib/toast.ts";
-import { amount, btnPrimary, btnSecondary, card } from "../../lib/ui-classes.ts";
+import { amount, btnPrimary, btnSecondary, card, iconBtn } from "../../lib/ui-classes.ts";
 
 function dueStatus(nextDueDate: string): "due" | "overdue" | null {
   const due = new Date(nextDueDate);
@@ -168,7 +168,89 @@ export function RecurringExpensesSection({
         />
       )}
       {recurringQuery.isSuccess && recurringQuery.data.length > 0 && (
-        <div className={`${card} overflow-x-auto p-0`}>
+        <>
+          <ul className="space-y-3 md:hidden">
+            {recurringQuery.data.map((item) => {
+              const status = dueStatus(item.nextDueDate);
+              return (
+                <li key={item.id} className={card}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <p className="font-semibold text-stone-900">{item.title}</p>
+                        <p className={`${amount} shrink-0`}>{formatCurrency(item.amount)}</p>
+                      </div>
+                      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
+                        <span>
+                          {item.category
+                            ? (categoryNameById.get(item.category) ?? item.category)
+                            : "—"}
+                        </span>
+                        <span>· {formatFrequency(item.frequency)}</span>
+                        <span>· {formatDate(item.nextDueDate)}</span>
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {status === "due" && (
+                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                            Due today
+                          </span>
+                        )}
+                        {status === "overdue" && (
+                          <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">
+                            Overdue
+                          </span>
+                        )}
+                        <span
+                          className={
+                            item.active
+                              ? "text-xs font-medium text-positive"
+                              : "text-xs font-medium text-stone-500"
+                          }
+                        >
+                          {item.active ? "Active" : "Paused"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      <button
+                        type="button"
+                        className={iconBtn}
+                        aria-label={`Edit ${item.title}`}
+                        onClick={() => setEditing(item)}
+                      >
+                        <Pencil className="h-4 w-4" strokeWidth={2} />
+                      </button>
+                      <button
+                        type="button"
+                        className={`${iconBtn} hover:text-negative active:text-negative`}
+                        aria-label={`Delete ${item.title}`}
+                        onClick={() =>
+                          setPendingDelete({
+                            id: item.id,
+                            title: item.title,
+                            generatedExpenseCount: item.generatedExpenseCount,
+                          })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" strokeWidth={2} />
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`${btnSecondary} mt-3 w-full`}
+                    disabled={toggleActiveMutation.isPending}
+                    onClick={() =>
+                      toggleActiveMutation.mutate({ id: item.id, active: !item.active })
+                    }
+                  >
+                    {item.active ? "Pause" : "Resume"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className={`${card} hidden overflow-x-auto p-0 md:block`}>
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-bg">
               <tr>
@@ -264,6 +346,7 @@ export function RecurringExpensesSection({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Modal title="Add recurring expense" open={modalOpen} onClose={() => setModalOpen(false)}>

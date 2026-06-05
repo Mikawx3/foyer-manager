@@ -24,7 +24,7 @@ import { formatMemberEmail } from "../lib/member-email.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { DEFAULT_TENANT_COLOR } from "../lib/tenant-colors.ts";
 import { showMutationError, showMutationSuccess, mutationToastHandlers } from "../lib/toast.ts";
-import { card, inlineError, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
+import { card, iconBtn, inlineError, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
 type PendingTenantDelete = {
   id: string;
@@ -109,7 +109,7 @@ export function TenantsPage() {
         </div>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-8 md:grid md:grid-cols-[1fr_320px]">
         <section>
           {tenantsQuery.isLoading && <ListSkeleton />}
           {tenantsQuery.isError && (
@@ -150,11 +150,11 @@ export function TenantsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-1">
+                    <div className="flex shrink-0 gap-0">
                       <button
                         type="button"
                         onClick={() => setEditingTenant(tenant)}
-                        className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+                        className={iconBtn}
                         aria-label={`Edit ${tenant.name}`}
                       >
                         <Pencil className="h-4 w-4" strokeWidth={2} />
@@ -163,7 +163,7 @@ export function TenantsPage() {
                         type="button"
                         onClick={() => handleDeleteClick(tenant)}
                         disabled={removeMutation.isPending || previewLoadingId === tenant.id}
-                        className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-negative disabled:opacity-50"
+                        className={`${iconBtn} hover:text-negative active:text-negative disabled:opacity-50`}
                         aria-label={`Remove ${tenant.name}`}
                       >
                         <Trash2 className="h-4 w-4" strokeWidth={2} />

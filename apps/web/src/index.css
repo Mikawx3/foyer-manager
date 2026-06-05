@@ -18,7 +18,17 @@
 }
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply bg-bg font-sans text-stone-800 antialiased;
+    @apply bg-bg font-sans text-base text-stone-800 antialiased md:text-sm;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-sonner-toaster][data-y-position="bottom"] {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }

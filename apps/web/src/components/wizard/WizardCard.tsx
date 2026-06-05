@@ -22,7 +22,7 @@ export function WizardCard({
     <button
       type="button"
       onClick={onClick}
-      className={`${cardInteractive} w-full p-6 text-left transition ${
+      className={`${cardInteractive} w-full p-6 text-left transition active:scale-[0.99] ${
         selected ? "border-primary ring-2 ring-primary/20" : ""
       }`}
     >

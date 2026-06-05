@@ -41,7 +41,7 @@ export function WizardStepBalancePeriod({ value, onChange }: WizardStepBalancePe
           How often do you want to review balances?
         </h2>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {options.map((option) => (
           <WizardCard
             key={option.value}

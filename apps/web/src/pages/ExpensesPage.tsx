@@ -54,6 +54,9 @@ import {
   btnPrimary,
   btnSecondary,
   card,
+  fabBottomOffset,
+  fabButton,
+  iconBtn,
   inlineError,
   pageActionsRow,
   pageSubtitle,
@@ -443,7 +446,7 @@ export function ExpensesPage() {
           {canAddExpense && (
             <button
               type="button"
-              className={`${btnPrimary} inline-flex items-center gap-2 xl:hidden`}
+              className={`${btnPrimary} hidden items-center gap-2 md:inline-flex xl:hidden`}
               onClick={() => setModalOpen(true)}
             >
               <Plus className="h-4 w-4" strokeWidth={2} />
@@ -473,7 +476,7 @@ export function ExpensesPage() {
             <div className="mb-4 flex gap-2 border-b border-border">
               <button
                 type="button"
-                className={`border-b-2 px-3 py-2 text-sm font-medium transition ${
+                className={`border-b-2 px-3 py-2 text-sm font-medium transition active:opacity-70 ${
                   activeTab === "expenses"
                     ? "border-primary text-primary"
                     : "border-transparent text-stone-600 hover:text-stone-900"
@@ -484,7 +487,7 @@ export function ExpensesPage() {
               </button>
               <button
                 type="button"
-                className={`border-b-2 px-3 py-2 text-sm font-medium transition ${
+                className={`border-b-2 px-3 py-2 text-sm font-medium transition active:opacity-70 ${
                   activeTab === "recurring"
                     ? "border-primary text-primary"
                     : "border-transparent text-stone-600 hover:text-stone-900"
@@ -579,7 +582,7 @@ export function ExpensesPage() {
                   canAddExpense ? (
                     <button
                       type="button"
-                      className={`${btnPrimary} inline-flex items-center gap-2 xl:hidden`}
+                      className={`${btnPrimary} hidden items-center gap-2 md:inline-flex xl:hidden`}
                       onClick={() => setModalOpen(true)}
                     >
                       <Plus className="h-4 w-4" strokeWidth={2} />
@@ -595,24 +598,28 @@ export function ExpensesPage() {
                   const categoryName = categoryNameById.get(expense.categoryId) ?? "Category";
                   return (
                     <li key={expense.id} className={card}>
-                      <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold tracking-tight text-stone-900">
-                            {expense.description}
-                          </p>
-                          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-stone-600">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="min-w-0 flex-1 font-semibold tracking-tight text-stone-900">
+                              {expense.description}
+                            </p>
+                            <p className={`${amount} shrink-0 text-lg`}>
+                              {formatCurrency(expense.amount)}
+                            </p>
+                          </div>
+                          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
                             <CategoryBadge name={categoryName} />
                             <SplitModeBadge splitMode={expense.splitMode} />
+                            <span>{formatDate(expense.date)}</span>
                             <span>· Paid by {tenantNameById.get(expense.paidByTenantId) ?? "—"}</span>
                           </p>
-                          <p className="mt-1 text-xs text-stone-500">{formatDate(expense.date)}</p>
                         </div>
-                        <div className="flex shrink-0 items-start gap-2">
-                          <p className={`${amount} text-lg`}>{formatCurrency(expense.amount)}</p>
+                        <div className="flex shrink-0 items-start gap-0">
                           <button
                             type="button"
                             onClick={() => setEditingExpense(expense)}
-                            className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-900"
+                            className={iconBtn}
                             aria-label={`Edit ${expense.description}`}
                           >
                             <Pencil className="h-4 w-4" strokeWidth={2} />
@@ -626,7 +633,7 @@ export function ExpensesPage() {
                               })
                             }
                             disabled={deleteExpenseMutation.isPending}
-                            className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-negative disabled:opacity-50"
+                            className={`${iconBtn} hover:text-negative active:text-negative disabled:opacity-50`}
                             aria-label={`Delete ${expense.description}`}
                           >
                             <Trash2 className="h-4 w-4" strokeWidth={2} />
@@ -718,7 +725,12 @@ export function ExpensesPage() {
       />
 
       {canAddExpense && categoriesQuery.data && (
-        <Modal title="New expense" open={modalOpen} onClose={() => setModalOpen(false)}>
+        <Modal
+          title="New expense"
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          fullHeightMobile
+        >
           <ExpenseFormsAside
             householdId={householdId}
             categories={categoriesQuery.data}
@@ -737,6 +749,18 @@ export function ExpensesPage() {
             showCategoryForm
           />
         </Modal>
+      )}
+
+      {canAddExpense && hasCategories && (
+        <button
+          type="button"
+          className={fabButton}
+          style={{ bottom: fabBottomOffset }}
+          onClick={() => setModalOpen(true)}
+          aria-label="New expense"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </button>
       )}
     </div>
   );

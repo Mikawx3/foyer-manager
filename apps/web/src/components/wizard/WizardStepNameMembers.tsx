@@ -3,7 +3,7 @@ import type { HouseholdType } from "@foyer/types";
 import type { WizardMember } from "../../lib/household-wizard-types.ts";
 import { createMemberId } from "../../lib/household-wizard-types.ts";
 import { nextAvailableColor } from "../../lib/tenant-colors.ts";
-import { btnSecondary } from "../../lib/ui-classes.ts";
+import { btnSecondary, iconBtn } from "../../lib/ui-classes.ts";
 import { FormField, inputClassName } from "../forms/FormField.tsx";
 import { MemberColorPicker } from "./MemberColorPicker.tsx";
 
@@ -74,10 +74,10 @@ export function WizardStepNameMembers({
             {members.map((member) => (
               <li
                 key={member.tempId}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3"
+                className="flex w-full flex-col gap-3 rounded-lg border border-border bg-surface p-3 sm:flex-row sm:flex-wrap sm:items-center"
               >
                 <input
-                  className={`${inputClassName} min-w-[140px] flex-1`}
+                  className={`${inputClassName} w-full sm:min-w-[140px] sm:flex-1`}
                   value={member.name}
                   onChange={(event) => updateMember(member.tempId, { name: event.target.value })}
                   placeholder="Member name"
@@ -91,7 +91,7 @@ export function WizardStepNameMembers({
                   aria-label="Remove member"
                   disabled={members.length <= 1}
                   onClick={() => removeMember(member.tempId)}
-                  className="rounded-lg p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-800 disabled:opacity-40"
+                  className={`${iconBtn} disabled:opacity-40`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

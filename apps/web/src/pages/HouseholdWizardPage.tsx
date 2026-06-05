@@ -236,19 +236,23 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
       </div>
 
       {state.step !== 1 && state.step !== 6 && (
-        <footer className="mt-10 flex items-center justify-between border-t border-border pt-6">
-          <button type="button" className={btnSecondary} onClick={goBack}>
+        <footer className="mt-10 flex flex-col-reverse gap-3 border-t border-border pt-6 md:flex-row md:items-center md:justify-between">
+          <button type="button" className={`${btnSecondary} w-full md:w-auto`} onClick={goBack}>
             Back
           </button>
-          <button type="button" className={btnPrimary} onClick={goNext}>
+          <button type="button" className={`${btnPrimary} w-full md:w-auto`} onClick={goNext}>
             Next
           </button>
         </footer>
       )}
 
       {state.step === 1 && (
-        <footer className="mt-10 flex justify-start border-t border-border pt-6">
-          <button type="button" className={btnSecondary} onClick={() => navigate("/households")}>
+        <footer className="mt-10 border-t border-border pt-6">
+          <button
+            type="button"
+            className={`${btnSecondary} w-full md:w-auto`}
+            onClick={() => navigate("/households")}
+          >
             Cancel
           </button>
         </footer>

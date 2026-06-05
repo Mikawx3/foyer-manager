@@ -14,7 +14,7 @@ export function WizardStepType({ value, onSelect }: WizardStepTypeProps) {
           What kind of household is this?
         </h2>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <WizardCard
           selected={value === "solo"}
           onClick={() => onSelect("solo")}

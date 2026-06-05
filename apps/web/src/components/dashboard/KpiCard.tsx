@@ -14,7 +14,7 @@ export function KpiCard({ title, value, subtitle, valueClassName = "", to }: Kpi
   const content = (
     <>
       <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{title}</p>
-      <p className={`mt-2 text-xl font-semibold tracking-tight text-stone-900 ${valueClassName}`}>
+      <p className={`mt-2 text-xl font-semibold tracking-tight text-stone-900 md:text-2xl ${valueClassName}`}>
         {value}
       </p>
       {subtitle !== undefined && subtitle !== null && (

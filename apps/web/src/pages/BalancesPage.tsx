@@ -109,6 +109,11 @@ export function BalancesPage() {
     [tenantsQuery.data],
   );
 
+  const tenantColorById = useMemo(
+    () => new Map(tenantsQuery.data?.map((tenant) => [tenant.id, tenant.color]) ?? []),
+    [tenantsQuery.data],
+  );
+
   const suggestions = useMemo(
     () => computeSuggestedSettlements(balancesQuery.data ?? []),
     [balancesQuery.data],
@@ -274,7 +279,24 @@ export function BalancesPage() {
         />
       )}
       {isSolo && expensesQuery.isSuccess && categoriesQuery.isSuccess && categorySpending.length > 0 && (
-        <div className={`${card} overflow-hidden p-0`}>
+        <>
+          <ul className="space-y-3 md:hidden">
+            {categorySpending.map((row) => (
+              <li key={row.name} className={card}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex min-w-0 items-center gap-2 font-medium text-stone-900">
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: row.fill }}
+                    />
+                    {row.name}
+                  </span>
+                  <span className={`${amount} shrink-0 text-lg`}>{formatCurrency(row.value)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className={`${card} hidden overflow-hidden p-0 md:block`}>
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-bg">
               <tr>
@@ -300,6 +322,7 @@ export function BalancesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
       {!isSolo && balancesQuery.isSuccess && balancesQuery.data.length === 0 && (
         <EmptyState
@@ -308,7 +331,43 @@ export function BalancesPage() {
         />
       )}
       {!isSolo && balancesQuery.isSuccess && balancesQuery.data.length > 0 && (
-        <div className={`${card} overflow-hidden p-0`}>
+        <>
+          <ul className="space-y-3 md:hidden">
+            {balancesQuery.data.map((row) => {
+              const memberName =
+                row.tenantName || tenantNameById.get(row.tenantId) || row.tenantId;
+              const memberColor = tenantColorById.get(row.tenantId);
+              return (
+                <li key={row.tenantId} className={card}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="inline-flex items-center gap-2 font-medium text-stone-900">
+                        {memberColor && (
+                          <span
+                            className="h-3 w-3 shrink-0 rounded-full"
+                            style={{ backgroundColor: memberColor }}
+                          />
+                        )}
+                        {memberName}
+                      </span>
+                      <p
+                        className={`mt-2 text-xl font-mono tabular-nums font-bold ${
+                          row.balance >= 0 ? "text-positive" : "text-negative"
+                        }`}
+                      >
+                        {formatCurrency(row.balance)}
+                      </p>
+                      <p className="mt-1 text-sm text-stone-600">
+                        Paid {formatCurrency(row.paid)} · Owed {formatCurrency(row.owed)} · Settled{" "}
+                        {formatCurrency(row.settledAmount)}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className={`${card} hidden overflow-hidden p-0 md:block`}>
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-bg">
               <tr>
@@ -346,6 +405,7 @@ export function BalancesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {!isSolo && balancesQuery.isSuccess && suggestions.length > 0 && (
@@ -359,7 +419,7 @@ export function BalancesPage() {
               return (
                 <li
                   key={`${suggestion.fromTenantId}-${suggestion.toTenantId}-${suggestion.amount}`}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-bg px-3 py-2"
+                  className="flex flex-col gap-2 rounded-lg border border-border bg-bg px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                 >
                   <span className="text-sm text-stone-800">
                     {fromName} should pay {toName}{" "}
@@ -369,7 +429,7 @@ export function BalancesPage() {
                   </span>
                   <button
                     type="button"
-                    className={btnPrimary}
+                    className={`${btnPrimary} w-full sm:w-auto`}
                     onClick={() =>
                       openSuggestedSettlementModal(
                         suggestion.fromTenantId,
@@ -416,9 +476,9 @@ export function BalancesPage() {
                 return (
                   <li
                     key={settlement.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-bg px-3 py-2 text-sm"
+                    className="flex items-start justify-between gap-3 rounded-lg border border-border bg-bg px-3 py-3 text-sm"
                   >
-                    <span className="text-stone-800">
+                    <span className="min-w-0 flex-1 text-stone-800">
                       {formatDateLabel(settlement.date)} — {fromName} → {toName}{" "}
                       <span className={amount}>{formatCurrency(settlement.amount)}</span>
                       {settlement.note !== null && settlement.note !== "" && (
@@ -428,7 +488,7 @@ export function BalancesPage() {
                     {canUndo && (
                       <button
                         type="button"
-                        className={btnSecondary}
+                        className={`${btnSecondary} shrink-0`}
                         disabled={deleteSettlementMutation.isPending}
                         onClick={() => deleteSettlementMutation.mutate(settlement.id)}
                       >

@@ -200,19 +200,29 @@ export function SettingsPage() {
         <section className={formCard}>
           <h2 className="text-base font-semibold tracking-tight text-stone-900">Balance period</h2>
           <p className="mt-1 text-sm text-stone-600">How often should balances reset?</p>
-          <fieldset className="mt-4 space-y-2">
-            {periodOptions.map((option) => (
-              <label key={option.value} className="flex items-center gap-2 text-sm text-stone-800">
-                <input
-                  type="radio"
-                  name="settlement-period"
-                  value={option.value}
-                  checked={settlementPeriod === option.value}
-                  onChange={() => setSettlementPeriod(option.value)}
-                />
-                {option.label}
-              </label>
-            ))}
+          <fieldset className="mt-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:gap-2">
+              {periodOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-3 text-sm transition active:scale-[0.99] md:rounded-lg md:border-0 md:px-0 md:py-0 ${
+                    settlementPeriod === option.value
+                      ? "border-primary bg-primary/5 text-stone-900 md:border-0 md:bg-transparent"
+                      : "border-border bg-bg text-stone-800 md:border-0 md:bg-transparent"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="settlement-period"
+                    value={option.value}
+                    checked={settlementPeriod === option.value}
+                    onChange={() => setSettlementPeriod(option.value)}
+                    className="shrink-0"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
           </fieldset>
           <p className="mt-3 text-xs text-stone-500">
             Changing this affects how balances are calculated for all members.
@@ -390,14 +400,14 @@ export function SettingsPage() {
       />
 
       {householdQuery.isSuccess && (
-        <section className={`${formCard} border-negative/30`}>
+        <section className={`${formCard} border-2 border-red-200`}>
           <h2 className="text-base font-semibold tracking-tight text-stone-900">Danger zone</h2>
           <p className="mt-1 text-sm text-stone-600">
             Permanently delete this household and all its data.
           </p>
           <button
             type="button"
-            className="mt-4 rounded-lg border border-red-600 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+            className="mt-4 min-h-11 w-full rounded-lg border-2 border-red-600 px-4 py-2 text-base font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100 active:scale-[0.99] md:w-auto md:text-sm"
             onClick={() => setDeleteModalOpen(true)}
           >
             Delete household

@@ -97,12 +97,22 @@ export function WizardStepSummary({
 
       {error && <p className="text-sm text-negative">{error}</p>}
 
-      <div className="flex flex-wrap items-center gap-4">
-        <button type="button" className={btnPrimary} disabled={isPending} onClick={onCreate}>
-          {isPending ? "Creating…" : "Create household"}
-        </button>
-        <button type="button" className={btnSecondary} disabled={isPending} onClick={onBackToEdit}>
+      <div className="flex flex-col-reverse gap-3 md:flex-row md:flex-wrap md:items-center md:gap-4">
+        <button
+          type="button"
+          className={`${btnSecondary} w-full md:w-auto`}
+          disabled={isPending}
+          onClick={onBackToEdit}
+        >
           ← Back to edit
+        </button>
+        <button
+          type="button"
+          className={`${btnPrimary} w-full md:w-auto`}
+          disabled={isPending}
+          onClick={onCreate}
+        >
+          {isPending ? "Creating…" : "Create household"}
         </button>
       </div>
     </div>

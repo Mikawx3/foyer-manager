@@ -7,7 +7,7 @@ interface MemberColorPickerProps {
 
 export function MemberColorPicker({ value, onChange }: MemberColorPickerProps) {
   return (
-    <div className="flex items-center gap-1.5" role="group" aria-label="Member color">
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Member color">
       {TENANT_COLOR_PRESETS.map((color) => (
         <button
           key={color}
@@ -15,7 +15,7 @@ export function MemberColorPicker({ value, onChange }: MemberColorPickerProps) {
           aria-label={`Color ${color}`}
           aria-pressed={value === color}
           onClick={() => onChange(color)}
-          className={`h-6 w-6 rounded-full border-2 transition ${
+          className={`h-10 w-10 rounded-full border-2 transition active:scale-95 md:h-6 md:w-6 ${
             value === color ? "border-stone-900 scale-110" : "border-transparent"
           }`}
           style={{ backgroundColor: color }}
