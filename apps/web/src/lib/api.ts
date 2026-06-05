@@ -1,4 +1,7 @@
 import type {
+  AppConfig,
+  AuthResponse,
+  AuthUser,
   Category,
   CreateExpensePayload,
   CreateHouseholdPayload,
@@ -8,9 +11,12 @@ import type {
   Expense,
   ExpenseSplit,
   Household,
+  HouseholdDeletionPreview,
   CreateRecurringExpensePayload,
+  LoginPayload,
   PaginatedExpenses,
   RecurringExpense,
+  RegisterPayload,
   ResolvedDefaultSplit,
   Settlement,
   Tenant,
@@ -20,6 +26,7 @@ import type {
   UpdateHouseholdPayload,
 } from "@foyer/types";
 import axios, { isAxiosError } from "axios";
+import { clearAuth, getToken } from "./auth-storage.ts";
 
 export interface ApiErrorBody {
   error: string;
@@ -30,6 +37,37 @@ const api = axios.create({
   baseURL: "/api",
   headers: { "Content-Type": "application/json" },
 });
+
+let cachedDeploymentMode: AppConfig["deploymentMode"] | null = null;
+
+export function getCachedDeploymentMode(): AppConfig["deploymentMode"] | null {
+  return cachedDeploymentMode;
+}
+
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (isAxiosError(error) && error.response?.status === 401) {
+      clearAuth();
+      if (
+        getCachedDeploymentMode() !== "local" &&
+        window.location.pathname !== "/login" &&
+        window.location.pathname !== "/register"
+      ) {
+        window.location.assign("/login");
+      }
+    }
+    return Promise.reject(error);
+  },
+);
 
 export function getApiErrorMessage(error: unknown): string {
   if (isAxiosError(error) && error.response?.data) {
@@ -42,6 +80,27 @@ export function getApiErrorMessage(error: unknown): string {
     return error.message;
   }
   return "Something went wrong";
+}
+
+export async function getConfig(): Promise<AppConfig> {
+  const { data } = await api.get<AppConfig>("/config");
+  cachedDeploymentMode = data.deploymentMode;
+  return data;
+}
+
+export async function login(input: LoginPayload): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/login", input);
+  return data;
+}
+
+export async function register(input: RegisterPayload): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/register", input);
+  return data;
+}
+
+export async function getMe(): Promise<AuthUser> {
+  const { data } = await api.get<AuthUser>("/auth/me");
+  return data;
 }
 
 export async function getHouseholds(): Promise<Household[]> {
@@ -67,9 +126,24 @@ export async function getHousehold(id: string): Promise<Household> {
   return data;
 }
 
-export async function getTenants(householdId: string): Promise<Tenant[]> {
+export async function getHouseholdDeletionPreview(
+  householdId: string,
+): Promise<HouseholdDeletionPreview> {
+  const { data } = await api.get<HouseholdDeletionPreview>(
+    `/households/${householdId}/deletion-preview`,
+  );
+  return data;
+}
+
+export async function getTenants(
+  householdId: string,
+  options?: { includeArchived?: boolean },
+): Promise<Tenant[]> {
   const { data } = await api.get<Tenant[]>("/tenants", {
-    params: { householdId },
+    params: {
+      householdId,
+      ...(options?.includeArchived && { includeArchived: true }),
+    },
   });
   return data;
 }
@@ -85,6 +159,38 @@ export async function createTenant(input: {
 
 export async function deleteTenant(id: string): Promise<void> {
   await api.delete(`/tenants/${id}`);
+}
+
+export interface DeleteHouseholdTenantResult {
+  tenant: Tenant;
+  mode: "hard" | "soft";
+  switchedToSolo: boolean;
+}
+
+export interface TenantRemovalPreview {
+  balance: number;
+  hasHistory: boolean;
+  wouldSwitchToSolo: boolean;
+}
+
+export async function getTenantRemovalPreview(
+  householdId: string,
+  tenantId: string,
+): Promise<TenantRemovalPreview> {
+  const { data } = await api.get<TenantRemovalPreview>(
+    `/households/${householdId}/tenants/${tenantId}/removal-preview`,
+  );
+  return data;
+}
+
+export async function deleteHouseholdTenant(
+  householdId: string,
+  tenantId: string,
+): Promise<DeleteHouseholdTenantResult> {
+  const { data } = await api.delete<DeleteHouseholdTenantResult>(
+    `/households/${householdId}/tenants/${tenantId}`,
+  );
+  return data;
 }
 
 export async function getCategories(householdId: string): Promise<Category[]> {

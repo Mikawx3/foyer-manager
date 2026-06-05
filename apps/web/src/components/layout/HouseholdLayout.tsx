@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Receipt, Scale, Settings, Users } from "lucide-react";
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Users, Home } from "lucide-react";
+import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
+import { useDeploymentMode } from "../../hooks/useDeploymentMode.ts";
 import { getApiErrorMessage, getHousehold } from "../../lib/api.ts";
+import { clearAuth } from "../../lib/auth-storage.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { householdNavLinkClass } from "../../lib/ui-classes.ts";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
@@ -16,12 +18,19 @@ const navItems = [
 
 export function HouseholdLayout() {
   const { id = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { isCloudMode } = useDeploymentMode();
 
   const householdQuery = useQuery({
     queryKey: queryKeys.household(id),
     queryFn: () => getHousehold(id),
     enabled: Boolean(id),
   });
+
+  const handleSignOut = () => {
+    clearAuth();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
@@ -57,7 +66,15 @@ export function HouseholdLayout() {
               </NavLink>
             ))}
           </div>
-          <div className="border-t border-border pt-4 lg:mt-6">
+          <div className="space-y-4 border-t border-border pt-4 lg:mt-6">
+            <NavLink
+              to="/households"
+              className={householdNavLinkClass}
+              end={false}
+            >
+              <Home className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+              All households
+            </NavLink>
             <NavLink
               to={`/households/${id}/settings`}
               className={householdNavLinkClass}
@@ -66,6 +83,17 @@ export function HouseholdLayout() {
               <Settings className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
               Settings
             </NavLink>
+
+            {isCloudMode && (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-stone-600 transition hover:bg-stone-100 hover:text-stone-900"
+              >
+                <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+                Sign out
+              </button>
+            )}
           </div>
         </nav>
       </aside>

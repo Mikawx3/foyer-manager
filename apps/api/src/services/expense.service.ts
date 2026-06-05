@@ -218,7 +218,7 @@ export class ExpenseService {
 
   async getBalances(
     householdId: string,
-    options?: { period?: "all" | "current" },
+    options?: { period?: "all" | "current"; includeArchived?: boolean },
   ): Promise<TenantBalance[]> {
     const household = await this.households.findById(householdId);
     if (!household) {
@@ -227,6 +227,7 @@ export class ExpenseService {
 
     const householdDto = toHouseholdDto(household);
     const period = options?.period ?? "all";
+    const includeArchived = options?.includeArchived ?? true;
 
     let dateFrom: Date | undefined;
     if (period === "current" && householdDto.settlementPeriod !== "none") {
@@ -236,7 +237,9 @@ export class ExpenseService {
       }
     }
 
-    const tenants = await this.tenants.findAllByHousehold(householdId);
+    const tenants = await this.tenants.findAllByHousehold(householdId, {
+      includeArchived,
+    });
     const tenantNameById = new Map(tenants.map((tenant) => [tenant.id, tenant.name]));
 
     const expensesWithSplits = await this.expenses.findAllByHouseholdWithSplits(

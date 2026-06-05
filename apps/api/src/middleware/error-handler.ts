@@ -6,6 +6,8 @@ import { AppError } from "../errors/app.errors.js";
 function toContentfulStatus(code: number): ContentfulStatusCode {
   switch (code) {
     case 400:
+    case 401:
+    case 403:
     case 404:
     case 409:
     case 500:

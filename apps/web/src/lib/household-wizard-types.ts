@@ -27,6 +27,21 @@ export interface RecurringDraft {
   paidByTempId: string;
 }
 
+export type RecurringUpdater =
+  | RecurringDraft[]
+  | ((previous: RecurringDraft[]) => RecurringDraft[]);
+
+export function applyRecurringUpdater(
+  previous: RecurringDraft[],
+  updater: RecurringUpdater,
+): RecurringDraft[] {
+  return typeof updater === "function" ? updater(previous) : updater;
+}
+
+export function isValidRecurringDraft(item: RecurringDraft): boolean {
+  return item.title.trim().length > 0 && !Number.isNaN(item.amount) && item.amount > 0;
+}
+
 export interface WizardState {
   step: WizardStep;
   type: HouseholdType | null;

@@ -18,6 +18,7 @@ describe("@foyer/types", () => {
       id: "1",
       name: "Alice",
       email: "alice@example.com",
+      active: true,
       householdId: "h1",
       createdAt: "2026-01-01T00:00:00.000Z",
     };

@@ -69,6 +69,10 @@ export function toTenantDto(tenant: PrismaTenant): Tenant {
     name: tenant.name,
     email: tenant.email,
     ...(tenant.color !== null && { color: tenant.color }),
+    active: tenant.active,
+    ...(tenant.archivedAt != null && {
+      archivedAt: tenant.archivedAt.toISOString(),
+    }),
     householdId: tenant.householdId,
     createdAt: tenant.createdAt.toISOString(),
   };

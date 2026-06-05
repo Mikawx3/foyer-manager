@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Tenant" ADD COLUMN "active" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Tenant" ADD COLUMN "archivedAt" TIMESTAMP(3);

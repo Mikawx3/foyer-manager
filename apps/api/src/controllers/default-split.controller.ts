@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { assertHouseholdAccess } from "../lib/household-access.js";
 import { parseOrThrow } from "../lib/validation.js";
 import {
   defaultSplitService,
@@ -16,12 +17,14 @@ export class DefaultSplitController {
 
   getRules = async (c: Context) => {
     const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
+    assertHouseholdAccess(c, id);
     const rules = await this.service.getRules(id);
     return c.json(rules, 200);
   };
 
   setRules = async (c: Context) => {
     const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
+    assertHouseholdAccess(c, id);
     const body = parseOrThrow(setDefaultSplitsSchema, await c.req.json());
     const rules = await this.service.setRules(id, body);
     return c.json(rules, 200);
@@ -29,6 +32,7 @@ export class DefaultSplitController {
 
   resolve = async (c: Context) => {
     const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
+    assertHouseholdAccess(c, id);
     const { categoryId } = parseOrThrow(resolveDefaultSplitsQuerySchema, c.req.query());
     const resolved = await this.service.resolveForExpense(id, categoryId);
     return c.json(resolved, 200);
@@ -36,6 +40,7 @@ export class DefaultSplitController {
 
   deleteCategoryRules = async (c: Context) => {
     const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
+    assertHouseholdAccess(c, id);
     const { categoryId } = parseOrThrow(deleteDefaultSplitsQuerySchema, c.req.query());
     await this.service.deleteCategoryRules(id, categoryId);
     return c.body(null, 204);

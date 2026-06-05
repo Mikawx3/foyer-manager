@@ -9,6 +9,8 @@ export const householdRoutes = new Hono();
 householdRoutes.get("/", householdController.list);
 householdRoutes.post("/", householdController.create);
 householdRoutes.post("/:id/tenants", householdController.createTenant);
+householdRoutes.get("/:id/tenants/:tenantId/removal-preview", householdController.previewRemoveTenant);
+householdRoutes.delete("/:id/tenants/:tenantId", householdController.removeTenant);
 householdRoutes.get("/:id/default-splits/resolve", defaultSplitController.resolve);
 householdRoutes.get("/:id/default-splits", defaultSplitController.getRules);
 householdRoutes.put("/:id/default-splits", defaultSplitController.setRules);
@@ -24,6 +26,7 @@ householdRoutes.post(
 householdRoutes.get("/:id/settlements", settlementController.list);
 householdRoutes.post("/:id/settlements", settlementController.create);
 householdRoutes.delete("/:id/settlements/:settlementId", settlementController.remove);
+householdRoutes.get("/:id/deletion-preview", householdController.getDeletionPreview);
 householdRoutes.get("/:id/balances", householdController.getBalances);
 householdRoutes.patch("/:id", householdController.update);
 householdRoutes.get("/:id", householdController.get);

@@ -10,6 +10,15 @@ export interface Household {
   createdAt: string;
 }
 
+export interface HouseholdDeletionPreview {
+  memberCount: number;
+  expenseCount: number;
+  expenseTotal: number;
+  recurringExpenseCount: number;
+  membersWithUnresolvedBalance: number;
+  outstandingBalanceTotal: number;
+}
+
 export interface CreateHouseholdPayload {
   name: string;
   type: HouseholdType;
@@ -36,7 +45,8 @@ export interface CreateSettlementPayload {
 }
 
 export interface UpdateHouseholdPayload {
-  settlementPeriod: SettlementPeriod;
+  settlementPeriod?: SettlementPeriod;
+  type?: HouseholdType;
 }
 
 /** Household member (not a rental tenant). */
@@ -45,8 +55,39 @@ export interface Tenant {
   name: string;
   email: string;
   color?: string | null;
+  active: boolean;
+  archivedAt?: string | null;
   householdId: string;
   createdAt: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  householdId: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  householdName: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface AuthUser {
+  userId: string;
+  email: string;
+  householdId: string;
+  household: Household;
+}
+
+export type DeploymentMode = "local" | "cloud";
+
+export interface AppConfig {
+  deploymentMode: DeploymentMode;
 }
 
 export interface CreateTenantPayload {

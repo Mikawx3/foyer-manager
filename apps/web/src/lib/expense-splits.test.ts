@@ -12,6 +12,7 @@ const tenants: Tenant[] = [
     name: "Alice",
     email: "a@test.com",
     householdId: "h1",
+    active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
   },
   {
@@ -19,6 +20,7 @@ const tenants: Tenant[] = [
     name: "Bob",
     email: "b@test.com",
     householdId: "h1",
+    active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
   },
 ];

@@ -117,6 +117,7 @@ describe("RecurringExpenseService", () => {
     });
     const findDueByHousehold = vi.fn().mockResolvedValue([record]);
     const updateNextDueDate = vi.fn().mockResolvedValue(undefined);
+    const findByRecurringExpenseAndDate = vi.fn().mockResolvedValue(null);
     const createExpense = vi.fn().mockResolvedValue({
       id: "exp1",
       amount: 1000,
@@ -143,12 +144,14 @@ describe("RecurringExpenseService", () => {
       households,
       { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
       { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
-      { listByHousehold: vi.fn(), create: createExpense } as unknown as ExpenseService,
+      { listByHousehold: vi.fn(), create: createExpense, getById: vi.fn() } as unknown as ExpenseService,
+      { findByRecurringExpenseAndDate } as unknown as ExpenseRepository,
     );
 
     const generated = await service.generateDueRecurringExpenses(householdId);
 
     expect(findDueByHousehold).toHaveBeenCalledTimes(1);
+    expect(findByRecurringExpenseAndDate).toHaveBeenCalledTimes(1);
     expect(generated).toHaveLength(1);
     expect(createExpense).toHaveBeenCalledTimes(1);
     expect(createExpense).toHaveBeenCalledWith(
@@ -158,6 +161,47 @@ describe("RecurringExpenseService", () => {
       }),
     );
     expect(updateNextDueDate).toHaveBeenCalledTimes(1);
+    expect(updateNextDueDate).toHaveBeenCalledWith(
+      recurringId,
+      new Date("2026-05-01T00:00:00.000Z"),
+    );
+  });
+
+  it("generateDueRecurringExpenses skips creation when expense already exists for due date", async () => {
+    const households = buildHouseholds();
+    const record = buildRecurringRecord({
+      nextDueDate: new Date("2026-04-01T00:00:00.000Z"),
+    });
+    const findDueByHousehold = vi.fn().mockResolvedValue([record]);
+    const updateNextDueDate = vi.fn().mockResolvedValue(undefined);
+    const findByRecurringExpenseAndDate = vi.fn().mockResolvedValue({
+      id: "exp-existing",
+      recurringExpenseId: recurringId,
+      date: new Date("2026-04-01T00:00:00.000Z"),
+    });
+    const createExpense = vi.fn();
+
+    const service = new RecurringExpenseService(
+      {
+        findAllByHousehold: vi.fn(),
+        findDueByHousehold,
+        findById: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        updateNextDueDate,
+        deleteById: vi.fn(),
+      },
+      households,
+      { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
+      { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
+      { listByHousehold: vi.fn(), create: createExpense, getById: vi.fn() } as unknown as ExpenseService,
+      { findByRecurringExpenseAndDate } as unknown as ExpenseRepository,
+    );
+
+    const generated = await service.generateDueRecurringExpenses(householdId);
+
+    expect(generated).toHaveLength(0);
+    expect(createExpense).not.toHaveBeenCalled();
     expect(updateNextDueDate).toHaveBeenCalledWith(
       recurringId,
       new Date("2026-05-01T00:00:00.000Z"),
@@ -368,6 +412,16 @@ describe("RecurringExpenseService", () => {
       ),
       countByRecurringExpenseIds: vi.fn(),
       deleteByRecurringExpenseId,
+      findByRecurringExpenseAndDate: vi.fn().mockImplementation(
+        async (targetRecurringId: string, date: Date) => {
+          const dateIso = date.toISOString().slice(0, 10);
+          const match = linkedExpenses.find(
+            (expense) =>
+              expense.recurringExpenseId === targetRecurringId && expense.date === dateIso,
+          );
+          return match ? { id: match.id } : null;
+        },
+      ),
     };
 
     const service = new RecurringExpenseService(

@@ -6,6 +6,7 @@ import {
   RECURRING_QUICK_ADD,
   type RecurringDraft,
   type RecurringQuickAddChip,
+  type RecurringUpdater,
   type WizardMember,
 } from "../../lib/household-wizard-types.ts";
 import { btnSecondary } from "../../lib/ui-classes.ts";
@@ -16,7 +17,7 @@ interface WizardStepRecurringProps {
   members: WizardMember[];
   recurring: RecurringDraft[];
   error?: string;
-  onRecurringChange: (recurring: RecurringDraft[]) => void;
+  onRecurringChange: (updater: RecurringUpdater) => void;
   onSkip: () => void;
 }
 
@@ -26,6 +27,13 @@ const frequencyOptions = [
   { value: "quarterly", label: "Quarterly" },
   { value: "yearly", label: "Yearly" },
 ] as const;
+
+function isChipAlreadyAdded(recurring: RecurringDraft[], chip: RecurringQuickAddChip): boolean {
+  if (chip.label === "Other") {
+    return false;
+  }
+  return recurring.some((item) => item.categoryName === chip.categoryName);
+}
 
 export function WizardStepRecurring({
   type,
@@ -39,28 +47,33 @@ export function WizardStepRecurring({
   const defaultPaidBy = filledMembers[0]?.tempId ?? "";
 
   const addFromChip = (chip: RecurringQuickAddChip) => {
-    onRecurringChange([
-      ...recurring,
-      {
-        tempId: createMemberId(),
-        title: chip.label === "Other" ? "" : chip.label,
-        categoryName: chip.categoryName,
-        amount: Number.NaN,
-        frequency: "monthly",
-        startDate: firstOfCurrentMonth(),
-        paidByTempId: defaultPaidBy,
-      },
-    ]);
+    onRecurringChange((previous) => {
+      if (isChipAlreadyAdded(previous, chip)) {
+        return previous;
+      }
+      return [
+        ...previous,
+        {
+          tempId: createMemberId(),
+          title: chip.label === "Other" ? "" : chip.label,
+          categoryName: chip.categoryName,
+          amount: Number.NaN,
+          frequency: "monthly",
+          startDate: firstOfCurrentMonth(),
+          paidByTempId: defaultPaidBy,
+        },
+      ];
+    });
   };
 
   const updateItem = (tempId: string, patch: Partial<RecurringDraft>) => {
-    onRecurringChange(
-      recurring.map((item) => (item.tempId === tempId ? { ...item, ...patch } : item)),
+    onRecurringChange((previous) =>
+      previous.map((item) => (item.tempId === tempId ? { ...item, ...patch } : item)),
     );
   };
 
   const removeItem = (tempId: string) => {
-    onRecurringChange(recurring.filter((item) => item.tempId !== tempId));
+    onRecurringChange((previous) => previous.filter((item) => item.tempId !== tempId));
   };
 
   return (
@@ -75,16 +88,20 @@ export function WizardStepRecurring({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {RECURRING_QUICK_ADD.map((chip) => (
-          <button
-            key={chip.label}
-            type="button"
-            onClick={() => addFromChip(chip)}
-            className="rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:border-primary/40 hover:text-primary"
-          >
-            {chip.emoji} {chip.label}
-          </button>
-        ))}
+        {RECURRING_QUICK_ADD.map((chip) => {
+          const alreadyAdded = isChipAlreadyAdded(recurring, chip);
+          return (
+            <button
+              key={chip.label}
+              type="button"
+              onClick={() => addFromChip(chip)}
+              disabled={alreadyAdded}
+              className="rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {chip.emoji} {chip.label}
+            </button>
+          );
+        })}
       </div>
 
       {recurring.length > 0 && (

@@ -34,6 +34,7 @@ import {
 import { exportExpensesToCSV, slugifyHouseholdName } from "../lib/export.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { formatCurrency, formatDate } from "../lib/format.ts";
+import { formatTenantName } from "../lib/format-tenant-name.ts";
 import { currentMonthValue, type ExpenseListFilters } from "../lib/expense-list-filters.ts";
 import {
   initialSplitsFromExpenseSplits,
@@ -130,7 +131,7 @@ function ExpenseSplits({
     }),
   });
 
-  const tenantNameById = new Map(tenants.map((t) => [t.id, t.name]));
+  const tenantNameById = new Map(tenants.map((t) => [t.id, formatTenantName(t)]));
   const splits = splitsQuery.data ?? [];
   const splitsComplete = isExpenseSplitsComplete(splits, tenants);
 
@@ -295,7 +296,7 @@ export function ExpensesPage() {
 
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
-    queryFn: () => getTenants(householdId),
+    queryFn: () => getTenants(householdId, { includeArchived: true }),
     enabled: Boolean(householdId),
   });
 
@@ -373,7 +374,9 @@ export function ExpensesPage() {
   });
 
   const categoryNameById = new Map(categoriesQuery.data?.map((c) => [c.id, c.name]) ?? []);
-  const tenantNameById = new Map(tenantsQuery.data?.map((t) => [t.id, t.name]) ?? []);
+  const tenantNameById = new Map(
+    tenantsQuery.data?.map((t) => [t.id, formatTenantName(t)]) ?? [],
+  );
 
   const isLoading =
     expensesQuery.isLoading || tenantsQuery.isLoading || categoriesQuery.isLoading;

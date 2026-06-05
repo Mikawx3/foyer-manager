@@ -67,12 +67,17 @@ export class HouseholdRepository {
 
   async updateById(
     id: string,
-    data: { settlementPeriod: string },
+    data: { settlementPeriod?: string; type?: string },
   ): Promise<Household> {
     try {
       return await prisma.household.update({
         where: { id },
-        data: { settlementPeriod: data.settlementPeriod },
+        data: {
+          ...(data.settlementPeriod !== undefined && {
+            settlementPeriod: data.settlementPeriod,
+          }),
+          ...(data.type !== undefined && { type: data.type }),
+        },
       });
     } catch (error) {
       handlePrismaError(error);

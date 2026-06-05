@@ -302,7 +302,9 @@ export function DashboardPage() {
           <section className={`grid grid-cols-2 gap-4 ${isSolo ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
             <KpiCard
               title="Total this month"
-              value={<span className={amount}>{formatCurrency(stats.kpis.totalThisMonth)}</span>}
+              value={
+                <span className={amount}>{formatCurrency(stats.kpis.totalThisMonth)}</span>
+              }
             />
             <KpiCard
               title="Expenses this month"

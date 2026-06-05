@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { DeleteHouseholdModal } from "../components/settings/DeleteHouseholdModal.tsx";
 import { selectClassName } from "../components/forms/FormField.tsx";
 import {
   isPercentageTotalComplete,
@@ -34,6 +35,7 @@ export function SettingsPage() {
   const [categoryPercentages, setCategoryPercentages] = useState<Record<string, number>>({});
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [pendingReset, setPendingReset] = useState<{ id: string; name: string } | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [settlementPeriod, setSettlementPeriod] = useState<SettlementPeriod>("none");
 
   const householdQuery = useQuery({
@@ -389,6 +391,31 @@ export function SettingsPage() {
         onCancel={() => setPendingReset(null)}
         isLoading={deleteCategoryMutation.isPending}
       />
+
+      {householdQuery.isSuccess && (
+        <section className={`${formCard} border-negative/30`}>
+          <h2 className="text-base font-semibold tracking-tight text-stone-900">Danger zone</h2>
+          <p className="mt-1 text-sm text-stone-600">
+            Permanently delete this household and all its data.
+          </p>
+          <button
+            type="button"
+            className="mt-4 rounded-lg border border-red-600 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            Delete household
+          </button>
+        </section>
+      )}
+
+      {householdQuery.isSuccess && (
+        <DeleteHouseholdModal
+          isOpen={deleteModalOpen}
+          householdId={householdId}
+          householdName={householdQuery.data.name}
+          onClose={() => setDeleteModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

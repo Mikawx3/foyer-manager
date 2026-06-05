@@ -13,6 +13,7 @@ model Household {
   type              String         @default("shared")
   settlementPeriod  String         @default("none")
   createdAt         DateTime       @default(now())
+  user              User?
   tenants           Tenant[]
   categories        Category[]
   expenses          Expense[]
@@ -21,11 +22,22 @@ model Household {
   recurringExpenses  RecurringExpense[]
 }
 
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  householdId String    @unique
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+}
+
 model Tenant {
   id            String         @id @default(cuid())
   name          String
   email         String         @unique
   color         String?
+  active        Boolean        @default(true)
+  archivedAt    DateTime?
   householdId   String
   createdAt     DateTime       @default(now())
   household        Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)

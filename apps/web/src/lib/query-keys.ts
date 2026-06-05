@@ -1,8 +1,12 @@
 import type { ExpenseListFilters } from "./expense-list-filters.ts";
 
 export const queryKeys = {
+  config: ["config"] as const,
+  me: ["auth", "me"] as const,
   households: ["households"] as const,
   household: (id: string) => ["households", id] as const,
+  householdDeletionPreview: (householdId: string) =>
+    ["households", householdId, "deletion-preview"] as const,
   tenants: (householdId: string) => ["tenants", householdId] as const,
   categories: (householdId: string) => ["categories", householdId] as const,
   expenses: (householdId: string, filters: ExpenseListFilters) =>

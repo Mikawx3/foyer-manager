@@ -22,6 +22,10 @@ export const tenantIdParamSchema = z.object({
 
 export const listTenantsQuerySchema = z.object({
   householdId: z.string().cuid(),
+  includeArchived: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) => value === "true"),
 });
 
 export type CreateTenantInput = z.infer<typeof createTenantSchema>;

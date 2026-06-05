@@ -186,6 +186,18 @@ export class RecurringExpenseService {
     const dueItems = await this.recurring.findDueByHousehold(householdId, now);
 
     for (const record of dueItems) {
+      const existing = await this.expenseRepo.findByRecurringExpenseAndDate(
+        record.id,
+        record.nextDueDate,
+      );
+      if (existing) {
+        await this.recurring.updateNextDueDate(
+          record.id,
+          getNextDueDate(record.nextDueDate, record.frequency as RecurringFrequency),
+        );
+        continue;
+      }
+
       const expense = await this.generateExpenseFromRecord(record);
       generated.push(expense);
       await this.recurring.updateNextDueDate(

@@ -1,7 +1,7 @@
 import type { Expense, ExpenseSplit, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { handlePrismaError } from "../lib/prisma-errors.js";
-import { numberToDecimal } from "../lib/decimal.js";
+import { numberToDecimal, decimalToNumber } from "../lib/decimal.js";
 
 export type ExpenseWithSplits = Expense & { splits: ExpenseSplit[] };
 
@@ -19,6 +19,17 @@ export class ExpenseRepository {
 
   async countByWhere(where: Prisma.ExpenseWhereInput): Promise<number> {
     return prisma.expense.count({ where });
+  }
+
+  async sumAmountByHousehold(householdId: string): Promise<number> {
+    const result = await prisma.expense.aggregate({
+      where: { householdId },
+      _sum: { amount: true },
+    });
+    if (result._sum.amount === null) {
+      return 0;
+    }
+    return decimalToNumber(result._sum.amount);
   }
 
   async findPageByWhere(
@@ -81,6 +92,18 @@ export class ExpenseRepository {
 
   async countByRecurringExpenseId(recurringExpenseId: string): Promise<number> {
     return prisma.expense.count({ where: { recurringExpenseId } });
+  }
+
+  async findByRecurringExpenseAndDate(
+    recurringExpenseId: string,
+    date: Date,
+  ): Promise<Expense | null> {
+    return prisma.expense.findFirst({
+      where: {
+        recurringExpenseId,
+        date,
+      },
+    });
   }
 
   async countByRecurringExpenseIds(

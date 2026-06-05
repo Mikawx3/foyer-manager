@@ -1,4 +1,4 @@
-import type { CreateHouseholdPayload, CreateRecurringExpensePayload } from "@foyer/types";
+import type { CreateRecurringExpensePayload } from "@foyer/types";
 import {
   createHousehold,
   createHouseholdTenant,
@@ -6,9 +6,19 @@ import {
   getCategories,
   getTenants,
   putDefaultSplits,
+  updateHousehold,
 } from "./api.ts";
 import type { WizardState } from "./household-wizard-types.ts";
+import { isValidRecurringDraft } from "./household-wizard-types.ts";
+import { DEFAULT_TENANT_COLOR } from "./tenant-colors.ts";
 import { equalSplitPercentages } from "./split-percentages.ts";
+
+export type WizardSubmitMode = "create" | "setup";
+
+export interface SubmitWizardOptions {
+  mode: WizardSubmitMode;
+  householdId?: string;
+}
 
 function buildRecurringSplits(
   state: WizardState,
@@ -43,18 +53,33 @@ function resolveCategoryId(
   return categoryIdByName.get(trimmed) ?? categoryIdByName.get("Other");
 }
 
-export async function submitHouseholdWizard(state: WizardState): Promise<string> {
+export async function submitHouseholdWizard(
+  state: WizardState,
+  options: SubmitWizardOptions,
+): Promise<string> {
   if (state.type === null) {
     throw new Error("Household type is required");
   }
 
-  const payload: CreateHouseholdPayload = {
-    name: state.name.trim(),
-    type: state.type,
-    settlementPeriod: state.settlementPeriod,
-  };
+  let householdId: string;
 
-  const household = await createHousehold(payload);
+  if (options.mode === "setup") {
+    if (!options.householdId) {
+      throw new Error("Household id is required in setup mode");
+    }
+    householdId = options.householdId;
+    await updateHousehold(householdId, {
+      type: state.type,
+      settlementPeriod: state.settlementPeriod,
+    });
+  } else {
+    const household = await createHousehold({
+      name: state.name.trim(),
+      type: state.type,
+      settlementPeriod: state.settlementPeriod,
+    });
+    householdId = household.id;
+  }
 
   let tenantIds: string[] = [];
   const tenantIdByTempId = new Map<string, string>();
@@ -63,7 +88,7 @@ export async function submitHouseholdWizard(state: WizardState): Promise<string>
     const filledMembers = state.members.filter((member) => member.name.trim().length > 0);
 
     for (const member of filledMembers) {
-      const tenant = await createHouseholdTenant(household.id, {
+      const tenant = await createHouseholdTenant(householdId, {
         name: member.name.trim(),
         color: member.color,
       });
@@ -72,7 +97,7 @@ export async function submitHouseholdWizard(state: WizardState): Promise<string>
     }
 
     if (state.splitMode === "custom") {
-      await putDefaultSplits(household.id, {
+      await putDefaultSplits(householdId, {
         categoryId: null,
         splits: filledMembers.map((member) => ({
           tenantId: tenantIdByTempId.get(member.tempId) ?? "",
@@ -81,7 +106,14 @@ export async function submitHouseholdWizard(state: WizardState): Promise<string>
       });
     }
   } else {
-    const tenants = await getTenants(household.id);
+    let tenants = await getTenants(householdId);
+    if (tenants.length === 0) {
+      const me = await createHouseholdTenant(householdId, {
+        name: "Me",
+        color: DEFAULT_TENANT_COLOR,
+      });
+      tenants = [me];
+    }
     tenantIds = tenants.map((tenant) => tenant.id);
     for (const tenant of tenants) {
       tenantIdByTempId.set(tenant.id, tenant.id);
@@ -89,11 +121,12 @@ export async function submitHouseholdWizard(state: WizardState): Promise<string>
   }
 
   if (state.recurring.length > 0) {
-    const categories = await getCategories(household.id);
+    const categories = await getCategories(householdId);
     const categoryIdByName = new Map(categories.map((category) => [category.name, category.id]));
     const defaultPaidById = tenantIds[0] ?? "";
+    const validRecurring = state.recurring.filter(isValidRecurringDraft);
 
-    for (const item of state.recurring) {
+    for (const item of validRecurring) {
       const paidById =
         state.type === "shared"
           ? (tenantIdByTempId.get(item.paidByTempId) ?? defaultPaidById)
@@ -111,9 +144,9 @@ export async function submitHouseholdWizard(state: WizardState): Promise<string>
         ...(categoryId !== undefined && { category: categoryId }),
       };
 
-      await createRecurringExpense(household.id, recurringPayload);
+      await createRecurringExpense(householdId, recurringPayload);
     }
   }
 
-  return household.id;
+  return householdId;
 }

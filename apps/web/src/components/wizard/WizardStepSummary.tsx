@@ -1,5 +1,5 @@
 import type { WizardState } from "../../lib/household-wizard-types.ts";
-import { settlementPeriodLabel } from "../../lib/household-wizard-types.ts";
+import { isValidRecurringDraft, settlementPeriodLabel } from "../../lib/household-wizard-types.ts";
 import { formatCurrency } from "../../lib/format.ts";
 import { amount, btnPrimary, btnSecondary, card } from "../../lib/ui-classes.ts";
 
@@ -66,11 +66,11 @@ export function WizardStepSummary({
           <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
             Recurring expenses
           </p>
-          {state.recurring.length === 0 ? (
+          {state.recurring.filter(isValidRecurringDraft).length === 0 ? (
             <p className="mt-1 text-sm text-stone-600">None</p>
           ) : (
             <ul className="mt-2 space-y-1">
-              {state.recurring.map((item) => (
+              {state.recurring.filter(isValidRecurringDraft).map((item) => (
                 <li key={item.tempId} className="flex justify-between gap-4 text-sm">
                   <span className="text-stone-800">
                     {item.title || "Untitled"}

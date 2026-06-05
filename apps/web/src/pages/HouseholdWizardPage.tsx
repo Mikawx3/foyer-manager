@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { WizardProgressBar } from "../components/wizard/WizardProgressBar.tsx";
 import { WizardStepBalancePeriod } from "../components/wizard/WizardStepBalancePeriod.tsx";
 import { WizardStepDefaultSplit } from "../components/wizard/WizardStepDefaultSplit.tsx";
@@ -8,36 +8,81 @@ import { WizardStepNameMembers } from "../components/wizard/WizardStepNameMember
 import { WizardStepRecurring } from "../components/wizard/WizardStepRecurring.tsx";
 import { WizardStepSummary } from "../components/wizard/WizardStepSummary.tsx";
 import { WizardStepType } from "../components/wizard/WizardStepType.tsx";
-import { getApiErrorMessage } from "../lib/api.ts";
+import { getApiErrorMessage, getHousehold } from "../lib/api.ts";
 import {
+  applyRecurringUpdater,
   getNextStep,
   getPrevStep,
   initialWizardState,
+  isValidRecurringDraft,
+  type RecurringUpdater,
   type WizardState,
 } from "../lib/household-wizard-types.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { equalSplitPercentages } from "../lib/split-percentages.ts";
 import { isPercentageTotalComplete } from "../lib/smart-percentages.ts";
-import { submitHouseholdWizard } from "../lib/submit-household-wizard.ts";
+import { submitHouseholdWizard, type WizardSubmitMode } from "../lib/submit-household-wizard.ts";
 import { btnPrimary, btnSecondary } from "../lib/ui-classes.ts";
 
-export function HouseholdWizardPage() {
+interface HouseholdWizardPageProps {
+  mode?: WizardSubmitMode;
+}
+
+export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProps) {
   const navigate = useNavigate();
+  const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [state, setState] = useState<WizardState>(initialWizardState);
   const [stepError, setStepError] = useState<string | undefined>();
 
+  const householdQuery = useQuery({
+    queryKey: queryKeys.household(householdId),
+    queryFn: () => getHousehold(householdId),
+    enabled: mode === "setup" && Boolean(householdId),
+  });
+
+  useEffect(() => {
+    if (mode === "setup" && householdQuery.data && state.name === "") {
+      setState((current) => ({ ...current, name: householdQuery.data.name }));
+    }
+  }, [mode, householdQuery.data, state.name]);
+
   const createMutation = useMutation({
-    mutationFn: submitHouseholdWizard,
-    onSuccess: async (householdId) => {
+    mutationFn: (wizardState: WizardState) =>
+      submitHouseholdWizard(wizardState, {
+        mode,
+        householdId: mode === "setup" ? householdId : undefined,
+      }),
+    onSuccess: async (resultHouseholdId) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.tenants(resultHouseholdId) });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tenants(resultHouseholdId) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.households });
-      navigate(`/households/${householdId}/dashboard`);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.household(resultHouseholdId) });
+      navigate(`/households/${resultHouseholdId}/dashboard`, { replace: true });
     },
   });
 
   const patchState = (patch: Partial<WizardState>) => {
     setState((current) => ({ ...current, ...patch }));
     setStepError(undefined);
+  };
+
+  const changeRecurring = (updater: RecurringUpdater) => {
+    setState((current) => ({
+      ...current,
+      recurring: applyRecurringUpdater(current.recurring, updater),
+    }));
+    setStepError(undefined);
+  };
+
+  const validateRecurringDrafts = (items: WizardState["recurring"]): boolean => {
+    for (const item of items) {
+      if (!isValidRecurringDraft(item)) {
+        setStepError("Each recurring expense needs a title and a valid amount.");
+        return false;
+      }
+    }
+    return true;
   };
 
   const validateStep = (): boolean => {
@@ -77,17 +122,7 @@ export function HouseholdWizardPage() {
         return true;
       }
       case 4: {
-        for (const item of state.recurring) {
-          if (item.title.trim().length === 0) {
-            setStepError("Each recurring expense needs a title.");
-            return false;
-          }
-          if (Number.isNaN(item.amount) || item.amount <= 0) {
-            setStepError("Each recurring expense needs a valid amount.");
-            return false;
-          }
-        }
-        return true;
+        return validateRecurringDrafts(state.recurring);
       }
       default:
         return true;
@@ -171,8 +206,8 @@ export function HouseholdWizardPage() {
             members={state.members}
             recurring={state.recurring}
             error={stepError}
-            onRecurringChange={(recurring) => patchState({ recurring })}
-            onSkip={() => patchState({ step: 5 })}
+            onRecurringChange={changeRecurring}
+            onSkip={() => patchState({ recurring: [], step: 5 })}
           />
         )}
 
@@ -189,6 +224,9 @@ export function HouseholdWizardPage() {
             isPending={createMutation.isPending}
             error={submitError ?? stepError}
             onCreate={() => {
+              if (!validateRecurringDrafts(state.recurring)) {
+                return;
+              }
               setStepError(undefined);
               createMutation.mutate(state);
             }}
