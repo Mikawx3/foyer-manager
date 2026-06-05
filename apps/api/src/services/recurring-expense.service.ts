@@ -7,6 +7,10 @@ import {
   type CategoryRepository,
 } from "../repositories/category.repository.js";
 import {
+  expenseRepository,
+  type ExpenseRepository,
+} from "../repositories/expense.repository.js";
+import {
   householdRepository,
   type HouseholdRepository,
 } from "../repositories/household.repository.js";
@@ -25,7 +29,10 @@ import type {
 } from "../validators/recurring-expense.validator.js";
 import { expenseService, type ExpenseService } from "./expense.service.js";
 
-function toRecurringExpenseDto(record: RecurringExpenseWithRelations): RecurringExpense {
+function toRecurringExpenseDto(
+  record: RecurringExpenseWithRelations,
+  generatedExpenseCount: number,
+): RecurringExpense {
   return {
     id: record.id,
     householdId: record.householdId,
@@ -43,6 +50,7 @@ function toRecurringExpenseDto(record: RecurringExpenseWithRelations): Recurring
       tenant: { id: split.tenant.id, name: split.tenant.name },
       percentage: split.percentage,
     })),
+    generatedExpenseCount,
     createdAt: record.createdAt.toISOString(),
   };
 }
@@ -54,12 +62,18 @@ export class RecurringExpenseService {
     private readonly tenants: TenantRepository = tenantRepository,
     private readonly categories: CategoryRepository = categoryRepository,
     private readonly expenses: ExpenseService = expenseService,
+    private readonly expenseRepo: ExpenseRepository = expenseRepository,
   ) {}
 
   async listByHousehold(householdId: string): Promise<RecurringExpense[]> {
     await this.assertHouseholdExists(householdId);
     const items = await this.recurring.findAllByHousehold(householdId);
-    return items.map(toRecurringExpenseDto);
+    const counts = await this.expenseRepo.countByRecurringExpenseIds(
+      items.map((item) => item.id),
+    );
+    return items.map((item) =>
+      toRecurringExpenseDto(item, counts.get(item.id) ?? 0),
+    );
   }
 
   async create(householdId: string, input: CreateRecurringExpenseInput): Promise<RecurringExpense> {
@@ -79,11 +93,11 @@ export class RecurringExpenseService {
       paidById: input.paidById,
       frequency: input.frequency,
       startDate,
-      nextDueDate: getNextDueDate(startDate, input.frequency),
+      nextDueDate: startDate,
       splits: input.splits,
     });
 
-    return toRecurringExpenseDto(created);
+    return toRecurringExpenseDto(created, 0);
   }
 
   async update(
@@ -104,6 +118,15 @@ export class RecurringExpenseService {
       await this.assertCategoryInHousehold(input.category, householdId);
     }
 
+    const existingStartDate = existing.startDate.toISOString().slice(0, 10);
+    const scheduleChanged =
+      (input.startDate !== undefined && input.startDate !== existingStartDate) ||
+      (input.frequency !== undefined && input.frequency !== existing.frequency);
+
+    if (scheduleChanged) {
+      await this.expenseRepo.deleteByRecurringExpenseId(recurringId);
+    }
+
     const frequency = (input.frequency ?? existing.frequency) as RecurringFrequency;
     const startDate =
       input.startDate !== undefined
@@ -112,8 +135,8 @@ export class RecurringExpenseService {
     const nextDueDate =
       input.nextDueDate !== undefined
         ? new Date(`${input.nextDueDate}T00:00:00.000Z`)
-        : input.startDate !== undefined || input.frequency !== undefined
-          ? getNextDueDate(startDate, frequency)
+        : scheduleChanged
+          ? startDate
           : existing.nextDueDate;
 
     const updated = await this.recurring.update(
@@ -131,13 +154,16 @@ export class RecurringExpenseService {
       input.splits,
     );
 
-    return toRecurringExpenseDto(updated);
+    const generatedExpenseCount = await this.expenseRepo.countByRecurringExpenseId(recurringId);
+    return toRecurringExpenseDto(updated, generatedExpenseCount);
   }
 
   async delete(householdId: string, recurringId: string): Promise<RecurringExpense> {
     await this.assertHouseholdExists(householdId);
     const existing = await this.getRecurringInHousehold(recurringId, householdId);
-    const dto = toRecurringExpenseDto(existing);
+    const generatedExpenseCount = await this.expenseRepo.countByRecurringExpenseId(recurringId);
+    const dto = toRecurringExpenseDto(existing, generatedExpenseCount);
+    await this.expenseRepo.deleteByRecurringExpenseId(recurringId);
     await this.recurring.deleteById(recurringId);
     return dto;
   }
@@ -157,22 +183,15 @@ export class RecurringExpenseService {
     await this.assertHouseholdExists(householdId);
     const generated: Expense[] = [];
     const now = new Date();
+    const dueItems = await this.recurring.findDueByHousehold(householdId, now);
 
-    const maxIterations = 120;
-    let iterations = 0;
-    let dueItems = await this.recurring.findDueByHousehold(householdId, now);
-
-    while (dueItems.length > 0 && iterations < maxIterations) {
-      for (const record of dueItems) {
-        const expense = await this.generateExpenseFromRecord(record);
-        generated.push(expense);
-        await this.recurring.updateNextDueDate(
-          record.id,
-          getNextDueDate(record.nextDueDate, record.frequency as RecurringFrequency),
-        );
-      }
-      iterations += 1;
-      dueItems = await this.recurring.findDueByHousehold(householdId, now);
+    for (const record of dueItems) {
+      const expense = await this.generateExpenseFromRecord(record);
+      generated.push(expense);
+      await this.recurring.updateNextDueDate(
+        record.id,
+        getNextDueDate(record.nextDueDate, record.frequency as RecurringFrequency),
+      );
     }
 
     return generated;
@@ -195,6 +214,7 @@ export class RecurringExpenseService {
       paidByTenantId: record.paidById,
       date: dateIso,
       splitMode: "custom",
+      recurringExpenseId: record.id,
       splits: record.splits.map((split) => ({
         tenantId: split.tenantId,
         percentage: split.percentage,

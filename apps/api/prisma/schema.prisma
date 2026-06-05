@@ -66,21 +66,24 @@ model Category {
 }
 
 model Expense {
-  id               String         @id @default(cuid())
-  amount           Decimal        @db.Decimal(12, 2)
-  description      String
-  categoryId       String
-  paidByTenantId   String
-  householdId      String
-  splitMode        String         @default("default")
-  date             DateTime
-  createdAt        DateTime       @default(now())
-  category         Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  paidByTenant     Tenant         @relation("PaidBy", fields: [paidByTenantId], references: [id], onDelete: Restrict)
-  household        Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  splits           ExpenseSplit[]
+  id                 String            @id @default(cuid())
+  amount             Decimal           @db.Decimal(12, 2)
+  description        String
+  categoryId         String
+  paidByTenantId     String
+  householdId        String
+  recurringExpenseId String?
+  splitMode          String            @default("default")
+  date               DateTime
+  createdAt          DateTime          @default(now())
+  category           Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  paidByTenant       Tenant            @relation("PaidBy", fields: [paidByTenantId], references: [id], onDelete: Restrict)
+  household          Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  recurringExpense   RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+  splits             ExpenseSplit[]
 
   @@index([householdId])
+  @@index([recurringExpenseId])
 }
 
 model ExpenseSplit {
@@ -106,8 +109,9 @@ model RecurringExpense {
   active      Boolean                 @default(true)
   createdAt   DateTime                @default(now())
   household   Household               @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  paidBy      Tenant                  @relation("RecurringPaidBy", fields: [paidById], references: [id], onDelete: Restrict)
-  splits      RecurringExpenseSplit[]
+  paidBy             Tenant                  @relation("RecurringPaidBy", fields: [paidById], references: [id], onDelete: Restrict)
+  splits             RecurringExpenseSplit[]
+  generatedExpenses  Expense[]
 
   @@index([householdId])
 }

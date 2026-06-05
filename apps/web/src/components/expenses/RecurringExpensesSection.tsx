@@ -53,7 +53,11 @@ export function RecurringExpensesSection({
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringExpense | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    title: string;
+    generatedExpenseCount: number;
+  } | null>(null);
 
   const categoryNameById = new Map(categories.map((category) => [category.id, category.name]));
 
@@ -62,6 +66,12 @@ export function RecurringExpensesSection({
     queryFn: () => getRecurringExpenses(householdId),
     enabled: Boolean(householdId),
   });
+
+  const invalidateRecurringSideEffects = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.recurringExpenses(householdId) });
+    void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
+  };
 
   const createMutation = useMutation({
     mutationFn: (input: CreateRecurringExpenseForm) =>
@@ -73,7 +83,7 @@ export function RecurringExpensesSection({
       successMessage: "Recurring expense created",
       onSuccess: () => {
         setModalOpen(false);
-        void queryClient.invalidateQueries({ queryKey: queryKeys.recurringExpenses(householdId) });
+        invalidateRecurringSideEffects();
       },
     }),
   });
@@ -97,7 +107,7 @@ export function RecurringExpensesSection({
       successMessage: "Recurring expense updated",
       onSuccess: () => {
         setEditing(null);
-        void queryClient.invalidateQueries({ queryKey: queryKeys.recurringExpenses(householdId) });
+        invalidateRecurringSideEffects();
       },
     }),
   });
@@ -108,7 +118,7 @@ export function RecurringExpensesSection({
       successMessage: "Recurring expense deleted",
       onSuccess: () => {
         setPendingDelete(null);
-        void queryClient.invalidateQueries({ queryKey: queryKeys.recurringExpenses(householdId) });
+        invalidateRecurringSideEffects();
       },
     }),
   });
@@ -236,7 +246,13 @@ export function RecurringExpensesSection({
                           type="button"
                           className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-negative"
                           aria-label={`Delete ${item.title}`}
-                          onClick={() => setPendingDelete({ id: item.id, title: item.title })}
+                          onClick={() =>
+                            setPendingDelete({
+                              id: item.id,
+                              title: item.title,
+                              generatedExpenseCount: item.generatedExpenseCount,
+                            })
+                          }
                         >
                           <Trash2 className="h-4 w-4" strokeWidth={2} />
                         </button>
@@ -279,7 +295,9 @@ export function RecurringExpensesSection({
         title="Delete recurring expense"
         message={
           pendingDelete
-            ? `Delete "${pendingDelete.title}"? Existing generated expenses will not be removed.`
+            ? pendingDelete.generatedExpenseCount > 0
+              ? `Delete "${pendingDelete.title}"? This will also delete ${pendingDelete.generatedExpenseCount} auto-generated expense${pendingDelete.generatedExpenseCount === 1 ? "" : "s"}. Continue?`
+              : `Delete "${pendingDelete.title}"?`
             : ""
         }
         onConfirm={() => {

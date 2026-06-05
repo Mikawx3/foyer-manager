@@ -79,6 +79,9 @@ export function toExpenseDto(expense: PrismaExpense): Expense {
     categoryId: expense.categoryId,
     paidByTenantId: expense.paidByTenantId,
     householdId: expense.householdId,
+    ...(expense.recurringExpenseId !== null && {
+      recurringExpenseId: expense.recurringExpenseId,
+    }),
     splitMode: toSplitMode(expense.splitMode),
     date: expense.date.toISOString(),
     createdAt: expense.createdAt.toISOString(),

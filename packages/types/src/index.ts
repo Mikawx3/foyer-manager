@@ -104,6 +104,7 @@ export interface Expense {
   categoryId: string;
   paidByTenantId: string;
   householdId: string;
+  recurringExpenseId?: string | null;
   splitMode: SplitMode;
   date: string;
   createdAt: string;
@@ -130,6 +131,7 @@ export interface RecurringExpense {
   nextDueDate: string;
   active: boolean;
   splits: RecurringExpenseSplit[];
+  generatedExpenseCount: number;
   createdAt: string;
 }
 

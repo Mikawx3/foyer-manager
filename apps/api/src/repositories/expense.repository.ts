@@ -57,6 +57,7 @@ export class ExpenseRepository {
     householdId: string;
     date: Date;
     splitMode?: "default" | "custom";
+    recurringExpenseId?: string;
   }): Promise<Expense> {
     try {
       return await prisma.expense.create({
@@ -68,11 +69,44 @@ export class ExpenseRepository {
           householdId: data.householdId,
           date: data.date,
           splitMode: data.splitMode ?? "default",
+          ...(data.recurringExpenseId !== undefined && {
+            recurringExpenseId: data.recurringExpenseId,
+          }),
         },
       });
     } catch (error) {
       handlePrismaError(error);
     }
+  }
+
+  async countByRecurringExpenseId(recurringExpenseId: string): Promise<number> {
+    return prisma.expense.count({ where: { recurringExpenseId } });
+  }
+
+  async countByRecurringExpenseIds(
+    recurringExpenseIds: string[],
+  ): Promise<Map<string, number>> {
+    if (recurringExpenseIds.length === 0) {
+      return new Map();
+    }
+
+    const groups = await prisma.expense.groupBy({
+      by: ["recurringExpenseId"],
+      where: { recurringExpenseId: { in: recurringExpenseIds } },
+      _count: { _all: true },
+    });
+
+    const counts = new Map<string, number>();
+    for (const group of groups) {
+      if (group.recurringExpenseId !== null) {
+        counts.set(group.recurringExpenseId, group._count._all);
+      }
+    }
+    return counts;
+  }
+
+  async deleteByRecurringExpenseId(recurringExpenseId: string): Promise<void> {
+    await prisma.expense.deleteMany({ where: { recurringExpenseId } });
   }
 
   async updateSplitMode(id: string, splitMode: "default" | "custom"): Promise<Expense> {

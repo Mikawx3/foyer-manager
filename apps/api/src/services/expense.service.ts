@@ -95,7 +95,9 @@ export class ExpenseService {
     return toExpenseDto(expense);
   }
 
-  async create(input: CreateExpenseInput): Promise<Expense> {
+  async create(
+    input: CreateExpenseInput & { recurringExpenseId?: string },
+  ): Promise<Expense> {
     await this.assertHouseholdExists(input.householdId);
     await this.assertCategoryInHousehold(input.categoryId, input.householdId);
     await this.assertTenantInHousehold(
@@ -112,6 +114,9 @@ export class ExpenseService {
       householdId: input.householdId,
       date: new Date(`${input.date}T00:00:00.000Z`),
       splitMode: "default",
+      ...(input.recurringExpenseId !== undefined && {
+        recurringExpenseId: input.recurringExpenseId,
+      }),
     });
 
     await this.applyParticipantSplits(expense, input);
