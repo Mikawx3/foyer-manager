@@ -6,15 +6,15 @@ describe("deployment", () => {
     delete process.env.DEPLOYMENT_MODE;
   });
 
-  it("defaults to cloud mode", () => {
-    expect(getDeploymentMode()).toBe("cloud");
-    expect(isCloudDeployment()).toBe(true);
-    expect(isLocalDeployment()).toBe(false);
-  });
-
-  it("supports local mode", () => {
-    process.env.DEPLOYMENT_MODE = "local";
+  it("defaults to local mode", () => {
     expect(getDeploymentMode()).toBe("local");
     expect(isLocalDeployment()).toBe(true);
+    expect(isCloudDeployment()).toBe(false);
+  });
+
+  it("supports cloud mode", () => {
+    process.env.DEPLOYMENT_MODE = "cloud";
+    expect(getDeploymentMode()).toBe("cloud");
+    expect(isCloudDeployment()).toBe(true);
   });
 });

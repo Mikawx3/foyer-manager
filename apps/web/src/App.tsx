@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary.tsx";
+import { DeploymentModeProvider } from "./contexts/DeploymentModeContext.tsx";
 import { router } from "./router.tsx";
 
 const queryClient = new QueryClient({
@@ -17,7 +18,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <DeploymentModeProvider>
+          <RouterProvider router={router} />
+        </DeploymentModeProvider>
         <Toaster
           position="bottom-right"
           toastOptions={{

@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { Home } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
-import { useDeploymentMode } from "../hooks/useDeploymentMode.ts";
+import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { getApiErrorMessage, getHouseholds } from "../lib/api.ts";
 import { formatDate } from "../lib/format.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { card, cardInteractive, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
 export function HouseholdsPage() {
-  const { isLoading: isConfigLoading } = useDeploymentMode();
+  const { isLocalMode, isLoading: isConfigLoading } = useDeploymentMode();
 
   const householdsQuery = useQuery({
     queryKey: queryKeys.households,
@@ -46,6 +46,18 @@ export function HouseholdsPage() {
   }
 
   const households = householdsQuery.data ?? [];
+
+  if (!isConfigLoading && householdsQuery.isSuccess && isLocalMode) {
+    if (households.length === 0) {
+      return <Navigate to="/households/new" replace />;
+    }
+    if (households.length === 1) {
+      const onlyHousehold = households[0];
+      if (onlyHousehold) {
+        return <Navigate to={`/households/${onlyHousehold.id}/dashboard`} replace />;
+      }
+    }
+  }
 
   if (households.length === 0) {
     return (

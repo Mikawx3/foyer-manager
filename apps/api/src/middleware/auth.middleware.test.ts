@@ -34,6 +34,8 @@ describe("authMiddleware", () => {
   });
 
   it("returns 401 when Authorization header is missing in cloud mode", async () => {
+    process.env.DEPLOYMENT_MODE = "cloud";
+
     const app = new Hono();
     app.onError(errorHandler);
     app.use("*", authMiddleware);
@@ -44,6 +46,8 @@ describe("authMiddleware", () => {
   });
 
   it("sets auth context for valid Bearer token", async () => {
+    process.env.DEPLOYMENT_MODE = "cloud";
+
     vi.mocked(verifyToken).mockResolvedValue({
       userId: "user-1",
       householdId: "hh-1",
@@ -64,6 +68,8 @@ describe("authMiddleware", () => {
   });
 
   it("returns 401 for invalid token", async () => {
+    process.env.DEPLOYMENT_MODE = "cloud";
+
     vi.mocked(verifyToken).mockRejectedValue(new Error("invalid"));
 
     const app = new Hono();

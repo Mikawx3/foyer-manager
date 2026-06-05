@@ -1,8 +1,13 @@
-import { Home, User } from "lucide-react";
+import { Home, LogOut, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { CloudOnly } from "../deployment/CloudOnly.tsx";
+import { clearAuth } from "../../lib/auth-storage.ts";
 
 export function UserMenu() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -18,6 +23,13 @@ export function UserMenu() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
+
+  const handleSignOut = () => {
+    clearAuth();
+    void queryClient.clear();
+    setOpen(false);
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="relative" ref={containerRef}>
@@ -36,15 +48,28 @@ export function UserMenu() {
           className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-border bg-surface py-1 shadow-lg"
           role="menu"
         >
-          <Link
-            to="/households"
-            role="menuitem"
-            className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
-            onClick={() => setOpen(false)}
-          >
-            <Home className="h-4 w-4 shrink-0" strokeWidth={2} />
-            All households
-          </Link>
+          <CloudOnly>
+            <Link
+              to="/households"
+              role="menuitem"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
+              onClick={() => setOpen(false)}
+            >
+              <Home className="h-4 w-4 shrink-0" strokeWidth={2} />
+              All households
+            </Link>
+          </CloudOnly>
+          <CloudOnly>
+            <button
+              type="button"
+              role="menuitem"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-50"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} />
+              Sign out
+            </button>
+          </CloudOnly>
         </div>
       )}
     </div>

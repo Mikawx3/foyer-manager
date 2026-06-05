@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AuthGate } from "./components/auth/AuthGate.tsx";
+import { CloudAuthRoute } from "./components/deployment/CloudAuthRoute.tsx";
 import { AppLayout } from "./components/layout/AppLayout.tsx";
 import { HouseholdDetailPage } from "./pages/HouseholdDetailPage.tsx";
 import { HouseholdWizardPage } from "./pages/HouseholdWizardPage.tsx";
@@ -14,8 +15,22 @@ import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { TenantsPage } from "./pages/TenantsPage.tsx";
 
 export const router = createBrowserRouter([
-  { path: "/login", element: <LoginPage /> },
-  { path: "/register", element: <RegisterPage /> },
+  {
+    path: "/login",
+    element: (
+      <CloudAuthRoute>
+        <LoginPage />
+      </CloudAuthRoute>
+    ),
+  },
+  {
+    path: "/register",
+    element: (
+      <CloudAuthRoute>
+        <RegisterPage />
+      </CloudAuthRoute>
+    ),
+  },
   {
     path: "/",
     element: <AuthGate />,
@@ -25,7 +40,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/households" replace /> },
           { path: "households", element: <HouseholdsPage /> },
-          { path: "households/new", element: <Navigate to="/households" replace /> },
+          { path: "households/new", element: <HouseholdWizardPage mode="create" /> },
           {
             path: "households/:id/onboarding",
             element: <HouseholdWizardPage mode="setup" />,

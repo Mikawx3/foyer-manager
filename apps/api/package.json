@@ -5,12 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/main.ts",
+    "dev:local": "dotenv -e .env.local -- tsx watch src/main.ts",
+    "dev:cloud": "dotenv -e .env.development -- tsx watch src/main.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/main.js",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:local": "dotenv -e .env.local -- prisma migrate dev",
+    "db:migrate:dev": "dotenv -e .env.development -- prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:reset:local": "dotenv -e .env.local -- prisma migrate reset --force",
+    "db:reset:dev": "dotenv -e .env.development -- prisma migrate reset --force",
     "test": "vitest run"
   },
   "dependencies": {
@@ -26,6 +32,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.15.30",
+    "dotenv-cli": "^8.0.0",
     "prisma": "^6.9.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",

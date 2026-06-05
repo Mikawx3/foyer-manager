@@ -45,6 +45,9 @@ export function getCachedDeploymentMode(): AppConfig["deploymentMode"] | null {
 }
 
 api.interceptors.request.use((config) => {
+  if (getCachedDeploymentMode() === "local") {
+    return config;
+  }
   const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

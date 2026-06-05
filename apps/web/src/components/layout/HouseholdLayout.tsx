@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Users, Home } from "lucide-react";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
-import { useDeploymentMode } from "../../hooks/useDeploymentMode.ts";
+import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { getApiErrorMessage, getHousehold } from "../../lib/api.ts";
 import { clearAuth } from "../../lib/auth-storage.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
@@ -19,7 +19,6 @@ const navItems = [
 export function HouseholdLayout() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isCloudMode } = useDeploymentMode();
 
   const householdQuery = useQuery({
     queryKey: queryKeys.household(id),
@@ -67,14 +66,16 @@ export function HouseholdLayout() {
             ))}
           </div>
           <div className="space-y-4 border-t border-border pt-4 lg:mt-6">
-            <NavLink
-              to="/households"
-              className={householdNavLinkClass}
-              end={false}
-            >
-              <Home className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-              All households
-            </NavLink>
+            <CloudOnly>
+              <NavLink
+                to="/households"
+                className={householdNavLinkClass}
+                end={false}
+              >
+                <Home className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+                All households
+              </NavLink>
+            </CloudOnly>
             <NavLink
               to={`/households/${id}/settings`}
               className={householdNavLinkClass}
@@ -84,7 +85,7 @@ export function HouseholdLayout() {
               Settings
             </NavLink>
 
-            {isCloudMode && (
+            <CloudOnly>
               <button
                 type="button"
                 onClick={handleSignOut}
@@ -93,7 +94,7 @@ export function HouseholdLayout() {
                 <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
                 Sign out
               </button>
-            )}
+            </CloudOnly>
           </div>
         </nav>
       </aside>

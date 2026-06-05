@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, Outlet, useLocation, useParams } from "react-router-dom";
-import { useDeploymentMode } from "../../hooks/useDeploymentMode.ts";
+import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../ui/Skeleton.tsx";
 import { getApiErrorMessage, getMe, getTenants } from "../../lib/api.ts";
@@ -13,6 +13,10 @@ function isOnboardingPath(pathname: string, householdId: string): boolean {
 
 function isHouseholdsHubPath(pathname: string): boolean {
   return pathname === "/households";
+}
+
+function isLocalWizardPath(pathname: string): boolean {
+  return pathname === "/households/new";
 }
 
 export function AuthGate() {
@@ -33,7 +37,7 @@ export function AuthGate() {
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
     queryFn: () => getTenants(householdId),
-    enabled: Boolean(householdId) && (isLocalMode || meQuery.isSuccess),
+    enabled: !isLocalMode && Boolean(householdId) && meQuery.isSuccess,
   });
 
   if (isConfigLoading) {
@@ -77,7 +81,7 @@ export function AuthGate() {
     return <Navigate to={`/households/${householdId}${suffix}`} replace />;
   }
 
-  if (householdId && tenantsQuery.isLoading) {
+  if (!isLocalMode && householdId && tenantsQuery.isLoading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <ListSkeleton rows={2} />
@@ -86,9 +90,11 @@ export function AuthGate() {
   }
 
   if (
+    !isLocalMode &&
     householdId &&
     tenantsQuery.isSuccess &&
     !isHouseholdsHubPath(location.pathname) &&
+    !isLocalWizardPath(location.pathname) &&
     !isOnboardingPath(location.pathname, householdId)
   ) {
     const activeTenants = tenantsQuery.data.filter((tenant) => tenant.active);

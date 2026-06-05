@@ -42,6 +42,7 @@ describe("household routes", () => {
   });
 
   it("GET /api/households returns 401 without token in cloud mode", async () => {
+    process.env.DEPLOYMENT_MODE = "cloud";
     const response = await app.request("/api/households");
     expect(response.status).toBe(401);
   });
@@ -56,6 +57,6 @@ describe("household routes", () => {
     const response = await app.request("/api/config");
     expect(response.status).toBe(200);
     const body = (await response.json()) as { deploymentMode: string };
-    expect(body.deploymentMode).toBe("cloud");
+    expect(body.deploymentMode).toBe("local");
   });
 });

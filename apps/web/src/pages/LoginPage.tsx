@@ -1,9 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppLogo } from "../components/brand/AppLogo.tsx";
 import { FormField, inputClassName } from "../components/forms/FormField.tsx";
-import { useDeploymentMode } from "../hooks/useDeploymentMode.ts";
 import { getApiErrorMessage, login } from "../lib/api.ts";
 import { resolvePostLoginPath } from "../lib/auth-navigation.ts";
 import { setToken } from "../lib/auth-storage.ts";
@@ -11,15 +10,8 @@ import { btnPrimary, formCard, inlineError } from "../lib/ui-classes.ts";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { isLocalMode, isLoading } = useDeploymentMode();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  useEffect(() => {
-    if (!isLoading && isLocalMode) {
-      navigate("/households", { replace: true });
-    }
-  }, [isLoading, isLocalMode, navigate]);
 
   const mutation = useMutation({
     mutationFn: login,
@@ -34,10 +26,6 @@ export function LoginPage() {
     event.preventDefault();
     mutation.mutate({ email: email.trim(), password });
   };
-
-  if (isLoading || isLocalMode) {
-    return null;
-  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-bg px-4">

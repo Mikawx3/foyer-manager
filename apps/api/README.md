@@ -4,18 +4,34 @@ Node.js API for Foyer Manager (Hono + Prisma + PostgreSQL).
 
 ## Setup
 
-1. Copy environment variables:
+1. Create PostgreSQL databases and copy environment files:
 
    ```bash
-   cp .env.example .env
+   createdb foyer_local
+   createdb foyer_dev
+   cp .env.local.example .env.local
+   cp .env.development.example .env.development
    ```
+
+   | File | `DEPLOYMENT_MODE` | Database |
+   |------|-------------------|----------|
+   | `.env.local` | `local` | `foyer_local` |
+   | `.env.development` | `cloud` | `foyer_dev` |
 
 2. Install dependencies from the monorepo root (`npm install`). This runs `prisma generate` via `postinstall`.
 
-3. Apply database migrations (requires PostgreSQL running). The DB user needs `CREATEDB` for Prisma’s shadow database in dev (`ALTER USER foyer_user CREATEDB;` as superuser if migrate fails with P3014):
+3. Apply database migrations to each environment (requires PostgreSQL running). The DB user needs `CREATEDB` for Prisma’s shadow database in dev (`ALTER USER foyer_user CREATEDB;` as superuser if migrate fails with P3014):
 
    ```bash
-   npm run db:migrate -w @foyer/api
+   npm run db:migrate:local
+   npm run db:migrate:dev
+   ```
+
+4. Start the API with the matching env file:
+
+   ```bash
+   npm run dev:local   # local mode, foyer_local
+   npm run dev:cloud   # cloud mode, foyer_dev
    ```
 
 ## Prisma in the build pipeline
@@ -37,12 +53,18 @@ The Prisma client singleton is in [`src/lib/prisma.ts`](src/lib/prisma.ts). Use 
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Start API with hot reload (`tsx watch`) |
+| `npm run dev` | Start API with hot reload (uses default `.env` if present) |
+| `npm run dev:local` | Start API with `.env.local` (local mode) |
+| `npm run dev:cloud` | Start API with `.env.development` (cloud mode) |
 | `npm run build` | `prisma generate` then compile TypeScript to `dist/` |
 | `npm run start` | Run compiled `dist/main.js` |
 | `npm run db:generate` | Regenerate Prisma client only |
-| `npm run db:migrate` | Dev migrations (`migrate dev`) |
+| `npm run db:migrate` | Dev migrations using default env |
+| `npm run db:migrate:local` | Migrations against `foyer_local` |
+| `npm run db:migrate:dev` | Migrations against `foyer_dev` |
 | `npm run db:migrate:deploy` | Apply migrations (deploy) |
+| `npm run db:reset:local` | Reset `foyer_local` (destructive) |
+| `npm run db:reset:dev` | Reset `foyer_dev` (destructive) |
 
 ## Endpoints
 

@@ -1,5 +1,6 @@
 import { Link, Outlet } from "react-router-dom";
 import { AppLogo } from "../brand/AppLogo.tsx";
+import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { UserMenu } from "./UserMenu.tsx";
 
 export function AppLayout() {
@@ -16,7 +17,9 @@ export function AppLayout() {
               Foyer Manager
             </span>
           </Link>
-          <UserMenu />
+          <CloudOnly>
+            <UserMenu />
+          </CloudOnly>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
