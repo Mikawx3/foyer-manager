@@ -56,6 +56,7 @@ const tenants: Tenant[] = [
     id: "t1",
     name: "Alice",
     email: "alice@example.com",
+    color: "#01696f",
     householdId: "h1",
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -64,6 +65,7 @@ const tenants: Tenant[] = [
     id: "t2",
     name: "Bob",
     email: "bob@example.com",
+    color: "#2563eb",
     householdId: "h1",
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -181,7 +183,7 @@ describe("computeMonthlyTrend", () => {
 });
 
 describe("computeBalanceChartData", () => {
-  it("assigns fill colors by balance sign", () => {
+  it("uses tenant colors for non-zero balances", () => {
     const balances: TenantBalance[] = [
       {
         tenantId: "t1",
@@ -201,7 +203,22 @@ describe("computeBalanceChartData", () => {
       },
     ];
     const bars = computeBalanceChartData(balances, tenants);
-    expect(bars[0]).toMatchObject({ name: "Alice", balance: 50, fill: "var(--color-primary)" });
-    expect(bars[1]).toMatchObject({ name: "Bob", balance: -50, fill: "var(--color-negative)" });
+    expect(bars[0]).toMatchObject({ name: "Alice", balance: 50, fill: "#01696f" });
+    expect(bars[1]).toMatchObject({ name: "Bob", balance: -50, fill: "#2563eb" });
+  });
+
+  it("uses neutral fill for zero balance", () => {
+    const balances: TenantBalance[] = [
+      {
+        tenantId: "t1",
+        tenantName: "Alice",
+        paid: 50,
+        owed: 50,
+        balance: 0,
+        settledAmount: 0,
+      },
+    ];
+    const bars = computeBalanceChartData(balances, tenants);
+    expect(bars[0]?.fill).toBe("#6b7280");
   });
 });

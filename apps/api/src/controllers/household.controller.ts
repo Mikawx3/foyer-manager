@@ -14,7 +14,11 @@ import {
   householdTenantParamsSchema,
   updateHouseholdSchema,
 } from "../validators/household.validator.js";
-import { createNestedTenantSchema } from "../validators/tenant.validator.js";
+import {
+  createNestedTenantSchema,
+  householdListTenantsQuerySchema,
+  updateTenantSchema,
+} from "../validators/tenant.validator.js";
 
 export class HouseholdController {
   constructor(
@@ -89,6 +93,24 @@ export class HouseholdController {
     const body = parseOrThrow(createNestedTenantSchema, await c.req.json());
     const tenant = await this.tenants.createForHousehold(id, body);
     return c.json(tenant, 201);
+  };
+
+  listTenants = async (c: Context) => {
+    const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
+    assertHouseholdAccess(c, id);
+    const query = parseOrThrow(householdListTenantsQuerySchema, c.req.query());
+    const tenants = await this.tenants.listByHousehold(id, {
+      includeArchived: query.includeArchived,
+    });
+    return c.json(tenants, 200);
+  };
+
+  updateTenant = async (c: Context) => {
+    const { id, tenantId } = parseOrThrow(householdTenantParamsSchema, c.req.param());
+    assertHouseholdAccess(c, id);
+    const body = parseOrThrow(updateTenantSchema, await c.req.json());
+    const result = await this.tenants.updateFromHousehold(id, tenantId, body);
+    return c.json(result, 200);
   };
 
   removeTenant = async (c: Context) => {

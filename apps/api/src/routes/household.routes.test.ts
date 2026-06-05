@@ -9,6 +9,17 @@ vi.mock("../lib/jwt.js", () => ({
   signToken: vi.fn(async () => "token"),
 }));
 
+vi.mock("../repositories/household.repository.js", () => ({
+  householdRepository: {
+    findAll: vi.fn().mockResolvedValue([]),
+    findById: vi.fn(),
+    create: vi.fn(),
+    createWithSoloTenant: vi.fn(),
+    updateById: vi.fn(),
+    deleteById: vi.fn(),
+  },
+}));
+
 describe("household routes", () => {
   afterEach(() => {
     delete process.env.DEPLOYMENT_MODE;

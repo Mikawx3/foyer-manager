@@ -28,5 +28,23 @@ export const listTenantsQuerySchema = z.object({
     .transform((value) => value === "true"),
 });
 
+export const householdListTenantsQuerySchema = z.object({
+  includeArchived: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) => value === "true"),
+});
+
+export const updateTenantSchema = z
+  .object({
+    name: z.string().trim().min(1).max(255).optional(),
+    color: tenantColorSchema.optional(),
+    active: z.boolean().optional(),
+  })
+  .refine((data) => data.name !== undefined || data.color !== undefined || data.active !== undefined, {
+    message: "At least one field must be provided",
+  });
+
 export type CreateTenantInput = z.infer<typeof createTenantSchema>;
 export type CreateNestedTenantInput = z.infer<typeof createNestedTenantSchema>;
+export type UpdateTenantInput = z.infer<typeof updateTenantSchema>;

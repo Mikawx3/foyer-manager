@@ -26,7 +26,7 @@ import {
 import { queryKeys } from "../lib/query-keys.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
 import { buildPercentageMapFromRules } from "../lib/split-percentages.ts";
-import { btnPrimary, btnSecondary, card, formCard, inlineError, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
+import { btnPrimary, btnSecondary, card, formCard, inlineError, pageSubtitle } from "../lib/ui-classes.ts";
 
 export function SettingsPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
@@ -173,10 +173,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className={pageTitle}>Settings</h1>
-        <p className={pageSubtitle}>Default split rules for this household.</p>
-      </div>
+      <p className={pageSubtitle}>Default split rules for this household.</p>
 
       {isLoading && <ListSkeleton />}
       {(tenantsQuery.isError || categoriesQuery.isError || rulesQuery.isError) && (

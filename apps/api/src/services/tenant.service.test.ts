@@ -29,6 +29,7 @@ function createMocks(overrides?: {
     findAllByHousehold: vi.fn(),
     countActiveByHousehold: vi.fn(),
     create: vi.fn(),
+    updateById: vi.fn(),
     softDeleteById: vi.fn(),
     deleteById: vi.fn(),
     hasHistory: vi.fn(),
@@ -108,6 +109,68 @@ describe("TenantService", () => {
     );
   });
 
+  it("updateFromHousehold updates name and color", async () => {
+    const { service, repository } = createMocks({
+      repository: {
+        findById: vi.fn().mockResolvedValue(prismaTenant),
+        updateById: vi.fn().mockResolvedValue({ ...prismaTenant, name: "Alicia", color: "#2563eb" }),
+      },
+    });
+
+    const result = await service.updateFromHousehold(householdId, tenantId, {
+      name: "Alicia",
+      color: "#2563eb",
+    });
+
+    expect(result.tenant.name).toBe("Alicia");
+    expect(repository.updateById).toHaveBeenCalledWith(tenantId, {
+      name: "Alicia",
+      color: "#2563eb",
+    });
+  });
+
+  it("updateFromHousehold archives active tenant", async () => {
+    const { service, repository } = createMocks({
+      repository: {
+        findById: vi.fn().mockResolvedValue(prismaTenant),
+        hasHistory: vi.fn().mockResolvedValue(true),
+        softDeleteById: vi.fn().mockResolvedValue({ ...prismaTenant, active: false }),
+        countActiveByHousehold: vi.fn().mockResolvedValue(2),
+      },
+    });
+
+    const result = await service.updateFromHousehold(householdId, tenantId, { active: false });
+    expect(result.tenant.active).toBe(false);
+    expect(repository.softDeleteById).toHaveBeenCalledWith(tenantId);
+  });
+
+  it("updateFromHousehold restores archived tenant and switches to shared", async () => {
+    const archivedTenant = { ...prismaTenant, active: false, archivedAt: new Date() };
+    const { service, repository, households } = createMocks({
+      repository: {
+        findById: vi.fn().mockResolvedValue(archivedTenant),
+        updateById: vi.fn().mockResolvedValue({ ...prismaTenant, active: true, archivedAt: null }),
+        countActiveByHousehold: vi.fn().mockResolvedValue(2),
+      },
+      households: {
+        findById: vi
+          .fn()
+          .mockResolvedValueOnce({ id: householdId, type: "solo" })
+          .mockResolvedValueOnce({ id: householdId, type: "solo" })
+          .mockResolvedValueOnce({ id: householdId, type: "shared" }),
+      },
+    });
+
+    const result = await service.updateFromHousehold(householdId, tenantId, { active: true });
+    expect(result.tenant.active).toBe(true);
+    expect(result.switchedToShared).toBe(true);
+    expect(repository.updateById).toHaveBeenCalledWith(tenantId, {
+      active: true,
+      archivedAt: null,
+    });
+    expect(households.updateById).toHaveBeenCalledWith(householdId, { type: "shared" });
+  });
+
   it("removeFromHousehold throws ForbiddenError when balance is non-zero", async () => {
     const { service } = createMocks({
       repository: { findById: vi.fn().mockResolvedValue(prismaTenant) },
@@ -138,27 +201,27 @@ describe("TenantService", () => {
     expect(repository.deleteById).toHaveBeenCalledWith(tenantId);
   });
 
-  it("removeFromHousehold soft deletes when history exists", async () => {
+  it("removeFromHousehold returns 403 when history exists", async () => {
     const { service, repository } = createMocks({
       repository: {
         findById: vi.fn().mockResolvedValue(prismaTenant),
         hasHistory: vi.fn().mockResolvedValue(true),
-        softDeleteById: vi.fn().mockResolvedValue({ ...prismaTenant, active: false }),
-        countActiveByHousehold: vi.fn().mockResolvedValue(2),
       },
     });
 
-    const result = await service.removeFromHousehold(householdId, tenantId);
-    expect(result.mode).toBe("soft");
-    expect(repository.softDeleteById).toHaveBeenCalledWith(tenantId);
+    await expect(service.removeFromHousehold(householdId, tenantId)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect(repository.deleteById).not.toHaveBeenCalled();
+    expect(repository.softDeleteById).not.toHaveBeenCalled();
   });
 
   it("removeFromHousehold switches household to solo when one active member remains", async () => {
     const { service, households } = createMocks({
       repository: {
         findById: vi.fn().mockResolvedValue(prismaTenant),
-        hasHistory: vi.fn().mockResolvedValue(true),
-        softDeleteById: vi.fn().mockResolvedValue({ ...prismaTenant, active: false }),
+        hasHistory: vi.fn().mockResolvedValue(false),
+        deleteById: vi.fn().mockResolvedValue(prismaTenant),
         countActiveByHousehold: vi.fn().mockResolvedValue(1),
       },
     });

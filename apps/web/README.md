@@ -26,7 +26,9 @@ React 18 frontend for Foyer Manager (Vite + TypeScript + Tailwind CSS v4).
 | `/households` | List + create households |
 | `/households/:id` | Redirect to dashboard |
 | `/households/:id/dashboard` | Dashboard (KPIs + charts) |
-| `/households/:id/tenants` | Members |
+| `/households/:id/settings` | Settings (general) |
+| `/households/:id/settings/members` | Manage members |
+| `/households/:id/tenants` | Redirects to `/settings/members` |
 | `/households/:id/expenses` | Expenses + splits |
 | `/households/:id/balances` | Balance table |
 

@@ -11,7 +11,11 @@ import {
   type TenantRepository,
 } from "../repositories/tenant.repository.js";
 import { expenseService, type ExpenseService } from "./expense.service.js";
-import type { CreateNestedTenantInput, CreateTenantInput } from "../validators/tenant.validator.js";
+import type {
+  CreateNestedTenantInput,
+  CreateTenantInput,
+  UpdateTenantInput,
+} from "../validators/tenant.validator.js";
 
 function formatCurrency(amount: number): string {
   const formatted = new Intl.NumberFormat("en-EU", {
@@ -24,8 +28,14 @@ function formatCurrency(amount: number): string {
 
 export interface RemoveTenantResult {
   tenant: Tenant;
-  mode: "hard" | "soft";
+  mode: "hard";
   switchedToSolo: boolean;
+}
+
+export interface UpdateTenantResult {
+  tenant: Tenant;
+  switchedToSolo?: boolean;
+  switchedToShared?: boolean;
 }
 
 export interface TenantRemovalPreview {
@@ -83,6 +93,53 @@ export class TenantService {
     });
   }
 
+  async updateFromHousehold(
+    householdId: string,
+    tenantId: string,
+    input: UpdateTenantInput,
+  ): Promise<UpdateTenantResult> {
+    const tenant = await this.repository.findById(tenantId);
+    if (!tenant || tenant.householdId !== householdId) {
+      throw new NotFoundError("Tenant not found");
+    }
+
+    if (input.active === false) {
+      if (!tenant.active) {
+        throw new NotFoundError("Tenant not found");
+      }
+      return this.archiveFromHousehold(householdId, tenantId, tenant.name);
+    }
+
+    if (input.active === true) {
+      if (tenant.active) {
+        throw new NotFoundError("Tenant not found");
+      }
+      const updated = await this.repository.updateById(tenantId, {
+        active: true,
+        archivedAt: null,
+      });
+      const householdBefore = await this.households.findById(householdId);
+      await this.maybeSwitchToShared(householdId);
+      const householdAfter = await this.households.findById(householdId);
+      return {
+        tenant: toTenantDto(updated),
+        switchedToShared:
+          householdBefore?.type === "solo" && householdAfter?.type === "shared",
+      };
+    }
+
+    if (!tenant.active) {
+      throw new NotFoundError("Tenant not found");
+    }
+
+    const updated = await this.repository.updateById(tenantId, {
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.color !== undefined && { color: input.color }),
+    });
+
+    return { tenant: toTenantDto(updated) };
+  }
+
   async getRemovalPreview(
     householdId: string,
     tenantId: string,
@@ -125,16 +182,13 @@ export class TenantService {
       );
     }
 
-    let removed: Tenant;
-    let mode: "hard" | "soft";
-
     if (preview.hasHistory) {
-      removed = toTenantDto(await this.repository.softDeleteById(tenantId));
-      mode = "soft";
-    } else {
-      removed = toTenantDto(await this.repository.deleteById(tenantId));
-      mode = "hard";
+      throw new ForbiddenError(
+        "Member has expense history and cannot be permanently deleted. Archive the member instead.",
+      );
     }
+
+    const removed = toTenantDto(await this.repository.deleteById(tenantId));
 
     const activeCount = await this.repository.countActiveByHousehold(householdId);
     let switchedToSolo = false;
@@ -143,7 +197,7 @@ export class TenantService {
       switchedToSolo = true;
     }
 
-    return { tenant: removed, mode, switchedToSolo };
+    return { tenant: removed, mode: "hard", switchedToSolo };
   }
 
   async delete(id: string): Promise<Tenant> {
@@ -153,6 +207,31 @@ export class TenantService {
     }
     const result = await this.removeFromHousehold(tenant.householdId, id);
     return result.tenant;
+  }
+
+  private async archiveFromHousehold(
+    householdId: string,
+    tenantId: string,
+    tenantName: string,
+  ): Promise<UpdateTenantResult> {
+    const preview = await this.getRemovalPreview(householdId, tenantId);
+
+    if (Math.abs(preview.balance) > 0.005) {
+      throw new ForbiddenError(
+        `${tenantName} has an outstanding balance of ${formatCurrency(preview.balance)}. Settle up before removing.`,
+      );
+    }
+
+    const updated = toTenantDto(await this.repository.softDeleteById(tenantId));
+
+    const activeCount = await this.repository.countActiveByHousehold(householdId);
+    let switchedToSolo = false;
+    if (activeCount === 1) {
+      await this.households.updateById(householdId, { type: "solo" });
+      switchedToSolo = true;
+    }
+
+    return { tenant: updated, switchedToSolo };
   }
 
   private async maybeSwitchToShared(householdId: string): Promise<void> {

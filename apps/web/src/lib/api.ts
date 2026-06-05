@@ -20,6 +20,7 @@ import type {
   ResolvedDefaultSplit,
   Settlement,
   Tenant,
+  UpdateTenantPayload,
   UpdateRecurringExpensePayload,
   TenantBalance,
   UpdateExpensePayload,
@@ -153,7 +154,7 @@ export async function getTenants(
 
 export async function createTenant(input: {
   name: string;
-  email: string;
+  email?: string;
   householdId: string;
 }): Promise<Tenant> {
   const { data } = await api.post<Tenant>("/tenants", input);
@@ -166,8 +167,14 @@ export async function deleteTenant(id: string): Promise<void> {
 
 export interface DeleteHouseholdTenantResult {
   tenant: Tenant;
-  mode: "hard" | "soft";
+  mode: "hard";
   switchedToSolo: boolean;
+}
+
+export interface UpdateHouseholdTenantResult {
+  tenant: Tenant;
+  switchedToSolo?: boolean;
+  switchedToShared?: boolean;
 }
 
 export interface TenantRemovalPreview {
@@ -192,6 +199,18 @@ export async function deleteHouseholdTenant(
 ): Promise<DeleteHouseholdTenantResult> {
   const { data } = await api.delete<DeleteHouseholdTenantResult>(
     `/households/${householdId}/tenants/${tenantId}`,
+  );
+  return data;
+}
+
+export async function updateHouseholdTenant(
+  householdId: string,
+  tenantId: string,
+  input: UpdateTenantPayload,
+): Promise<UpdateHouseholdTenantResult> {
+  const { data } = await api.patch<UpdateHouseholdTenantResult>(
+    `/households/${householdId}/tenants/${tenantId}`,
+    input,
   );
   return data;
 }

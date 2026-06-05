@@ -35,6 +35,7 @@ import { exportExpensesToCSV, slugifyHouseholdName } from "../lib/export.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { formatCurrency, formatDate } from "../lib/format.ts";
 import { formatTenantName } from "../lib/format-tenant-name.ts";
+import { getActiveTenants } from "../lib/active-tenants.ts";
 import { currentMonthValue, type ExpenseListFilters } from "../lib/expense-list-filters.ts";
 import {
   initialSplitsFromExpenseSplits,
@@ -377,14 +378,14 @@ export function ExpensesPage() {
   const tenantNameById = new Map(
     tenantsQuery.data?.map((t) => [t.id, formatTenantName(t)]) ?? [],
   );
+  const activeTenantsForPickers = getActiveTenants(tenantsQuery.data ?? []);
 
   const isLoading =
     expensesQuery.isLoading || tenantsQuery.isLoading || categoriesQuery.isLoading;
 
   const hasCategories = Boolean(categoriesQuery.data && categoriesQuery.data.length > 0);
   const canAddExpense = Boolean(
-    tenantsQuery.data &&
-      tenantsQuery.data.length > 0 &&
+    activeTenantsForPickers.length > 0 &&
       categoriesQuery.data &&
       categoriesQuery.data.length > 0,
   );
@@ -402,11 +403,11 @@ export function ExpensesPage() {
   const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
 
   const formsAside =
-    canAddExpense && categoriesQuery.data && tenantsQuery.data ? (
+    canAddExpense && categoriesQuery.data ? (
       <ExpenseFormsAside
         householdId={householdId}
         categories={categoriesQuery.data}
-        tenants={tenantsQuery.data}
+        tenants={activeTenantsForPickers}
         isSolo={isSolo}
         onCategorySubmit={(data) => createCategoryMutation.mutate(data)}
         onExpenseSubmit={(data) => {
@@ -494,11 +495,11 @@ export function ExpensesPage() {
               </button>
             </div>
 
-            {activeTab === "recurring" && tenantsQuery.data && categoriesQuery.data && (
+            {activeTab === "recurring" && categoriesQuery.data && (
               <RecurringExpensesSection
                 householdId={householdId}
                 categories={categoriesQuery.data}
-                tenants={tenantsQuery.data}
+                tenants={activeTenantsForPickers}
               />
             )}
 
@@ -686,12 +687,12 @@ export function ExpensesPage() {
         </div>
       )}
 
-      {editingExpense && categoriesQuery.data && tenantsQuery.data && (
+      {editingExpense && categoriesQuery.data && (
         <ExpenseEditModal
           expense={editingExpense}
           householdId={householdId}
           categories={categoriesQuery.data}
-          tenants={tenantsQuery.data}
+          tenants={activeTenantsForPickers}
           isSolo={isSolo}
           expenseFilters={expenseFilters}
           open={editingExpense !== null}
@@ -716,12 +717,12 @@ export function ExpensesPage() {
         isLoading={deleteExpenseMutation.isPending}
       />
 
-      {canAddExpense && categoriesQuery.data && tenantsQuery.data && (
+      {canAddExpense && categoriesQuery.data && (
         <Modal title="New expense" open={modalOpen} onClose={() => setModalOpen(false)}>
           <ExpenseFormsAside
             householdId={householdId}
             categories={categoriesQuery.data}
-            tenants={tenantsQuery.data}
+            tenants={activeTenantsForPickers}
             isSolo={isSolo}
             onCategorySubmit={(data) => createCategoryMutation.mutate(data)}
             onExpenseSubmit={(data) => {

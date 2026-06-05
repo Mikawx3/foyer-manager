@@ -16,7 +16,7 @@ const shots = [
   },
   {
     file: "03-tenants.png",
-    url: `${BASE}/households/${HOUSEHOLD_ID}/tenants`,
+    url: `${BASE}/households/${HOUSEHOLD_ID}/settings/members`,
   },
   {
     file: "04-expenses.png",

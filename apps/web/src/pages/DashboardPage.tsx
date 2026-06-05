@@ -46,6 +46,7 @@ import {
 import type { ExpenseListFilters } from "../lib/expense-list-filters.ts";
 import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
 import { formatCurrency, formatDate, formatSignedCurrency } from "../lib/format.ts";
+import { formatTenantName } from "../lib/format-tenant-name.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { computeSuggestedSettlements } from "../lib/suggested-settlements.ts";
@@ -174,7 +175,7 @@ export function DashboardPage() {
   };
 
   const tenantNameById = useMemo(
-    () => new Map(tenantsQuery.data?.map((t) => [t.id, t.name]) ?? []),
+    () => new Map(tenantsQuery.data?.map((t) => [t.id, formatTenantName(t)]) ?? []),
     [tenantsQuery.data],
   );
 

@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AuthGate } from "./components/auth/AuthGate.tsx";
 import { CloudAuthRoute } from "./components/deployment/CloudAuthRoute.tsx";
 import { AppLayout } from "./components/layout/AppLayout.tsx";
+import { SettingsLayout } from "./components/settings/SettingsLayout.tsx";
 import { HouseholdDetailPage } from "./pages/HouseholdDetailPage.tsx";
 import { HouseholdWizardPage } from "./pages/HouseholdWizardPage.tsx";
 import { HouseholdsPage } from "./pages/HouseholdsPage.tsx";
@@ -51,10 +52,17 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <Navigate to="dashboard" replace /> },
               { path: "dashboard", element: <DashboardPage /> },
-              { path: "tenants", element: <TenantsPage /> },
+              { path: "tenants", element: <Navigate to="settings/members" replace /> },
               { path: "expenses", element: <ExpensesPage /> },
               { path: "balances", element: <BalancesPage /> },
-              { path: "settings", element: <SettingsPage /> },
+              {
+                path: "settings",
+                element: <SettingsLayout />,
+                children: [
+                  { index: true, element: <SettingsPage /> },
+                  { path: "members", element: <TenantsPage /> },
+                ],
+              },
             ],
           },
         ],

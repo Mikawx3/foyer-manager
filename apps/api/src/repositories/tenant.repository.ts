@@ -44,6 +44,25 @@ export class TenantRepository {
     }
   }
 
+  async updateById(
+    id: string,
+    data: {
+      name?: string;
+      color?: string;
+      active?: boolean;
+      archivedAt?: Date | null;
+    },
+  ): Promise<Tenant> {
+    try {
+      return await prisma.tenant.update({
+        where: { id },
+        data,
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
   async softDeleteById(id: string): Promise<Tenant> {
     try {
       return await prisma.tenant.update({

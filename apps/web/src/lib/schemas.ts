@@ -6,7 +6,7 @@ export const createHouseholdSchema = z.object({
 
 export const createTenantSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(255),
-  email: z.string().trim().email("Invalid email").max(255),
+  email: z.union([z.literal(""), z.string().trim().email("Invalid email").max(255)]),
   householdId: z.string().cuid(),
 });
 

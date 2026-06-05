@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Users, Home } from "lucide-react";
+import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Home } from "lucide-react";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { getApiErrorMessage, getHousehold } from "../../lib/api.ts";
@@ -11,7 +11,6 @@ import { Skeleton } from "../ui/Skeleton.tsx";
 
 const navItems = [
   { to: "dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "tenants", label: "Members", icon: Users, end: false },
   { to: "expenses", label: "Expenses", icon: Receipt, end: false },
   { to: "balances", label: "Balances", icon: Scale, end: false },
 ] as const;

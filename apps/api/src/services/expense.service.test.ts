@@ -6,6 +6,7 @@ import type { CategoryRepository } from "../repositories/category.repository.js"
 import type { ExpenseSplitRepository } from "../repositories/expense-split.repository.js";
 import type { ExpenseRepository } from "../repositories/expense.repository.js";
 import type { HouseholdRepository } from "../repositories/household.repository.js";
+import type { SettlementRepository } from "../repositories/settlement.repository.js";
 import type { TenantRepository } from "../repositories/tenant.repository.js";
 import { ExpenseService } from "./expense.service.js";
 
@@ -53,6 +54,18 @@ function createDefaultSplitServiceMock() {
   };
 }
 
+function createSettlementRepositoryMock(
+  overrides: Partial<SettlementRepository> = {},
+): SettlementRepository {
+  return {
+    findAllByHousehold: vi.fn().mockResolvedValue([]),
+    findById: vi.fn(),
+    create: vi.fn(),
+    deleteById: vi.fn(),
+    ...overrides,
+  };
+}
+
 describe("ExpenseService", () => {
   it("listByHousehold returns paginated expenses", async () => {
     const expenses = createExpenseRepoMock({
@@ -85,6 +98,7 @@ describe("ExpenseService", () => {
         deleteById: vi.fn(),
       },
       createDefaultSplitServiceMock(),
+      createSettlementRepositoryMock(),
     );
 
     const result = await service.listByHousehold({
@@ -134,6 +148,7 @@ describe("ExpenseService", () => {
         deleteById: vi.fn(),
       },
       createDefaultSplitServiceMock(),
+      createSettlementRepositoryMock(),
     );
 
     await service.listByHousehold({
@@ -184,6 +199,7 @@ describe("ExpenseService", () => {
       tenants,
       { findById: vi.fn() },
       createDefaultSplitServiceMock(),
+      createSettlementRepositoryMock(),
     );
 
     await expect(
@@ -275,6 +291,7 @@ describe("ExpenseService", () => {
       tenants,
       { findById: vi.fn() },
       createDefaultSplitServiceMock(),
+      createSettlementRepositoryMock(),
     );
 
     const balances = await service.getBalances(householdId);
@@ -333,6 +350,7 @@ describe("ExpenseService", () => {
       tenants,
       { findById: vi.fn() },
       createDefaultSplitServiceMock(),
+      createSettlementRepositoryMock(),
     );
 
     await service.assignSplits(expenseId, {
@@ -380,6 +398,7 @@ describe("ExpenseService", () => {
       tenants,
       { findById: vi.fn() },
       defaultSplits,
+      createSettlementRepositoryMock(),
     );
 
     const result = await service.resetSplitsToDefault(expenseId);
@@ -434,6 +453,7 @@ describe("ExpenseService", () => {
       { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
       { findById: vi.fn() },
       defaultSplits,
+      createSettlementRepositoryMock(),
     );
 
     const result = await service.getSplits(expenseId);
@@ -512,6 +532,7 @@ describe("ExpenseService", () => {
       tenants,
       { findById: vi.fn() },
       defaultSplits,
+      createSettlementRepositoryMock(),
     );
 
     const balances = await service.getBalances(householdId);
@@ -594,6 +615,7 @@ describe("ExpenseService", () => {
       tenants,
       { findById: vi.fn().mockResolvedValue({ id: categoryId, householdId, name: "Rent" }) },
       defaultSplits,
+      createSettlementRepositoryMock(),
     );
 
     await service.create({
@@ -626,6 +648,7 @@ describe("ExpenseService", () => {
       { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
       { findById: vi.fn() },
       createDefaultSplitServiceMock(),
+      createSettlementRepositoryMock(),
     );
 
     await expect(service.resetSplitsToDefault(expenseId)).rejects.toBeInstanceOf(

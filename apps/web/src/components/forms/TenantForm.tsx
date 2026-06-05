@@ -6,7 +6,7 @@ import { FormField, inputClassName } from "./FormField.tsx";
 
 interface TenantFormProps {
   householdId: string;
-  onSubmit: (data: CreateTenantForm) => void;
+  onSubmit: (data: Omit<CreateTenantForm, "email"> & { email?: string }) => void;
   isPending: boolean;
 }
 
@@ -22,7 +22,10 @@ export function TenantForm({ householdId, onSubmit, isPending }: TenantFormProps
   });
 
   const submit = handleSubmit((data) => {
-    onSubmit(data);
+    onSubmit({
+      ...data,
+      email: data.email === "" ? undefined : data.email,
+    });
     reset({ name: "", email: "", householdId });
   });
 
@@ -33,8 +36,14 @@ export function TenantForm({ householdId, onSubmit, isPending }: TenantFormProps
       <FormField label="Name" error={errors.name?.message}>
         <input className={inputClassName} {...register("name")} />
       </FormField>
-      <FormField label="Email" error={errors.email?.message}>
-        <input className={inputClassName} type="email" {...register("email")} />
+      <FormField label="Email (optional)" error={errors.email?.message}>
+        <input
+          className={inputClassName}
+          type="email"
+          autoComplete="email"
+          placeholder="Contact email"
+          {...register("email")}
+        />
       </FormField>
       <button type="submit" disabled={isPending} className={btnPrimary}>
         {isPending ? "Adding…" : "Add member"}

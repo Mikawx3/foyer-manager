@@ -1,10 +1,13 @@
 import type { Category, Expense, Tenant, TenantBalance } from "@foyer/types";
 import { getCategoryHexForName } from "./category-colors.ts";
 import { computeSuggestedSettlements } from "./suggested-settlements.ts";
+import { DEFAULT_TENANT_COLOR } from "./tenant-colors.ts";
 
-const BALANCE_POSITIVE_FILL = "var(--color-primary)";
-const BALANCE_NEGATIVE_FILL = "var(--color-negative)";
 const BALANCE_NEUTRAL_FILL = "#6b7280";
+
+function getTenantChartColor(tenant: Tenant | undefined): string {
+  return tenant?.color ?? DEFAULT_TENANT_COLOR;
+}
 
 export interface DashboardKpis {
   totalThisMonth: number;
@@ -162,19 +165,18 @@ export function computeBalanceChartData(
   balances: TenantBalance[],
   tenants: Tenant[],
 ): BalanceChartBar[] {
-  const tenantNameById = new Map(tenants.map((tenant) => [tenant.id, tenant.name]));
+  const tenantById = new Map(tenants.map((tenant) => [tenant.id, tenant]));
 
   return balances.map((row) => {
     const balance = row.balance;
-    let fill = BALANCE_NEUTRAL_FILL;
-    if (balance > 0) {
-      fill = BALANCE_POSITIVE_FILL;
-    } else if (balance < 0) {
-      fill = BALANCE_NEGATIVE_FILL;
+    const tenant = tenantById.get(row.tenantId);
+    let fill = getTenantChartColor(tenant);
+    if (balance === 0) {
+      fill = BALANCE_NEUTRAL_FILL;
     }
 
     return {
-      name: tenantNameById.get(row.tenantId) ?? row.tenantId,
+      name: tenant?.name ?? row.tenantName ?? row.tenantId,
       balance,
       fill,
     };

@@ -49,6 +49,12 @@ export interface UpdateHouseholdPayload {
   type?: HouseholdType;
 }
 
+export interface UpdateTenantPayload {
+  name?: string;
+  color?: string;
+  active?: boolean;
+}
+
 /** Household member (not a rental tenant). */
 export interface Tenant {
   id: string;
