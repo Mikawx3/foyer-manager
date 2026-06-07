@@ -96,12 +96,20 @@ export async function submitHouseholdWizard(
       tenantIds.push(tenant.id);
     }
 
-    if (state.splitMode === "custom") {
+    if (filledMembers.length > 0) {
+      const percentages =
+        state.splitMode === "custom"
+          ? filledMembers.map((member) => state.customSplits[member.tempId] ?? 0)
+          : equalSplitPercentages(tenantIds.length);
+
       await putDefaultSplits(householdId, {
         categoryId: null,
-        splits: filledMembers.map((member) => ({
+        splits: filledMembers.map((member, index) => ({
           tenantId: tenantIdByTempId.get(member.tempId) ?? "",
-          percentage: state.customSplits[member.tempId] ?? 0,
+          percentage:
+            state.splitMode === "custom"
+              ? (state.customSplits[member.tempId] ?? 0)
+              : (percentages[index] ?? 0),
         })),
       });
     }
@@ -140,8 +148,11 @@ export async function submitHouseholdWizard(
         frequency: item.frequency,
         startDate: item.startDate,
         paidById,
-        splits: buildRecurringSplits(state, tenantIdByTempId, tenantIds),
         ...(categoryId !== undefined && { category: categoryId }),
+        ...(state.type === "shared" &&
+          state.splitMode === "custom" && {
+            splits: buildRecurringSplits(state, tenantIdByTempId, tenantIds),
+          }),
       };
 
       await createRecurringExpense(householdId, recurringPayload);

@@ -206,7 +206,7 @@ export interface CreateRecurringExpensePayload {
   paidById: string;
   frequency: RecurringFrequency;
   startDate: string;
-  splits: { tenantId: string; percentage: number }[];
+  splits?: { tenantId: string; percentage: number }[];
 }
 
 export interface UpdateRecurringExpensePayload {

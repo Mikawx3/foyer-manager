@@ -86,7 +86,9 @@ export function RecurringExpenseForm({
       ? (initialRecurring.splits.map((split) => split.tenantId) ?? allTenantIds)
       : allTenantIds,
   );
-  const [useAutoSplit, setUseAutoSplit] = useState(false);
+  const [useAutoSplit, setUseAutoSplit] = useState(
+    isEdit ? initialRecurring.splits.length === 0 : false,
+  );
 
   const amount = watch("amount") ?? 0;
   const category = watch("category") ?? "";
@@ -106,8 +108,12 @@ export function RecurringExpenseForm({
           percentage: split.percentage,
         })),
       });
-      setSelectedParticipantIds(initialRecurring.splits.map((split) => split.tenantId));
-      setUseAutoSplit(false);
+      setSelectedParticipantIds(
+        initialRecurring.splits.length > 0
+          ? initialRecurring.splits.map((split) => split.tenantId)
+          : allTenantIds,
+      );
+      setUseAutoSplit(initialRecurring.splits.length === 0);
     }
   }, [initialRecurring, isEdit, reset]);
 
@@ -168,13 +174,8 @@ export function RecurringExpenseForm({
 
   const buildPayload = (data: CreateRecurringExpenseForm): CreateRecurringExpenseForm => {
     if (useAutoSplit) {
-      return {
-        ...data,
-        splits: autoPreview.map((row) => ({
-          tenantId: row.tenantId,
-          percentage: row.percentage,
-        })),
-      };
+      const { splits: _splits, ...rest } = data;
+      return rest;
     }
 
     return {

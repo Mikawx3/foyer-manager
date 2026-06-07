@@ -5,7 +5,10 @@ import type {
 } from "@foyer/types";
 import { NotFoundError } from "../errors/app.errors.js";
 import { toDefaultSplitDto } from "../lib/mappers.js";
-import { assertPercentagesSumTo100 } from "../lib/split-calculator.js";
+import {
+  assertPercentagesSumTo100,
+  buildEqualDefaultSplits,
+} from "../lib/split-calculator.js";
 import {
   categoryRepository,
   type CategoryRepository,
@@ -96,6 +99,14 @@ export class DefaultSplitService {
       categoryRules.length > 0
         ? categoryRules
         : await this.repository.findByHouseholdAndCategory(householdId, null);
+
+    if (rules.length === 0) {
+      const activeTenants = await this.tenants.findAllByHousehold(householdId);
+      if (activeTenants.length > 0) {
+        return buildEqualDefaultSplits(activeTenants);
+      }
+      return [];
+    }
 
     return rules.map((rule) => ({
       tenantId: rule.tenantId,

@@ -1,5 +1,6 @@
 import type { HouseholdType, RecurringFrequency, SettlementPeriod } from "@foyer/types";
 import { generateUUID } from "./random-id.ts";
+import { equalSplitPercentages } from "./split-percentages.ts";
 import { DEFAULT_TENANT_COLOR } from "./tenant-colors.ts";
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
@@ -80,6 +81,33 @@ export function applyRecurringUpdater(
 
 export function isValidRecurringDraft(item: RecurringDraft): boolean {
   return item.title.trim().length > 0 && !Number.isNaN(item.amount) && item.amount > 0;
+}
+
+export function reconcileCustomSplits(
+  members: WizardMember[],
+  customSplits: Record<string, number>,
+): Record<string, number> {
+  const filled = members.filter((member) => member.name.trim().length > 0);
+  if (filled.length === 0) {
+    return {};
+  }
+
+  const hasNewMember = filled.some((member) => customSplits[member.tempId] === undefined);
+  if (hasNewMember) {
+    const percentages = equalSplitPercentages(filled.length);
+    return Object.fromEntries(
+      filled.map((member, index) => [member.tempId, percentages[index] ?? 0]),
+    );
+  }
+
+  const result: Record<string, number> = {};
+  for (const member of filled) {
+    const percentage = customSplits[member.tempId];
+    if (percentage !== undefined) {
+      result[member.tempId] = percentage;
+    }
+  }
+  return result;
 }
 
 export interface WizardState {

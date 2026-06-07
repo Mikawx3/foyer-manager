@@ -57,9 +57,10 @@ export class RecurringExpenseRepository {
     frequency: string;
     startDate: Date;
     nextDueDate: Date;
-    splits: { tenantId: string; percentage: number }[];
+    splits?: { tenantId: string; percentage: number }[];
   }): Promise<RecurringExpenseWithRelations> {
     try {
+      const hasSplits = data.splits !== undefined && data.splits.length > 0;
       return await prisma.recurringExpense.create({
         data: {
           householdId: data.householdId,
@@ -70,12 +71,14 @@ export class RecurringExpenseRepository {
           frequency: data.frequency,
           startDate: data.startDate,
           nextDueDate: data.nextDueDate,
-          splits: {
-            create: data.splits.map((split) => ({
-              tenantId: split.tenantId,
-              percentage: split.percentage,
-            })),
-          },
+          ...(hasSplits && {
+            splits: {
+              create: data.splits.map((split) => ({
+                tenantId: split.tenantId,
+                percentage: split.percentage,
+              })),
+            },
+          }),
         },
         include: {
           paidBy: true,

@@ -12,6 +12,26 @@ export function assertPercentagesSumTo100(percentages: number[]): void {
   }
 }
 
+export function buildEqualDefaultSplits(
+  tenants: { id: string }[],
+): { tenantId: string; percentage: number }[] {
+  if (tenants.length === 0) {
+    return [];
+  }
+
+  const per = Math.floor(100 / tenants.length);
+  const percentages = Array.from({ length: tenants.length }, () => per);
+  const last = percentages[tenants.length - 1];
+  if (last !== undefined) {
+    percentages[tenants.length - 1] = 100 - per * (tenants.length - 1);
+  }
+
+  return tenants.map((tenant, index) => ({
+    tenantId: tenant.id,
+    percentage: percentages[index] ?? 0,
+  }));
+}
+
 export function calculateSplitAmounts(
   total: number,
   percentages: number[],

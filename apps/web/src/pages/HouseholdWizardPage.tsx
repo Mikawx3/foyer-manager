@@ -17,6 +17,7 @@ import {
   getPrevStep,
   initialWizardState,
   isValidRecurringDraft,
+  reconcileCustomSplits,
   type RecurringUpdater,
   type WizardState,
 } from "../lib/household-wizard-types.ts";
@@ -157,15 +158,27 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
 
   const handleSplitModeChange = (splitMode: WizardState["splitMode"]) => {
     if (splitMode === "custom") {
-      const filled = state.members.filter((member) => member.name.trim().length > 0);
-      const percentages = equalSplitPercentages(filled.length);
-      const customSplits = Object.fromEntries(
-        filled.map((member, index) => [member.tempId, percentages[index] ?? 0]),
-      );
-      patchState({ splitMode, customSplits });
+      setState((current) => {
+        const filled = current.members.filter((member) => member.name.trim().length > 0);
+        const percentages = equalSplitPercentages(filled.length);
+        const customSplits = Object.fromEntries(
+          filled.map((member, index) => [member.tempId, percentages[index] ?? 0]),
+        );
+        return { ...current, splitMode, customSplits };
+      });
+      setStepError(undefined);
       return;
     }
     patchState({ splitMode });
+  };
+
+  const handleMembersChange = (members: WizardState["members"]) => {
+    setState((current) => ({
+      ...current,
+      members,
+      customSplits: reconcileCustomSplits(members, current.customSplits),
+    }));
+    setStepError(undefined);
   };
 
   const submitError =
@@ -190,7 +203,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
             nameError={stepError}
             membersError={stepError}
             onNameChange={(name) => patchState({ name })}
-            onMembersChange={(members) => patchState({ members })}
+            onMembersChange={handleMembersChange}
           />
         )}
 

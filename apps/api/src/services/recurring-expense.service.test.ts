@@ -15,6 +15,7 @@ const householdId = "clh12345678901234567890123";
 const recurringId = "cre12345678901234567890123";
 const categoryId = "cat12345678901234567890123";
 const tenantId = "ten12345678901234567890123";
+const tenantIdB = "ten22345678901234567890123";
 
 function buildRecurringRecord(
   overrides: Partial<RecurringExpenseWithRelations> = {},
@@ -165,6 +166,89 @@ describe("RecurringExpenseService", () => {
       recurringId,
       new Date("2026-05-01T00:00:00.000Z"),
     );
+  });
+
+  describe("generateDueRecurringExpenses — split mode", () => {
+    function buildSplitModeService(createExpense: ReturnType<typeof vi.fn>, record: RecurringExpenseWithRelations) {
+      return new RecurringExpenseService(
+        {
+          findAllByHousehold: vi.fn(),
+          findDueByHousehold: vi.fn().mockResolvedValue([record]),
+          findById: vi.fn(),
+          create: vi.fn(),
+          update: vi.fn(),
+          updateNextDueDate: vi.fn().mockResolvedValue(undefined),
+          deleteById: vi.fn(),
+        },
+        buildHouseholds(),
+        { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
+        { findById: vi.fn(), findAllByHousehold: vi.fn(), create: vi.fn(), deleteById: vi.fn() },
+        { listByHousehold: vi.fn(), create: createExpense, getById: vi.fn() } as unknown as ExpenseService,
+        {
+          findByRecurringExpenseAndDate: vi.fn().mockResolvedValue(null),
+        } as unknown as ExpenseRepository,
+      );
+    }
+
+    it('generates expense with splitMode "default" when recurring has no splits', async () => {
+      const record = buildRecurringRecord({
+        nextDueDate: new Date("2026-04-01T00:00:00.000Z"),
+        splits: [],
+      });
+      const createExpense = vi.fn().mockResolvedValue({
+        id: "exp1",
+        splitMode: "default",
+      });
+
+      const service = buildSplitModeService(createExpense, record);
+      await service.generateDueRecurringExpenses(householdId);
+
+      expect(createExpense).toHaveBeenCalledWith(
+        expect.objectContaining({
+          splitMode: "default",
+        }),
+      );
+      expect(createExpense.mock.calls[0]?.[0]).not.toHaveProperty("splits");
+    });
+
+    it('generates expense with splitMode "custom" when recurring has explicit splits', async () => {
+      const record = buildRecurringRecord({
+        nextDueDate: new Date("2026-04-01T00:00:00.000Z"),
+        splits: [
+          {
+            id: "split1",
+            recurringExpenseId: recurringId,
+            tenantId,
+            percentage: 50,
+            tenant: { id: tenantId, name: "Alice", email: null, householdId, createdAt: new Date() },
+          },
+          {
+            id: "split2",
+            recurringExpenseId: recurringId,
+            tenantId: tenantIdB,
+            percentage: 50,
+            tenant: { id: tenantIdB, name: "Bob", email: null, householdId, createdAt: new Date() },
+          },
+        ],
+      });
+      const createExpense = vi.fn().mockResolvedValue({
+        id: "exp1",
+        splitMode: "custom",
+      });
+
+      const service = buildSplitModeService(createExpense, record);
+      await service.generateDueRecurringExpenses(householdId);
+
+      expect(createExpense).toHaveBeenCalledWith(
+        expect.objectContaining({
+          splitMode: "custom",
+          splits: [
+            { tenantId, percentage: 50 },
+            { tenantId: tenantIdB, percentage: 50 },
+          ],
+        }),
+      );
+    });
   });
 
   it("generateDueRecurringExpenses skips creation when expense already exists for due date", async () => {

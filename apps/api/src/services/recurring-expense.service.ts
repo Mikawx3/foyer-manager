@@ -79,7 +79,10 @@ export class RecurringExpenseService {
   async create(householdId: string, input: CreateRecurringExpenseInput): Promise<RecurringExpense> {
     await this.assertHouseholdExists(householdId);
     await this.assertPaidByInHousehold(input.paidById, householdId);
-    await this.validateSplits(input.splits, householdId);
+    const hasSplits = input.splits !== undefined && input.splits.length > 0;
+    if (hasSplits) {
+      await this.validateSplits(input.splits, householdId);
+    }
     if (input.category !== undefined) {
       await this.assertCategoryInHousehold(input.category, householdId);
     }
@@ -94,7 +97,7 @@ export class RecurringExpenseService {
       frequency: input.frequency,
       startDate,
       nextDueDate: startDate,
-      splits: input.splits,
+      ...(hasSplits && { splits: input.splits }),
     });
 
     return toRecurringExpenseDto(created, 0);
@@ -111,7 +114,7 @@ export class RecurringExpenseService {
     if (input.paidById !== undefined) {
       await this.assertPaidByInHousehold(input.paidById, householdId);
     }
-    if (input.splits !== undefined) {
+    if (input.splits !== undefined && input.splits.length > 0) {
       await this.validateSplits(input.splits, householdId);
     }
     if (input.category !== undefined && input.category !== null) {
@@ -217,6 +220,7 @@ export class RecurringExpenseService {
     }
 
     const dateIso = record.nextDueDate.toISOString().slice(0, 10);
+    const recurringHasSplits = record.splits.length > 0;
 
     return this.expenses.create({
       householdId: record.householdId,
@@ -225,12 +229,14 @@ export class RecurringExpenseService {
       categoryId: record.category,
       paidByTenantId: record.paidById,
       date: dateIso,
-      splitMode: "custom",
+      splitMode: recurringHasSplits ? "custom" : "default",
       recurringExpenseId: record.id,
-      splits: record.splits.map((split) => ({
-        tenantId: split.tenantId,
-        percentage: split.percentage,
-      })),
+      ...(recurringHasSplits && {
+        splits: record.splits.map((split) => ({
+          tenantId: split.tenantId,
+          percentage: split.percentage,
+        })),
+      }),
     });
   }
 

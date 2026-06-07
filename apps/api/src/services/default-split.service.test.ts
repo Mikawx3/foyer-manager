@@ -9,6 +9,7 @@ import { DefaultSplitService } from "./default-split.service.js";
 const householdId = "clh12345678901234567890123";
 const categoryId = "clc12345678901234567890123";
 const tenantId = "clt12345678901234567890123";
+const tenantIdB = "clt22345678901234567890123";
 
 const prismaGlobalRule = {
   id: "cld12345678901234567890123",
@@ -71,6 +72,7 @@ function createMocks(overrides: {
 
   return {
     repository,
+    tenants,
     service: new DefaultSplitService(repository, households, tenants, categories),
   };
 }
@@ -108,6 +110,30 @@ describe("DefaultSplitService", () => {
       householdId,
       categoryId,
     );
+  });
+
+  it("resolveForExpense falls back to equal split when no rules exist", async () => {
+    const { repository, tenants, service } = createMocks({
+      repository: {
+        findByHouseholdAndCategory: vi.fn().mockResolvedValue([]),
+      },
+      tenants: {
+        findAllByHousehold: vi.fn().mockResolvedValue([
+          { id: tenantId, householdId, name: "A", email: "a@test.com", createdAt: new Date() },
+          { id: tenantIdB, householdId, name: "B", email: "b@test.com", createdAt: new Date() },
+        ]),
+      },
+    });
+
+    const resolved = await service.resolveForExpense(householdId, categoryId);
+
+    expect(resolved).toEqual([
+      { tenantId, percentage: 50 },
+      { tenantId: tenantIdB, percentage: 50 },
+    ]);
+    expect(repository.findByHouseholdAndCategory).toHaveBeenCalledWith(householdId, categoryId);
+    expect(repository.findByHouseholdAndCategory).toHaveBeenCalledWith(householdId, null);
+    expect(tenants.findAllByHousehold).toHaveBeenCalledWith(householdId);
   });
 
   it("resolveForExpense falls back to global when no category override", async () => {

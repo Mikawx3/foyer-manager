@@ -24,10 +24,13 @@ export const createRecurringExpenseSchema = z
     paidById: z.string().cuid(),
     frequency: recurringFrequencySchema,
     startDate: z.string().date(),
-    splits: z.array(splitItemSchema).min(1),
+    splits: z.array(splitItemSchema).optional(),
   })
   .refine(
     (data) => {
+      if (!data.splits || data.splits.length === 0) {
+        return true;
+      }
       const sum = data.splits.reduce((total, split) => total + split.percentage, 0);
       return Math.abs(sum - 100) < 0.01;
     },
@@ -44,11 +47,11 @@ export const updateRecurringExpenseSchema = z
     startDate: z.string().date().optional(),
     nextDueDate: z.string().date().optional(),
     active: z.boolean().optional(),
-    splits: z.array(splitItemSchema).min(1).optional(),
+    splits: z.array(splitItemSchema).optional(),
   })
   .refine(
     (data) => {
-      if (!data.splits) {
+      if (!data.splits || data.splits.length === 0) {
         return true;
       }
       const sum = data.splits.reduce((total, split) => total + split.percentage, 0);

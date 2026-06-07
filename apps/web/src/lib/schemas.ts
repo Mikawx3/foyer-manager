@@ -133,7 +133,7 @@ function recurringExpenseBodyFields(t: TFunction<"validation">) {
     paidById: z.string().cuid(t("selectWhoPays")),
     frequency: recurringFrequencySchema,
     startDate: z.string().date(t("useDateFormat")),
-    splits: z.array(splitItemSchema()).min(1),
+    splits: z.array(splitItemSchema()).optional(),
   };
 }
 
@@ -165,7 +165,7 @@ export function updateRecurringExpenseSchema(t: TFunction<"validation">) {
       paidById: fields.paidById.optional(),
       frequency: fields.frequency.optional(),
       startDate: fields.startDate.optional(),
-      splits: z.array(splitItemSchema()).min(1).optional(),
+      splits: z.array(splitItemSchema()).optional(),
       active: z.boolean().optional(),
     }),
     t,

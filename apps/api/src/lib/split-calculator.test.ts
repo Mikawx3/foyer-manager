@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ValidationError } from "../errors/app.errors.js";
 import {
   assertPercentagesSumTo100,
+  buildEqualDefaultSplits,
   calculateSplitAmounts,
   computeTenantBalances,
 } from "./split-calculator.js";
@@ -48,5 +49,35 @@ describe("split-calculator", () => {
         settledAmount: 0,
       },
     ]);
+  });
+});
+
+describe("split-calculator — equal fallback", () => {
+  it("falls back to equal split when no DefaultSplit rows exist (2 members)", () => {
+    const tenants = [{ id: "t1" }, { id: "t2" }];
+    const splits = buildEqualDefaultSplits(tenants);
+    const percentages = splits.map((split) => split.percentage);
+    const amounts = calculateSplitAmounts(100, percentages);
+
+    expect(amounts).toEqual([50, 50]);
+  });
+
+  it("falls back to equal split when no DefaultSplit rows exist (3 members)", () => {
+    const tenants = [{ id: "t1" }, { id: "t2" }, { id: "t3" }];
+    const splits = buildEqualDefaultSplits(tenants);
+    const percentages = splits.map((split) => split.percentage);
+    const amounts = calculateSplitAmounts(100, percentages);
+
+    expect(amounts).toEqual([33, 33, 34]);
+  });
+
+  it("does NOT apply fallback when DefaultSplit rows exist", () => {
+    const amounts = calculateSplitAmounts(100, [70, 30]);
+
+    expect(amounts).toEqual([70, 30]);
+  });
+
+  it("does NOT apply fallback when activeTenants is empty", () => {
+    expect(buildEqualDefaultSplits([])).toEqual([]);
   });
 });
