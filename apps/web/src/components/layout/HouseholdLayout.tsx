@@ -36,8 +36,8 @@ export function HouseholdLayout() {
 
   return (
     <>
-      <div className="flex min-h-screen flex-col gap-6 lg:flex-row lg:gap-8">
-        <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-surface py-6 pl-6 pr-8 pb-6 lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
+      <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+        <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-surface py-6 pl-6 pr-8 pb-6 lg:sticky lg:top-8 lg:flex lg:max-h-[calc(100dvh-7rem)] lg:self-start">
           {householdQuery.isLoading && <Skeleton className="mb-4 h-8 w-full" />}
           {householdQuery.isError && (
             <ErrorMessage
@@ -55,7 +55,7 @@ export function HouseholdLayout() {
               </h2>
             </div>
           )}
-          <nav className="flex flex-1 flex-col justify-between gap-4">
+          <nav className="flex min-h-0 flex-1 flex-col">
             <div className="flex flex-col gap-1.5">
               {navItems.map(({ to, labelKey, icon: Icon, end }) => (
                 <NavLink
@@ -69,7 +69,7 @@ export function HouseholdLayout() {
                 </NavLink>
               ))}
             </div>
-            <div className="mt-6 space-y-4 border-t border-border pt-4">
+            <div className="mt-auto space-y-4 border-t border-border pt-4">
               <CloudOnly>
                 <NavLink
                   to="/households"
