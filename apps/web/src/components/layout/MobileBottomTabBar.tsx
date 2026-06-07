@@ -7,10 +7,10 @@ interface MobileBottomTabBarProps {
 }
 
 const tabs = [
-  { to: "dashboard", labelKey: "dashboard", icon: LayoutDashboard, end: true },
+  { to: "dashboard", labelKey: "dashboardShort", icon: LayoutDashboard, end: true },
   { to: "expenses", labelKey: "expenses", icon: Receipt, end: false },
   { to: "balances", labelKey: "balances", icon: Scale, end: false },
-  { to: "settings", labelKey: "settings", icon: Settings, end: false },
+  { to: "settings", labelKey: "settingsShort", icon: Settings, end: false },
 ] as const;
 
 export function MobileBottomTabBar({ householdId }: MobileBottomTabBarProps) {

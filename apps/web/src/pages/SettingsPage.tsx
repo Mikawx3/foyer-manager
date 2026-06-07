@@ -13,7 +13,6 @@ import {
 import { ConfirmModal } from "../components/ui/ConfirmModal.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
-import { LanguageSwitcher } from "../components/ui/LanguageSwitcher.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import {
   deleteCategoryDefaultSplits,
@@ -195,14 +194,6 @@ export function SettingsPage() {
           }}
         />
       )}
-
-      <section className={formCard}>
-        <h2 className="text-base font-semibold tracking-tight text-stone-900">{t("language")}</h2>
-        <p className="mt-1 text-sm text-stone-600">{t("languageDescription")}</p>
-        <div className="mt-4">
-          <LanguageSwitcher />
-        </div>
-      </section>
 
       {tenantsQuery.isSuccess && tenants.length === 0 && (
         <EmptyState

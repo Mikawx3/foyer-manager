@@ -142,9 +142,11 @@
   "nav": {
     "mainNavigation": "Navigation principale",
     "dashboard": "Tableau de bord",
+    "dashboardShort": "Accueil",
     "expenses": "Dépenses",
     "balances": "Soldes",
     "settings": "Paramètres",
+    "settingsShort": "Réglages",
     "allHouseholds": "Tous les foyers",
     "signOut": "Déconnexion",
     "accountMenu": "Menu du compte",
@@ -287,8 +289,6 @@
     "deletePreviewUnresolvedBalances": "{{count}} membre(s) ont des soldes impayés totalisant {{total}}. La suppression effacera définitivement tous les enregistrements de dettes.",
     "deleteConfirmInstruction": "Pour confirmer, saisissez le nom du foyer « {{name}} » ci-dessous :",
     "deletePermanently": "Supprimer définitivement",
-    "language": "Langue",
-    "languageDescription": "Choisissez la langue d'affichage",
     "languageSwitcherLabel": "Choisir la langue"
   },
   "wizard": {

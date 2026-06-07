@@ -142,9 +142,11 @@
   "nav": {
     "mainNavigation": "Main navigation",
     "dashboard": "Dashboard",
+    "dashboardShort": "Home",
     "expenses": "Expenses",
     "balances": "Balances",
     "settings": "Settings",
+    "settingsShort": "Settings",
     "allHouseholds": "All households",
     "signOut": "Sign out",
     "accountMenu": "Account menu",
@@ -287,8 +289,6 @@
     "deletePreviewUnresolvedBalances": "{{count}} member(s) have unresolved balances totalling {{total}}. Deleting will permanently erase all debt records.",
     "deleteConfirmInstruction": "To confirm, type the household name \"{{name}}\" below:",
     "deletePermanently": "Delete permanently",
-    "language": "Language",
-    "languageDescription": "Choose your display language",
     "languageSwitcherLabel": "Select language"
   },
   "wizard": {
