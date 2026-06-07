@@ -28,6 +28,9 @@ export function SettingsLayout() {
         <NavLink to={`${basePath}/members`} className={settingsSubNavClass}>
           {tNav("manageMembers")}
         </NavLink>
+        <NavLink to={`${basePath}/categories`} className={settingsSubNavClass}>
+          {tNav("categories")}
+        </NavLink>
       </nav>
       <Outlet />
     </div>

@@ -2,9 +2,11 @@ import { useTranslation } from "react-i18next";
 import { inputClassName } from "./FormField.tsx";
 import {
   applyPercentageChange,
+  areCustomPercentagesValid,
   isPercentageTotalComplete,
   maxPercentageForKey,
   roundPercentageOneDecimal,
+  safePercentage,
   totalFromValues,
 } from "../../lib/smart-percentages.ts";
 
@@ -27,7 +29,7 @@ export function SmartPercentageInputs({
   const { t } = useTranslation("common");
   const keys = items.map((item) => item.id);
   const total = totalFromValues(values, keys);
-  const isComplete = isPercentageTotalComplete(total);
+  const isComplete = areCustomPercentagesValid(values, keys);
   const rounded = roundPercentageOneDecimal(total);
 
   let totalText: string;
@@ -65,13 +67,15 @@ export function SmartPercentageInputs({
                   min={0}
                   max={max}
                   step={0.1}
-                  value={values[item.id] ?? 0}
+                  value={safePercentage(values[item.id] ?? 0)}
                   onChange={(event) => {
-                    const raw = event.target.value === "" ? 0 : Number(event.target.value);
+                    const parsed = event.target.value === "" ? 0 : Number(event.target.value);
+                    const raw = safePercentage(parsed);
                     onChange(applyPercentageChange(values, keys, item.id, raw));
                   }}
                   onBlur={(event) => {
-                    const raw = event.target.value === "" ? 0 : Number(event.target.value);
+                    const parsed = event.target.value === "" ? 0 : Number(event.target.value);
+                    const raw = safePercentage(parsed);
                     const next = applyPercentageChange(values, keys, item.id, raw);
                     const roundedValue = roundPercentageOneDecimal(next[item.id] ?? 0);
                     onChange({ ...next, [item.id]: roundedValue });
@@ -94,4 +98,9 @@ export function SmartPercentageInputs({
   );
 }
 
-export { isPercentageTotalComplete, totalFromValues };
+export {
+  areCustomPercentagesValid,
+  isPercentageTotalComplete,
+  safePercentage,
+  totalFromValues,
+};

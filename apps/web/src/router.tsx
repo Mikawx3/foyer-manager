@@ -11,6 +11,7 @@ import { RegisterPage } from "./pages/RegisterPage.tsx";
 import { BalancesPage } from "./pages/BalancesPage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
 import { ExpensesPage } from "./pages/ExpensesPage.tsx";
+import { CategoriesSettingsPage } from "./pages/CategoriesSettingsPage.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { TenantsPage } from "./pages/TenantsPage.tsx";
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
                 children: [
                   { index: true, element: <SettingsPage /> },
                   { path: "members", element: <TenantsPage /> },
+                  { path: "categories", element: <CategoriesSettingsPage /> },
                 ],
               },
             ],

@@ -1,15 +1,13 @@
-import type { Category, Expense, ExpenseSplit, Tenant } from "@foyer/types";
+import type { Expense, ExpenseSplit, Tenant } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { CategoriesSection } from "../components/expenses/CategoriesSection.tsx";
 import { ExpenseEditModal } from "../components/expenses/ExpenseEditModal.tsx";
 import { RecurringExpensesSection } from "../components/expenses/RecurringExpensesSection.tsx";
 import { inputClassName, selectClassName } from "../components/forms/FormField.tsx";
-import { CategoryForm } from "../components/forms/CategoryForm.tsx";
 import { ExpenseForm } from "../components/forms/ExpenseForm.tsx";
 import { SplitForm } from "../components/forms/SplitForm.tsx";
 import { CategoryBadge } from "../components/ui/CategoryBadge.tsx";
@@ -21,7 +19,6 @@ import { Modal } from "../components/ui/Modal.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useFormat } from "../hooks/useFormat.ts";
 import {
-  createCategory,
   createExpense,
   createSplits,
   deleteExpense,
@@ -45,11 +42,7 @@ import {
 } from "../lib/expense-splits.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
-import type {
-  CreateCategoryForm,
-  CreateExpenseForm,
-  UpdateExpenseForm,
-} from "../lib/schemas.ts";
+import type { CreateExpenseForm, UpdateExpenseForm } from "../lib/schemas.ts";
 import {
   amount,
   btnPrimary,
@@ -62,7 +55,7 @@ import {
   pageActionsRow,
   pageSubtitle,
   pageTitle,
-  stickyFormPanel,
+  expenseFormPanel,
 } from "../lib/ui-classes.ts";
 
 function SplitsSummaryList({
@@ -220,61 +213,6 @@ function ExpenseSplits({
   );
 }
 
-interface ExpenseFormsAsideProps {
-  householdId: string;
-  categories: Category[];
-  tenants: Tenant[];
-  isSolo?: boolean;
-  onCategorySubmit: (data: CreateCategoryForm) => void;
-  onExpenseSubmit: (data: CreateExpenseForm | UpdateExpenseForm) => void;
-  categoryPending: boolean;
-  expensePending: boolean;
-  categoryError: unknown;
-  expenseError: unknown;
-  showCategoryForm: boolean;
-}
-
-function ExpenseFormsAside({
-  householdId,
-  categories,
-  tenants,
-  isSolo = false,
-  onCategorySubmit,
-  onExpenseSubmit,
-  categoryPending,
-  expensePending,
-  categoryError,
-  expenseError,
-  showCategoryForm,
-}: ExpenseFormsAsideProps) {
-  return (
-    <div className="space-y-4">
-      <CategoriesSection householdId={householdId} categories={categories} />
-      {showCategoryForm && (
-        <CategoryForm
-          householdId={householdId}
-          onSubmit={onCategorySubmit}
-          isPending={categoryPending}
-        />
-      )}
-      <ExpenseForm
-        householdId={householdId}
-        categories={categories}
-        tenants={tenants}
-        isSolo={isSolo}
-        onSubmit={onExpenseSubmit}
-        isPending={expensePending}
-      />
-      {expenseError !== undefined && expenseError !== null && (
-        <p className={inlineError}>{getApiErrorMessage(expenseError)}</p>
-      )}
-      {categoryError !== undefined && categoryError !== null && (
-        <p className={inlineError}>{getApiErrorMessage(categoryError)}</p>
-      )}
-    </div>
-  );
-}
-
 export function ExpensesPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -373,16 +311,6 @@ export function ExpensesPage() {
     tRecurring,
   ]);
 
-  const createCategoryMutation = useMutation({
-    mutationFn: createCategory,
-    ...mutationToastHandlers({
-      successMessage: tToast("categoryAdded"),
-      onSuccess: () => {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.categories(householdId) });
-      },
-    }),
-  });
-
   const deleteExpenseMutation = useMutation({
     mutationFn: deleteExpense,
     ...mutationToastHandlers({
@@ -433,26 +361,11 @@ export function ExpensesPage() {
 
   const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
 
-  const formsAside =
-    canAddExpense && categoriesQuery.data ? (
-      <ExpenseFormsAside
-        householdId={householdId}
-        categories={categoriesQuery.data}
-        tenants={activeTenantsForPickers}
-        isSolo={isSolo}
-        onCategorySubmit={(data) => createCategoryMutation.mutate(data)}
-        onExpenseSubmit={(data) => {
-          if ("householdId" in data) {
-            createExpenseMutation.mutate(data);
-          }
-        }}
-        categoryPending={createCategoryMutation.isPending}
-        expensePending={createExpenseMutation.isPending}
-        categoryError={createCategoryMutation.error}
-        expenseError={createExpenseMutation.error}
-        showCategoryForm
-      />
-    ) : null;
+  const handleCreateExpense = (data: CreateExpenseForm | UpdateExpenseForm) => {
+    if ("householdId" in data) {
+      createExpenseMutation.mutate(data);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -489,11 +402,12 @@ export function ExpensesPage() {
           title={t("noCategoriesTitle")}
           description={t("noCategoriesDescription")}
           action={
-            <CategoryForm
-              householdId={householdId}
-              onSubmit={(data) => createCategoryMutation.mutate(data)}
-              isPending={createCategoryMutation.isPending}
-            />
+            <Link
+              to={`/households/${householdId}/settings/categories`}
+              className={btnPrimary}
+            >
+              {tNav("categories")}
+            </Link>
           }
         />
       )}
@@ -719,8 +633,24 @@ export function ExpensesPage() {
             )}
           </section>
 
-          {activeTab === "expenses" && formsAside && (
-            <aside className={stickyFormPanel}>{formsAside}</aside>
+          {activeTab === "expenses" && canAddExpense && categoriesQuery.data && (
+            <aside className={expenseFormPanel}>
+              <ExpenseForm
+                layout="panel"
+                householdId={householdId}
+                categories={categoriesQuery.data}
+                tenants={activeTenantsForPickers}
+                isSolo={isSolo}
+                onSubmit={handleCreateExpense}
+                isPending={createExpenseMutation.isPending}
+              />
+              {createExpenseMutation.error !== undefined &&
+                createExpenseMutation.error !== null && (
+                  <p className={`mt-2 ${inlineError}`}>
+                    {getApiErrorMessage(createExpenseMutation.error)}
+                  </p>
+                )}
+            </aside>
           )}
         </div>
       )}
@@ -762,23 +692,17 @@ export function ExpensesPage() {
           onClose={() => setModalOpen(false)}
           fullHeightMobile
         >
-          <ExpenseFormsAside
+          <ExpenseForm
             householdId={householdId}
             categories={categoriesQuery.data}
             tenants={activeTenantsForPickers}
             isSolo={isSolo}
-            onCategorySubmit={(data) => createCategoryMutation.mutate(data)}
-            onExpenseSubmit={(data) => {
-          if ("householdId" in data) {
-            createExpenseMutation.mutate(data);
-          }
-        }}
-            categoryPending={createCategoryMutation.isPending}
-            expensePending={createExpenseMutation.isPending}
-            categoryError={createCategoryMutation.error}
-            expenseError={createExpenseMutation.error}
-            showCategoryForm
+            onSubmit={handleCreateExpense}
+            isPending={createExpenseMutation.isPending}
           />
+          {createExpenseMutation.error !== undefined && createExpenseMutation.error !== null && (
+            <p className={inlineError}>{getApiErrorMessage(createExpenseMutation.error)}</p>
+          )}
         </Modal>
       )}
 

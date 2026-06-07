@@ -9,6 +9,7 @@ import { resolveDefaultSplits } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { redistributeSplits } from "../../lib/redistribute-splits.ts";
 import { equalSplitPercentages } from "../../lib/split-percentages.ts";
+import { safePercentage } from "../../lib/smart-percentages.ts";
 import {
   createRecurringExpenseSchema,
   type CreateRecurringExpenseForm,
@@ -141,7 +142,7 @@ export function RecurringExpenseForm({
       Object.fromEntries(
         selectedTenants.map((tenant) => {
           const split = formSplits.find((entry) => entry.tenantId === tenant.id);
-          return [tenant.id, split?.percentage ?? 0];
+          return [tenant.id, safePercentage(split?.percentage ?? 0)];
         }),
       ),
     [formSplits, selectedTenants],
@@ -159,6 +160,23 @@ export function RecurringExpenseForm({
       );
     }
   }, [formSplits.length, useAutoSplit, selectedTenants, setValue]);
+
+  const handleUseAutoSplitChange = (auto: boolean) => {
+    setUseAutoSplit(auto);
+    if (!auto && selectedTenants.length > 0) {
+      const splits =
+        autoPreview.length > 0
+          ? autoPreview.map((row) => ({
+              tenantId: row.tenantId,
+              percentage: safePercentage(row.percentage),
+            }))
+          : selectedTenants.map((tenant, index) => ({
+              tenantId: tenant.id,
+              percentage: safePercentage(equalSplitPercentages(selectedTenants.length)[index] ?? 0),
+            }));
+      setValue("splits", splits);
+    }
+  };
 
   const toggleParticipant = (tenantId: string) => {
     setSelectedParticipantIds((current) => {
@@ -182,7 +200,7 @@ export function RecurringExpenseForm({
       ...data,
       splits: selectedTenants.map((tenant) => ({
         tenantId: tenant.id,
-        percentage: customPercentageValues[tenant.id] ?? 0,
+        percentage: safePercentage(customPercentageValues[tenant.id] ?? 0),
       })),
     };
   };
@@ -264,7 +282,7 @@ export function RecurringExpenseForm({
           selectedParticipantIds={selectedParticipantIds}
           onToggleParticipant={toggleParticipant}
           useAutoSplit={useAutoSplit}
-          onUseAutoSplitChange={setUseAutoSplit}
+          onUseAutoSplitChange={handleUseAutoSplitChange}
           autoPreview={autoPreview}
           expenseAmount={amount}
           customPercentageValues={customPercentageValues}
@@ -273,7 +291,7 @@ export function RecurringExpenseForm({
               "splits",
               selectedTenants.map((tenant) => ({
                 tenantId: tenant.id,
-                percentage: values[tenant.id] ?? 0,
+                percentage: safePercentage(values[tenant.id] ?? 0),
               })),
             );
           }}

@@ -9,6 +9,7 @@ import { resolveDefaultSplits } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { redistributeSplits } from "../../lib/redistribute-splits.ts";
 import { equalSplitPercentages } from "../../lib/split-percentages.ts";
+import { safePercentage } from "../../lib/smart-percentages.ts";
 import {
   createExpenseSchema,
   updateExpenseSchema,
@@ -33,6 +34,7 @@ interface ExpenseFormProps {
   initialSplits?: { tenantId: string; percentage: number }[];
   title?: string;
   submitLabel?: string;
+  layout?: "default" | "panel";
 }
 
 export function ExpenseForm({
@@ -48,6 +50,7 @@ export function ExpenseForm({
   initialSplits,
   title,
   submitLabel,
+  layout = "default",
 }: ExpenseFormProps) {
   const { t } = useTranslation("expenses");
   const { t: tCommon } = useTranslation("common");
@@ -154,7 +157,7 @@ export function ExpenseForm({
     return Object.fromEntries(
       selectedTenants.map((tenant) => {
         const split = formSplits.find((entry) => entry.tenantId === tenant.id);
-        return [tenant.id, split?.percentage ?? 0];
+        return [tenant.id, safePercentage(split?.percentage ?? 0)];
       }),
     );
   }, [formSplits, selectedTenants]);
@@ -173,6 +176,23 @@ export function ExpenseForm({
       }
     }
   }, [formSplits.length, useAutoSplit, selectedTenants, setValue]);
+
+  const handleUseAutoSplitChange = (auto: boolean) => {
+    setUseAutoSplit(auto);
+    if (!auto && selectedTenants.length > 0) {
+      const splits =
+        autoPreview.length > 0
+          ? autoPreview.map((row) => ({
+              tenantId: row.tenantId,
+              percentage: safePercentage(row.percentage),
+            }))
+          : selectedTenants.map((tenant, index) => ({
+              tenantId: tenant.id,
+              percentage: safePercentage(equalSplitPercentages(selectedTenants.length)[index] ?? 0),
+            }));
+      setValue("splits", splits);
+    }
+  };
 
   const toggleParticipant = (tenantId: string) => {
     setSelectedParticipantIds((current) => {
@@ -229,7 +249,7 @@ export function ExpenseForm({
       participantIds,
       splits: selectedTenants.map((tenant) => ({
         tenantId: tenant.id,
-        percentage: customPercentageValues[tenant.id] ?? 0,
+        percentage: safePercentage(customPercentageValues[tenant.id] ?? 0),
       })),
     };
   };
@@ -261,12 +281,22 @@ export function ExpenseForm({
     submitLabel ??
     (isPending ? tCommon("saving") : variant === "edit" ? t("saveChanges") : t("createExpense"));
 
-  return (
-    <form onSubmit={submit} className={formCard}>
-      <h3 className="text-sm font-semibold tracking-tight text-stone-900">{heading}</h3>
+  const submitDisabled =
+    isPending ||
+    categories.length === 0 ||
+    tenants.length === 0 ||
+    !customValid ||
+    selectedParticipantIds.length === 0;
+
+  const hiddenFields = (
+    <>
       {variant === "create" && <input type="hidden" {...register("householdId")} />}
       <input type="hidden" {...register("splitMode")} />
+    </>
+  );
 
+  const fields = (
+    <>
       <FormField label={tCommon("amount")} error={errors.amount?.message}>
         <input
           className={inputClassName}
@@ -298,7 +328,7 @@ export function ExpenseForm({
           selectedParticipantIds={selectedParticipantIds}
           onToggleParticipant={toggleParticipant}
           useAutoSplit={useAutoSplit}
-          onUseAutoSplitChange={setUseAutoSplit}
+          onUseAutoSplitChange={handleUseAutoSplitChange}
           autoPreview={autoPreview}
           expenseAmount={Number(amount) || 0}
           customPercentageValues={customPercentageValues}
@@ -307,7 +337,7 @@ export function ExpenseForm({
               "splits",
               selectedTenants.map((tenant) => ({
                 tenantId: tenant.id,
-                percentage: values[tenant.id] ?? 0,
+                percentage: safePercentage(values[tenant.id] ?? 0),
               })),
             );
           }}
@@ -335,20 +365,45 @@ export function ExpenseForm({
       <FormField label={tCommon("date")} error={errors.date?.message}>
         <input className={inputClassName} type="date" {...register("date")} />
       </FormField>
+    </>
+  );
 
-      <button
-        type="submit"
-        disabled={
-          isPending ||
-          categories.length === 0 ||
-          tenants.length === 0 ||
-          !customValid ||
-          selectedParticipantIds.length === 0
-        }
-        className={btnPrimary}
+  const submitButton = (
+    <button type="submit" disabled={submitDisabled} className={btnPrimary}>
+      {buttonLabel}
+    </button>
+  );
+
+  if (layout === "panel") {
+    return (
+      <form
+        onSubmit={submit}
+        className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
       >
-        {buttonLabel}
-      </button>
+        <h3 className="shrink-0 border-b border-border px-4 py-3 text-sm font-semibold tracking-tight text-stone-900">
+          {heading}
+        </h3>
+        {hiddenFields}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">{fields}</div>
+        <div className="shrink-0 border-t border-border bg-surface p-4">
+          <button
+            type="submit"
+            disabled={submitDisabled}
+            className={`${btnPrimary} w-full`}
+          >
+            {buttonLabel}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className={formCard}>
+      <h3 className="text-sm font-semibold tracking-tight text-stone-900">{heading}</h3>
+      {hiddenFields}
+      {fields}
+      {submitButton}
     </form>
   );
 }

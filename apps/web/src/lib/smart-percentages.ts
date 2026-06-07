@@ -2,8 +2,13 @@ import { sumPercentages } from "./split-percentages.ts";
 
 const COMPLETE_TOLERANCE = 0.05;
 
+export function safePercentage(value: number): number {
+  return Number.isFinite(value) ? value : 0;
+}
+
 export function roundPercentageOneDecimal(value: number): number {
-  return Math.round(value * 10) / 10;
+  const safe = safePercentage(value);
+  return Math.round(safe * 10) / 10;
 }
 
 export function maxPercentageForKey(
@@ -13,7 +18,7 @@ export function maxPercentageForKey(
 ): number {
   const otherSum = keys
     .filter((k) => k !== key)
-    .reduce((sum, k) => sum + (values[k] ?? 0), 0);
+    .reduce((sum, k) => sum + safePercentage(values[k] ?? 0), 0);
   return Math.max(0, roundPercentageOneDecimal(100 - otherSum));
 }
 
@@ -58,7 +63,23 @@ export function applyPercentageChange(
 }
 
 export function isPercentageTotalComplete(total: number): boolean {
+  if (!Number.isFinite(total)) {
+    return false;
+  }
   return Math.abs(total - 100) <= COMPLETE_TOLERANCE;
+}
+
+export function areCustomPercentagesValid(
+  values: Record<string, number>,
+  keys: string[],
+): boolean {
+  if (keys.length === 0) {
+    return false;
+  }
+  if (keys.some((key) => !Number.isFinite(values[key] ?? 0))) {
+    return false;
+  }
+  return isPercentageTotalComplete(totalFromValues(values, keys));
 }
 
 export interface PercentageTotalLabel {
@@ -92,5 +113,7 @@ export function getPercentageTotalLabel(total: number): PercentageTotalLabel {
 }
 
 export function totalFromValues(values: Record<string, number>, keys: string[]): number {
-  return roundPercentageOneDecimal(sumPercentages(keys.map((key) => values[key] ?? 0)));
+  return roundPercentageOneDecimal(
+    sumPercentages(keys.map((key) => safePercentage(values[key] ?? 0))),
+  );
 }

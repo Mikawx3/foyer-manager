@@ -18,10 +18,10 @@ export const iconBtn =
   "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-stone-500 transition hover:bg-stone-100 hover:text-stone-900 active:bg-stone-200 active:scale-[0.97]";
 
 export const fabButton =
-  "fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition hover:bg-primary-hover active:scale-95 md:hidden";
+  "fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition hover:bg-primary-hover active:scale-95 lg:hidden";
 
 export const mobileMainPadding =
-  "pb-[calc(56px+env(safe-area-inset-bottom,0px))] md:pb-0";
+  "pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0";
 
 export const bottomSheetPanel =
   "relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-xl md:max-w-lg md:rounded-xl";
@@ -43,8 +43,8 @@ export const householdNavLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export const pageActionsRow = "flex flex-wrap items-start justify-between gap-4";
 
-export const stickyFormPanel =
-  "hidden xl:block xl:w-80 xl:shrink-0 xl:sticky xl:top-24 xl:self-start space-y-4";
+export const expenseFormPanel =
+  "hidden xl:flex xl:w-80 xl:shrink-0 xl:sticky xl:top-6 xl:self-start xl:max-h-[calc(100dvh-7rem)] xl:min-h-0 xl:flex-col";
 
 export const tabBarHeight = "56px";
 

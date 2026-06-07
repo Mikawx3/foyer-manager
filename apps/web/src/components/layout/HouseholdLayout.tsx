@@ -36,8 +36,8 @@ export function HouseholdLayout() {
 
   return (
     <>
-      <div className="flex flex-col gap-6 md:flex-row md:gap-8">
-        <aside className="hidden w-72 shrink-0 flex-col self-start border-r border-border bg-surface py-6 pb-8 pl-6 pr-8 md:sticky md:top-24 md:flex md:min-h-[calc(100dvh-7rem)]">
+      <div className="flex min-h-screen flex-col gap-6 lg:flex-row lg:gap-8">
+        <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-surface py-6 pl-6 pr-8 pb-6 lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
           {householdQuery.isLoading && <Skeleton className="mb-4 h-8 w-full" />}
           {householdQuery.isError && (
             <ErrorMessage
@@ -102,14 +102,14 @@ export function HouseholdLayout() {
             </div>
           </nav>
         </aside>
-        <div className={`min-w-0 flex-1 ${mobileMainPadding}`}>
+        <main className={`min-w-0 flex-1 overflow-y-auto ${mobileMainPadding}`}>
           {householdQuery.data && (
-            <p className="mb-4 text-sm font-medium text-stone-500 md:hidden">
+            <p className="mb-4 text-sm font-medium text-stone-500 lg:hidden">
               {householdQuery.data.name}
             </p>
           )}
           <Outlet />
-        </div>
+        </main>
       </div>
       <MobileBottomTabBar householdId={id} />
     </>

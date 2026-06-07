@@ -312,12 +312,12 @@ export function DashboardPage() {
       {isLoading && (
         <>
           <KpiGridSkeleton />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <ChartSkeleton />
             <ChartSkeleton />
-            <div className="lg:col-span-2">
-              <ChartSkeleton />
-            </div>
+          </div>
+          <div className="mt-4">
+            <ChartSkeleton />
           </div>
         </>
       )}
@@ -360,7 +360,7 @@ export function DashboardPage() {
             )}
           </section>
 
-          <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <ChartCard
               title={t("spendingByCategory")}
               isEmpty={stats.categorySlices.length === 0}
@@ -426,9 +426,10 @@ export function DashboardPage() {
                 </LineChart>
               </ResponsiveContainer>
             </ChartCard>
+          </section>
 
-            {!isSolo && (
-            <div className="lg:col-span-2">
+          {!isSolo && (
+            <section className="mt-4">
               <ChartCard
                 title={t("balancesChart")}
                 isEmpty={stats.balanceBars.length === 0}
@@ -464,9 +465,8 @@ export function DashboardPage() {
                   </div>
                 </div>
               </ChartCard>
-            </div>
-            )}
-          </section>
+            </section>
+          )}
 
           {!isSolo && (
           <section className={card}>
@@ -525,23 +525,29 @@ export function DashboardPage() {
           </section>
           )}
 
-          <section className={card}>
-            <h2 className="text-sm font-semibold tracking-tight text-stone-900">{t("recentExpenses")}</h2>
-            {recentExpensesQuery.isLoading && <ListSkeleton />}
+          <section className="mt-4 overflow-hidden rounded-xl border border-border bg-surface">
+            <div className="border-b border-border p-4">
+              <h2 className="font-semibold text-stone-800">{t("recentExpenses")}</h2>
+            </div>
+            {recentExpensesQuery.isLoading && (
+              <div className="p-4">
+                <ListSkeleton />
+              </div>
+            )}
             {recentExpensesQuery.isSuccess && recentExpensesQuery.data.data.length === 0 && (
-              <p className="mt-3 py-6 text-center text-sm text-stone-500">{t("recentExpensesEmpty")}</p>
+              <p className="px-4 py-6 text-center text-sm text-stone-500">{t("recentExpensesEmpty")}</p>
             )}
             {recentExpensesQuery.isSuccess && recentExpensesQuery.data.data.length > 0 && (
-              <>
-                <ul className="mt-3 space-y-2 md:hidden">
+              <div className="max-h-80 overflow-y-auto divide-y divide-border">
+                <ul className="space-y-0 md:hidden">
                   {recentExpensesQuery.data.data.map((expense) => {
                     const categoryName =
                       categoryNameById.get(expense.categoryId) ?? tCommon("category");
                     return (
-                      <li key={expense.id}>
+                      <li key={expense.id} className="border-b border-border last:border-b-0">
                         <button
                           type="button"
-                          className="w-full rounded-lg border border-border bg-bg px-3 py-3 text-left transition active:bg-stone-100"
+                          className="w-full px-4 py-3 text-left transition active:bg-stone-100"
                           onClick={() => setEditingExpense(expense)}
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -561,7 +567,7 @@ export function DashboardPage() {
                     );
                   })}
                 </ul>
-                <div className="mt-3 hidden overflow-x-auto md:block">
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-border text-xs font-medium uppercase tracking-wide text-stone-500">
@@ -603,9 +609,9 @@ export function DashboardPage() {
                     </tbody>
                   </table>
                 </div>
-              </>
+              </div>
             )}
-            <div className="mt-4 border-t border-border pt-3">
+            <div className="border-t border-border p-4">
               <Link
                 to={`/households/${householdId}/expenses`}
                 className={btnSecondary}

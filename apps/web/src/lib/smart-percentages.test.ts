@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   applyPercentageChange,
+  areCustomPercentagesValid,
   getPercentageTotalLabel,
   isPercentageTotalComplete,
   maxPercentageForKey,
   roundPercentageOneDecimal,
+  safePercentage,
+  totalFromValues,
 } from "./smart-percentages.ts";
 
 describe("smart-percentages", () => {
@@ -59,5 +62,24 @@ describe("smart-percentages", () => {
     const label = getPercentageTotalLabel(105);
     expect(label.text).toBe("Total: 105% — over by 5%");
     expect(label.className).toBe("text-red-500");
+  });
+
+  it("safePercentage replaces NaN and non-finite values with 0", () => {
+    expect(safePercentage(Number.NaN)).toBe(0);
+    expect(safePercentage(Number.POSITIVE_INFINITY)).toBe(0);
+    expect(safePercentage(50)).toBe(50);
+  });
+
+  it("isPercentageTotalComplete returns false for non-finite totals", () => {
+    expect(isPercentageTotalComplete(Number.NaN)).toBe(false);
+  });
+
+  it("totalFromValues treats NaN entries as 0", () => {
+    expect(totalFromValues({ a: Number.NaN, b: 100 }, ["a", "b"])).toBe(100);
+  });
+
+  it("areCustomPercentagesValid rejects non-finite values even when sanitized total is 100", () => {
+    expect(areCustomPercentagesValid({ a: Number.NaN, b: 100 }, ["a", "b"])).toBe(false);
+    expect(areCustomPercentagesValid({ a: 0, b: 100 }, ["a", "b"])).toBe(true);
   });
 });

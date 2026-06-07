@@ -18,7 +18,7 @@ export function MobileBottomTabBar({ householdId }: MobileBottomTabBarProps) {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/90 backdrop-blur-[12px] pb-[env(safe-area-inset-bottom,0px)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 h-14 border-t border-border bg-surface pb-[env(safe-area-inset-bottom,0px)] lg:hidden"
       aria-label={t("mainNavigation")}
     >
       <div className="mx-auto flex h-14 max-w-7xl items-stretch justify-around">

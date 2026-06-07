@@ -4,9 +4,8 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { inlineError } from "../../lib/ui-classes.ts";
 import {
-  isPercentageTotalComplete,
+  areCustomPercentagesValid,
   SmartPercentageInputs,
-  totalFromValues,
 } from "../forms/SmartPercentageInputs.tsx";
 import { MemberSelectorChips } from "./MemberSelectorChips.tsx";
 import { SplitModeToggle } from "./SplitModeToggle.tsx";
@@ -57,8 +56,7 @@ export function ExpenseParticipantSplits({
     [selectedTenants],
   );
 
-  const customTotal = totalFromValues(customPercentageValues, selectedTenantIds);
-  const customValid = isPercentageTotalComplete(customTotal);
+  const customValid = areCustomPercentagesValid(customPercentageValues, selectedTenantIds);
 
   return (
     <div className="space-y-4">
@@ -104,5 +102,5 @@ export function isCustomSplitValid(
   if (useAutoSplit) {
     return true;
   }
-  return isPercentageTotalComplete(totalFromValues(customPercentageValues, selectedTenantIds));
+  return areCustomPercentagesValid(customPercentageValues, selectedTenantIds);
 }
