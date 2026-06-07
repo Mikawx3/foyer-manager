@@ -406,8 +406,22 @@
     "csvHeaderAmount": "Amount (€)",
     "csvHeaderPaidBy": "Paid by",
     "csvHeaderSplitMode": "Split mode",
+    "splitColumn": "Split",
+    "splitDefault": "Auto (equal)",
     "csvExported": "CSV exported — {{count}} expenses",
     "defaultHouseholdSlug": "household"
+  },
+  "categories": {
+    "rent": "Rent",
+    "groceries": "Groceries",
+    "utilities": "Utilities",
+    "internet": "Internet",
+    "streaming": "Streaming",
+    "water": "Water",
+    "insurance": "Insurance",
+    "transport": "Transport",
+    "health": "Health",
+    "other": "Other"
   },
   "toast": {
     "settlementRecorded": "Settlement recorded",

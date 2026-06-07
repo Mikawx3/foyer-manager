@@ -38,6 +38,7 @@ import {
   getHousehold,
   getTenants,
 } from "../lib/api.ts";
+import { getCategoryDisplayName } from "../lib/category-label.ts";
 import {
   computeBalanceChartData,
   computeCategorySpending,
@@ -106,6 +107,7 @@ export function DashboardPage() {
   const { t } = useTranslation("dashboard");
   const { t: tCommon } = useTranslation("common");
   const { t: tToast } = useTranslation("toast");
+  const { t: tCategories } = useTranslation("categories");
   const { locale, formatCurrency, formatDate, formatSignedCurrency } = useFormat();
 
   const currencyTooltipFormatter = (value: unknown): string => {
@@ -191,8 +193,8 @@ export function DashboardPage() {
     [tenantsQuery.data],
   );
 
-  const categoryNameById = useMemo(
-    () => new Map(categoriesQuery.data?.map((category) => [category.id, category.name]) ?? []),
+  const categoryById = useMemo(
+    () => new Map(categoriesQuery.data?.map((category) => [category.id, category]) ?? []),
     [categoriesQuery.data],
   );
 
@@ -280,6 +282,7 @@ export function DashboardPage() {
         expensesQuery.data,
         categoriesQuery.data,
         tCommon("unknown"),
+        (category) => getCategoryDisplayName(category, tCategories),
       ),
       monthlyTrend: computeMonthlyTrend(expensesQuery.data, locale),
       balanceBars: computeBalanceChartData(balancesQuery.data, tenantsQuery.data),
@@ -292,6 +295,7 @@ export function DashboardPage() {
     tenantNameById,
     locale,
     tCommon,
+    tCategories,
   ]);
 
   const categoryChartHeight = stats
@@ -541,8 +545,7 @@ export function DashboardPage() {
               <div className="max-h-80 overflow-y-auto divide-y divide-border">
                 <ul className="space-y-0 md:hidden">
                   {recentExpensesQuery.data.data.map((expense) => {
-                    const categoryName =
-                      categoryNameById.get(expense.categoryId) ?? tCommon("category");
+                    const category = categoryById.get(expense.categoryId);
                     return (
                       <li key={expense.id} className="border-b border-border last:border-b-0">
                         <button
@@ -559,7 +562,10 @@ export function DashboardPage() {
                             </span>
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
-                            <CategoryBadge name={categoryName} />
+                            <CategoryBadge
+                              name={category?.name ?? tCommon("category")}
+                              slug={category?.slug}
+                            />
                             <span>{formatDate(expense.date)}</span>
                           </div>
                         </button>
@@ -580,8 +586,7 @@ export function DashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {recentExpensesQuery.data.data.map((expense) => {
-                        const categoryName =
-                          categoryNameById.get(expense.categoryId) ?? tCommon("category");
+                        const category = categoryById.get(expense.categoryId);
                         return (
                           <tr
                             key={expense.id}
@@ -592,7 +597,10 @@ export function DashboardPage() {
                               {expense.description}
                             </td>
                             <td className="px-3 py-2.5">
-                              <CategoryBadge name={categoryName} />
+                              <CategoryBadge
+                                name={category?.name ?? tCommon("category")}
+                                slug={category?.slug}
+                              />
                             </td>
                             <td className={`px-3 py-2.5 text-right ${amount}`}>
                               {formatCurrency(expense.amount)}

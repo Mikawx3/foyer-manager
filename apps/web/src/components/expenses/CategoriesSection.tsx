@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getCategoryDisplayName } from "../../lib/category-label.ts";
 import { deleteCategory, getApiErrorMessage } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { mutationToastHandlers } from "../../lib/toast.ts";
@@ -21,6 +22,7 @@ export function CategoriesSection({ householdId, categories }: CategoriesSection
   const { t } = useTranslation("expenses");
   const { t: tCommon } = useTranslation("common");
   const { t: tToast } = useTranslation("toast");
+  const { t: tCategories } = useTranslation("categories");
   const queryClient = useQueryClient();
   const [pendingDelete, setPendingDelete] = useState<PendingCategoryDelete | null>(null);
 
@@ -49,13 +51,20 @@ export function CategoriesSection({ householdId, categories }: CategoriesSection
               key={category.id}
               className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1"
             >
-              <CategoryBadge name={category.name} />
+              <CategoryBadge name={category.name} slug={category.slug} />
               <button
                 type="button"
-                onClick={() => setPendingDelete({ id: category.id, name: category.name })}
+                onClick={() =>
+                  setPendingDelete({
+                    id: category.id,
+                    name: getCategoryDisplayName(category, tCategories),
+                  })
+                }
                 disabled={deleteMutation.isPending}
                 className="rounded p-0.5 text-stone-400 transition hover:bg-stone-100 hover:text-negative disabled:opacity-50"
-                aria-label={tCommon("deleteItem", { name: category.name })}
+                aria-label={tCommon("deleteItem", {
+                  name: getCategoryDisplayName(category, tCategories),
+                })}
               >
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
               </button>

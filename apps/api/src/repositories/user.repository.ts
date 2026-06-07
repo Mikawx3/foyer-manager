@@ -1,7 +1,7 @@
 import type { User } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { handlePrismaError } from "../lib/prisma-errors.js";
-import { DEFAULT_CATEGORY_NAMES } from "../lib/default-categories.js";
+import { DEFAULT_CATEGORIES } from "../lib/default-categories.js";
 import { categoryRepository } from "./category.repository.js";
 
 export class UserRepository {
@@ -30,7 +30,7 @@ export class UserRepository {
 
         await categoryRepository.createManyForHousehold(
           household.id,
-          DEFAULT_CATEGORY_NAMES,
+          DEFAULT_CATEGORIES,
           tx,
         );
 

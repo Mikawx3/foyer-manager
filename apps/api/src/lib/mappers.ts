@@ -59,6 +59,7 @@ export function toCategoryDto(category: PrismaCategory): Category {
   return {
     id: category.id,
     name: category.name,
+    ...(category.slug !== null && { slug: category.slug }),
     householdId: category.householdId,
   };
 }

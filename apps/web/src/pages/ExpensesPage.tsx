@@ -30,6 +30,7 @@ import {
   getTenants,
   resetExpenseSplits,
 } from "../lib/api.ts";
+import { getCategoryDisplayName } from "../lib/category-label.ts";
 import { exportExpensesToCSV, getCsvHeaders, slugifyHouseholdName } from "../lib/export.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { formatTenantName } from "../lib/format-tenant-name.ts";
@@ -222,6 +223,7 @@ export function ExpensesPage() {
   const { t: tToast } = useTranslation("toast");
   const { t: tRecurring } = useTranslation("recurring");
   const { t: tExport } = useTranslation("export");
+  const { t: tCategories } = useTranslation("categories");
   const { formatCurrency, formatDate } = useFormat();
 
   const csvHeaders = useMemo(() => getCsvHeaders(tExport), [tExport]);
@@ -326,7 +328,13 @@ export function ExpensesPage() {
     }),
   });
 
-  const categoryNameById = new Map(categoriesQuery.data?.map((category) => [category.id, category.name]) ?? []);
+  const categoryById = new Map(categoriesQuery.data?.map((category) => [category.id, category]) ?? []);
+  const categoryNameById = new Map(
+    categoriesQuery.data?.map((category) => [
+      category.id,
+      getCategoryDisplayName(category, tCategories),
+    ]) ?? [],
+  );
   const tenantNameById = new Map(
     tenantsQuery.data?.map((tenant) => [tenant.id, formatTenantName(tenant)]) ?? [],
   );
@@ -342,19 +350,33 @@ export function ExpensesPage() {
       categoriesQuery.data.length > 0,
   );
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
+    const customExpenses = expenseList.filter((expense) => expense.splitMode === "custom");
+    const splitsByExpenseId = new Map<string, ExpenseSplit[]>(
+      await Promise.all(
+        customExpenses.map(async (expense) => [expense.id, await getSplits(expense.id)] as const),
+      ),
+    );
+    const expensesForExport = expenseList.map((expense) => ({
+      ...expense,
+      ...(expense.splitMode === "custom" && {
+        splits: splitsByExpenseId.get(expense.id),
+      }),
+    }));
     const householdSlug = slugifyHouseholdName(
       householdQuery.data?.name ?? tExport("defaultHouseholdSlug"),
     );
     const filename = `expenses-${householdSlug}-${month}.csv`;
     exportExpensesToCSV(
-      expenseList,
+      expensesForExport,
       filename,
       {
         categoryNameById,
         tenantNameById,
       },
       csvHeaders,
+      tenantsQuery.data ?? [],
+      tExport,
     );
     toast.success(tExport("csvExported", { count: expenseList.length }));
   };
@@ -485,7 +507,7 @@ export function ExpensesPage() {
                   <option value="">{tCommon("allCategories")}</option>
                   {categoriesQuery.data?.map((category) => (
                     <option key={category.id} value={category.id}>
-                      {category.name}
+                      {getCategoryDisplayName(category, tCategories)}
                     </option>
                   ))}
                 </select>
@@ -537,7 +559,7 @@ export function ExpensesPage() {
             {expensesQuery.isSuccess && expenseList.length > 0 && (
               <ul className="space-y-4">
                 {expenseList.map((expense) => {
-                  const categoryName = categoryNameById.get(expense.categoryId) ?? tCommon("category");
+                  const category = categoryById.get(expense.categoryId);
                   const paidByName = tenantNameById.get(expense.paidByTenantId) ?? tCommon("dash");
                   return (
                     <li key={expense.id} className={card}>
@@ -552,7 +574,10 @@ export function ExpensesPage() {
                             </p>
                           </div>
                           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
-                            <CategoryBadge name={categoryName} />
+                            <CategoryBadge
+                              name={category?.name ?? tCommon("category")}
+                              slug={category?.slug}
+                            />
                             <SplitModeBadge splitMode={expense.splitMode} />
                             <span>{formatDate(expense.date)}</span>
                             <span>

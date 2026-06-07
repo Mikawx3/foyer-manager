@@ -118,8 +118,9 @@ export function computeCategorySpending(
   expenses: Expense[],
   categories: Category[],
   unknownLabel: string,
+  getCategoryLabel: (category: Category) => string = (category) => category.name,
 ): CategorySpendingSlice[] {
-  const categoryNameById = new Map(categories.map((category) => [category.id, category.name]));
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
   const totalsByCategoryId = new Map<string, number>();
 
   for (const expense of expenses) {
@@ -129,11 +130,12 @@ export function computeCategorySpending(
 
   const slices: CategorySpendingSlice[] = [];
   for (const [categoryId, value] of totalsByCategoryId) {
-    const name = categoryNameById.get(categoryId) ?? unknownLabel;
+    const category = categoryById.get(categoryId);
+    const name = category ? getCategoryLabel(category) : unknownLabel;
     slices.push({
       name,
       value,
-      fill: getCategoryHexForName(name),
+      fill: getCategoryHexForName(category?.slug ?? name),
     });
   }
 

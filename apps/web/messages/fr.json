@@ -406,8 +406,22 @@
     "csvHeaderAmount": "Montant (€)",
     "csvHeaderPaidBy": "Payé par",
     "csvHeaderSplitMode": "Mode de répartition",
+    "splitColumn": "Répartition",
+    "splitDefault": "Auto (égale)",
     "csvExported": "CSV exporté — {{count}} dépenses",
     "defaultHouseholdSlug": "foyer"
+  },
+  "categories": {
+    "rent": "Loyer",
+    "groceries": "Alimentation",
+    "utilities": "Charges",
+    "internet": "Internet",
+    "streaming": "Streaming",
+    "water": "Eau",
+    "insurance": "Assurance",
+    "transport": "Transport",
+    "health": "Santé",
+    "other": "Autre"
   },
   "toast": {
     "settlementRecorded": "Règlement enregistré",

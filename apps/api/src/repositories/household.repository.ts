@@ -1,5 +1,5 @@
 import type { Household } from "@prisma/client";
-import { DEFAULT_CATEGORY_NAMES } from "../lib/default-categories.js";
+import { DEFAULT_CATEGORIES } from "../lib/default-categories.js";
 import { prisma } from "../lib/prisma.js";
 import { handlePrismaError } from "../lib/prisma-errors.js";
 import { categoryRepository } from "./category.repository.js";
@@ -22,7 +22,7 @@ export class HouseholdRepository {
       const household = await tx.household.create({ data });
       await categoryRepository.createManyForHousehold(
         household.id,
-        DEFAULT_CATEGORY_NAMES,
+        DEFAULT_CATEGORIES,
         tx,
       );
       return household;
@@ -57,7 +57,7 @@ export class HouseholdRepository {
 
       await categoryRepository.createManyForHousehold(
         household.id,
-        DEFAULT_CATEGORY_NAMES,
+        DEFAULT_CATEGORIES,
         tx,
       );
 

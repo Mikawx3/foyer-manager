@@ -24,14 +24,18 @@ export class CategoryRepository {
 
   async createManyForHousehold(
     householdId: string,
-    names: readonly string[],
+    categories: readonly { name: string; slug: string }[],
     client: Prisma.TransactionClient | typeof prisma = prisma,
   ): Promise<void> {
-    if (names.length === 0) {
+    if (categories.length === 0) {
       return;
     }
     await client.category.createMany({
-      data: names.map((name) => ({ name, householdId })),
+      data: categories.map((category) => ({
+        name: category.name,
+        slug: category.slug,
+        householdId,
+      })),
     });
   }
 

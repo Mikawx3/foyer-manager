@@ -106,6 +106,7 @@ export interface CreateTenantPayload {
 export interface Category {
   id: string;
   name: string;
+  slug?: string | null;
   householdId: string;
 }
 
@@ -172,6 +173,7 @@ export interface Expense {
   splitMode: SplitMode;
   date: string;
   createdAt: string;
+  splits?: ExpenseSplit[];
 }
 
 export type RecurringFrequency = "weekly" | "monthly" | "quarterly" | "yearly";

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { ExpenseParticipantSplits, isCustomSplitValid } from "../expenses/ExpenseParticipantSplits.tsx";
 import { resolveDefaultSplits } from "../../lib/api.ts";
+import { getCategoryDisplayName } from "../../lib/category-label.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { redistributeSplits } from "../../lib/redistribute-splits.ts";
 import { equalSplitPercentages } from "../../lib/split-percentages.ts";
@@ -55,6 +56,7 @@ export function ExpenseForm({
   const { t } = useTranslation("expenses");
   const { t: tCommon } = useTranslation("common");
   const { t: tValidation } = useTranslation("validation");
+  const { t: tCategories } = useTranslation("categories");
   const schema = useMemo(
     () => (variant === "edit" ? updateExpenseSchema(tValidation) : createExpenseSchema(tValidation)),
     [tValidation, variant],
@@ -316,7 +318,7 @@ export function ExpenseForm({
           </option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
-              {category.name}
+              {getCategoryDisplayName(category, tCategories)}
             </option>
           ))}
         </select>

@@ -24,6 +24,7 @@ import {
   putDefaultSplits,
   updateHousehold,
 } from "../lib/api.ts";
+import { getCategoryDisplayName } from "../lib/category-label.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
 import { buildPercentageMapFromRules } from "../lib/split-percentages.ts";
@@ -36,6 +37,7 @@ export function SettingsPage() {
   const { t: tCommon } = useTranslation("common");
   const { t: tMembers } = useTranslation("members");
   const { t: tToast } = useTranslation("toast");
+  const { t: tCategories } = useTranslation("categories");
 
   const [globalPercentages, setGlobalPercentages] = useState<Record<string, number>>({});
   const [categoryPercentages, setCategoryPercentages] = useState<Record<string, number>>({});
@@ -162,7 +164,12 @@ export function SettingsPage() {
     ? Object.entries(rulesQuery.data.byCategory)
     : [];
 
-  const categoryNameById = new Map(categoriesQuery.data?.map((category) => [category.id, category.name]) ?? []);
+  const categoryNameById = new Map(
+    categoriesQuery.data?.map((category) => [
+      category.id,
+      getCategoryDisplayName(category, tCategories),
+    ]) ?? [],
+  );
 
   const periodOptions: { value: SettlementPeriod; label: string }[] = [
     { value: "none", label: t("periodNone") },
@@ -306,7 +313,7 @@ export function SettingsPage() {
                     </option>
                     {categoriesQuery.data.map((category) => (
                       <option key={category.id} value={category.id}>
-                        {category.name}
+                        {getCategoryDisplayName(category, tCategories)}
                       </option>
                     ))}
                   </select>

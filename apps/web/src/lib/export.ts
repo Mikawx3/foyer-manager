@@ -1,18 +1,19 @@
-import type { Expense } from "@foyer/types";
+import type { Expense, Tenant } from "@foyer/types";
+import type { TFunction } from "i18next";
 
 export interface ExpenseExportMaps {
   categoryNameById: Map<string, string>;
   tenantNameById: Map<string, string>;
 }
 
-export function getCsvHeaders(t: (key: string) => string): string[] {
+export function getCsvHeaders(t: TFunction<"export">): string[] {
   return [
-    t("export:csvHeaderDate"),
-    t("export:csvHeaderDescription"),
-    t("export:csvHeaderCategory"),
-    t("export:csvHeaderAmount"),
-    t("export:csvHeaderPaidBy"),
-    t("export:csvHeaderSplitMode"),
+    t("csvHeaderDate"),
+    t("csvHeaderDescription"),
+    t("csvHeaderCategory"),
+    t("csvHeaderAmount"),
+    t("csvHeaderPaidBy"),
+    t("splitColumn"),
   ];
 }
 
@@ -35,10 +36,24 @@ function escapeCsvField(value: string): string {
   return value;
 }
 
+function resolveSplitLabel(expense: Expense, tenants: Tenant[], t: TFunction<"export">): string {
+  if (expense.splitMode === "custom" && expense.splits?.length) {
+    return expense.splits
+      .map((split) => {
+        const tenant = tenants.find((entry) => entry.id === split.tenantId);
+        return `${tenant?.name ?? "?"} ${Math.round(split.percentage ?? 0)}%`;
+      })
+      .join(" / ");
+  }
+  return t("splitDefault");
+}
+
 export function buildExpensesCsv(
   expenses: Expense[],
   maps: ExpenseExportMaps,
   headers: string[],
+  tenants: Tenant[],
+  t: TFunction<"export">,
 ): string {
   const rows = expenses.map((expense) => {
     const categoryName = maps.categoryNameById.get(expense.categoryId) ?? "—";
@@ -49,7 +64,7 @@ export function buildExpensesCsv(
       categoryName,
       formatExportAmount(expense.amount),
       paidBy,
-      expense.splitMode,
+      resolveSplitLabel(expense, tenants, t),
     ]
       .map(escapeCsvField)
       .join(",");
@@ -63,8 +78,10 @@ export function exportExpensesToCSV(
   filename: string,
   maps: ExpenseExportMaps,
   headers: string[],
+  tenants: Tenant[],
+  t: TFunction<"export">,
 ): void {
-  const csv = buildExpensesCsv(expenses, maps, headers);
+  const csv = buildExpensesCsv(expenses, maps, headers, tenants, t);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
