@@ -79,9 +79,9 @@ export class RecurringExpenseService {
   async create(householdId: string, input: CreateRecurringExpenseInput): Promise<RecurringExpense> {
     await this.assertHouseholdExists(householdId);
     await this.assertPaidByInHousehold(input.paidById, householdId);
-    const hasSplits = input.splits !== undefined && input.splits.length > 0;
-    if (hasSplits) {
-      await this.validateSplits(input.splits, householdId);
+    const splits = input.splits ?? [];
+    if (splits.length > 0) {
+      await this.validateSplits(splits, householdId);
     }
     if (input.category !== undefined) {
       await this.assertCategoryInHousehold(input.category, householdId);
@@ -97,7 +97,7 @@ export class RecurringExpenseService {
       frequency: input.frequency,
       startDate,
       nextDueDate: startDate,
-      ...(hasSplits && { splits: input.splits }),
+      ...(splits.length > 0 && { splits }),
     });
 
     return toRecurringExpenseDto(created, 0);
