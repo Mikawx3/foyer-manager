@@ -8,7 +8,7 @@
     "predev:cloud": "npm run build -w @foyer/types",
     "dev": "npm run dev:local",
     "dev:local": "concurrently -n web,api -c blue,green \"npm run dev -w @foyer/web\" \"npm run dev:local -w @foyer/api\"",
-    "dev:cloud": "concurrently -n web,api -c blue,green \"npm run dev -w @foyer/web\" \"npm run dev:cloud -w @foyer/api\"",
+    "dev:cloud": "concurrently -n web,api -c blue,green \"npm run dev:cloud -w @foyer/web\" \"npm run dev:cloud -w @foyer/api\"",
     "build": "npm run build -w @foyer/types && npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },

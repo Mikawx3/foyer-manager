@@ -647,12 +647,8 @@ export function DashboardPage() {
         onAmountChange={setModalAmount}
         onNoteChange={setModalNote}
         onDateChange={setModalDate}
-        onConfirm={() => {
+        onConfirm={(parsedAmount) => {
           if (!modalDraft) {
-            return;
-          }
-          const parsedAmount = Number(modalAmount);
-          if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
             return;
           }
           createSettlementMutation.mutate({

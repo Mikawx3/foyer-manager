@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { Category, Expense, Tenant } from "@foyer/types";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { ExpenseParticipantSplits, isCustomSplitValid } from "../expenses/ExpenseParticipantSplits.tsx";
 import { resolveDefaultSplits } from "../../lib/api.ts";
@@ -19,6 +19,7 @@ import {
 } from "../../lib/schemas.ts";
 import { btnPrimary, formCard } from "../../lib/ui-classes.ts";
 import { FormField, inputClassName, selectClassName } from "./FormField.tsx";
+import { CalculableAmountInput } from "./CalculableAmountInput.tsx";
 
 type ExpenseFormValues = CreateExpenseForm | UpdateExpenseForm;
 
@@ -96,6 +97,7 @@ export function ExpenseForm({
     reset,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<ExpenseFormValues>({
     resolver: zodResolver(schema),
@@ -300,12 +302,17 @@ export function ExpenseForm({
   const fields = (
     <>
       <FormField label={tCommon("amount")} error={errors.amount?.message}>
-        <input
-          className={inputClassName}
-          type="number"
-          step="0.01"
-          min="0"
-          {...register("amount", { valueAsNumber: true })}
+        <Controller
+          name="amount"
+          control={control}
+          render={({ field }) => (
+            <CalculableAmountInput
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              aria-invalid={errors.amount !== undefined}
+            />
+          )}
         />
       </FormField>
       <FormField label={tCommon("description")} error={errors.description?.message}>

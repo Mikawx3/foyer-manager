@@ -14,6 +14,7 @@ import {
 } from "../../lib/household-wizard-types.ts";
 import { btnSecondary } from "../../lib/ui-classes.ts";
 import { FormField, inputClassName, selectClassName } from "../forms/FormField.tsx";
+import { CalculableAmountInput } from "../forms/CalculableAmountInput.tsx";
 
 interface WizardStepRecurringProps {
   type: HouseholdType;
@@ -138,17 +139,9 @@ export function WizardStepRecurring({
                   />
                 </FormField>
                 <FormField label={tCommon("amount")}>
-                  <input
-                    className={inputClassName}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={Number.isNaN(item.amount) ? "" : item.amount}
-                    onChange={(event) =>
-                      updateItem(item.tempId, {
-                        amount: event.target.value === "" ? Number.NaN : Number(event.target.value),
-                      })
-                    }
+                  <CalculableAmountInput
+                    value={item.amount}
+                    onChange={(nextAmount) => updateItem(item.tempId, { amount: nextAmount })}
                     placeholder={t("recurringAmountPlaceholder")}
                   />
                 </FormField>

@@ -1,4 +1,10 @@
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { evaluateAmountExpression } from "../../lib/evaluate-amount-expression.ts";
+import {
+  CalculableAmountInput,
+  type CalculableAmountInputHandle,
+} from "../forms/CalculableAmountInput.tsx";
 import { inputClassName, selectClassName } from "../forms/FormField.tsx";
 import { Modal } from "../ui/Modal.tsx";
 import { btnPrimary, btnSecondary } from "../../lib/ui-classes.ts";
@@ -30,7 +36,7 @@ interface SettlementModalProps {
   onAmountChange: (value: string) => void;
   onNoteChange: (value: string) => void;
   onDateChange: (value: string) => void;
-  onConfirm: () => void;
+  onConfirm: (amount: number) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -53,14 +59,15 @@ export function SettlementModal({
 }: SettlementModalProps) {
   const { t } = useTranslation("balances");
   const { t: tCommon } = useTranslation("common");
+  const amountInputRef = useRef<CalculableAmountInputHandle>(null);
 
   if (!draft) {
     return null;
   }
 
   const recipientOptions = tenants.filter((tenant) => tenant.id !== draft.fromTenantId);
-  const parsedAmount = Number(amount);
-  const amountValid = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  const parsedAmount = evaluateAmountExpression(amount);
+  const amountValid = parsedAmount !== null;
   const tenantsValid =
     draft.fromTenantId !== "" &&
     draft.toTenantId !== "" &&
@@ -79,7 +86,11 @@ export function SettlementModal({
         className={draft.mode === "suggested" ? "mt-4 space-y-3" : "space-y-3"}
         onSubmit={(event) => {
           event.preventDefault();
-          onConfirm();
+          const committedAmount = amountInputRef.current?.commit();
+          if (!Number.isFinite(committedAmount) || committedAmount <= 0) {
+            return;
+          }
+          onConfirm(committedAmount);
         }}
       >
         {draft.mode === "manual" && (
@@ -132,15 +143,14 @@ export function SettlementModal({
           <label htmlFor="settlement-amount" className="block text-sm font-medium text-stone-700">
             {tCommon("amount")}
           </label>
-          <input
+          <CalculableAmountInput
+            ref={amountInputRef}
             id="settlement-amount"
-            type="number"
-            min={0.01}
-            step={0.01}
-            className={inputClassName}
-            value={amount}
+            value={amount === "" ? Number.NaN : Number(amount)}
             placeholder={draft.mode === "manual" ? t("amountPlaceholder") : undefined}
-            onChange={(event) => onAmountChange(event.target.value)}
+            onChange={(nextValue) =>
+              onAmountChange(Number.isNaN(nextValue) ? "" : String(nextValue))
+            }
           />
         </div>
         <div className="space-y-1">
