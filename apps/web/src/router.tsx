@@ -11,6 +11,7 @@ import { RegisterPage } from "./pages/RegisterPage.tsx";
 import { BalancesPage } from "./pages/BalancesPage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
 import { ExpensesPage } from "./pages/ExpensesPage.tsx";
+import { IncomePage } from "./pages/IncomePage.tsx";
 import { CategoriesSettingsPage } from "./pages/CategoriesSettingsPage.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
               { path: "dashboard", element: <DashboardPage /> },
               { path: "tenants", element: <Navigate to="settings/members" replace /> },
               { path: "expenses", element: <ExpensesPage /> },
+              { path: "income", element: <IncomePage /> },
               { path: "balances", element: <BalancesPage /> },
               {
                 path: "settings",

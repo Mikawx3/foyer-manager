@@ -151,9 +151,13 @@
     "dashboard": "Dashboard",
     "dashboardShort": "Home",
     "expenses": "Expenses",
+    "income": "Income & Budget",
+    "incomeShort": "Income",
     "balances": "Balances",
     "settings": "Settings",
     "settingsShort": "Settings",
+    "more": "More",
+    "moreMenu": "More options",
     "allHouseholds": "All households",
     "signOut": "Sign out",
     "accountMenu": "Account menu",
@@ -397,7 +401,10 @@
     "splitsOnlyParticipants": "Splits must only include selected participants",
     "addAtLeastOneSplit": "Add at least one split",
     "eachTenantOnce": "Each tenant can only appear once",
-    "titleRequired": "Title is required"
+    "titleRequired": "Title is required",
+    "labelRequired": "Label is required",
+    "selectMember": "Select a member",
+    "useMonthFormat": "Use YYYY-MM format"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",
@@ -453,7 +460,68 @@
     "householdDeleted": "Household deleted.",
     "defaultRuleUpdated": "Default rule updated",
     "balancePeriodUpdated": "Balance period updated",
-    "ruleResetToGlobal": "Rule reset to global"
+    "ruleResetToGlobal": "Rule reset to global",
+    "incomeRecorded": "Income recorded",
+    "incomeUpdated": "Income updated",
+    "incomeDeleted": "Income deleted",
+    "incomeTemplateRecorded": "Recurring income saved",
+    "incomeTemplateUpdated": "Recurring income updated",
+    "incomeTemplateDeleted": "Recurring income removed",
+    "incomeOverrideReset": "Month reset to recurring amount"
+  },
+  "income": {
+    "title": "Income & Budget",
+    "subtitle": "Track monthly income and compare it to household spending.",
+    "addIncome": "Add income",
+    "editIncome": "Edit income",
+    "deleteIncome": "Delete income",
+    "deleteConfirm": "Delete this income entry?",
+    "noIncome": "No income recorded for this month",
+    "memberIncomes": "{{name}} — income",
+    "amount": "Amount",
+    "label": "Label",
+    "note": "Note (optional)",
+    "month": "Month",
+    "member": "Member",
+    "customLabel": "Custom label",
+    "income": "Income",
+    "expenses": "Expenses",
+    "savings": "Savings",
+    "recurringTitle": "Monthly recurring income",
+    "recurringSubtitle": "Applied automatically every month. Month-specific edits take priority.",
+    "everyMonth": "Every month (recurring)",
+    "thisMonthOnly": "This month only",
+    "monthOverride": "Custom for this month",
+    "resetToRecurring": "Reset to recurring amount",
+    "editRecurring": "Edit recurring income",
+    "source": {
+      "template": "Recurring",
+      "override": "Custom this month",
+      "one-off": "One-time"
+    },
+    "labels": {
+      "salary": "Salary",
+      "freelance": "Freelance",
+      "benefits": "Benefits",
+      "other": "Other"
+    },
+    "stats": {
+      "totalIncome": "Total income",
+      "totalExpenses": "Total expenses",
+      "remaining": "Remaining budget",
+      "savingsRate": "Savings rate",
+      "largestExpense": "Largest expense",
+      "trend": "6-month trend",
+      "breakdown": "Per member breakdown",
+      "budgetVsExpenses": "Income vs expenses by member"
+    },
+    "columns": {
+      "member": "Member",
+      "income": "Income",
+      "expenses": "Expenses",
+      "balance": "Balance",
+      "savingsRate": "Savings rate"
+    }
   },
   "households": {
     "title": "Households",

@@ -5,6 +5,7 @@ import type {
   Category,
   CreateExpensePayload,
   CreateHouseholdPayload,
+  CreateIncomePayload,
   CreateSettlementPayload,
   DefaultSplit,
   DefaultSplitRules,
@@ -12,6 +13,12 @@ import type {
   ExpenseSplit,
   Household,
   HouseholdDeletionPreview,
+  Income,
+  IncomeStats,
+  IncomeTemplate,
+  CreateIncomeTemplatePayload,
+  UpdateIncomeTemplatePayload,
+  ResolvedIncome,
   CreateRecurringExpensePayload,
   LoginPayload,
   PaginatedExpenses,
@@ -25,6 +32,7 @@ import type {
   TenantBalance,
   UpdateExpensePayload,
   UpdateHouseholdPayload,
+  UpdateIncomePayload,
 } from "@foyer/types";
 import axios, { isAxiosError } from "axios";
 import i18n from "../i18n.ts";
@@ -424,5 +432,89 @@ export async function generateRecurringExpense(
   const { data } = await api.post<Expense>(
     `/households/${householdId}/recurring-expenses/${recurringId}/generate`,
   );
+  return data;
+}
+
+export async function listIncomes(
+  householdId: string,
+  month: string,
+): Promise<ResolvedIncome[]> {
+  const { data } = await api.get<ResolvedIncome[]>(`/households/${householdId}/incomes`, {
+    params: { month },
+  });
+  return data;
+}
+
+export async function listIncomeTemplates(householdId: string): Promise<IncomeTemplate[]> {
+  const { data } = await api.get<IncomeTemplate[]>(
+    `/households/${householdId}/incomes/templates`,
+  );
+  return data;
+}
+
+export async function createIncomeTemplate(
+  householdId: string,
+  payload: CreateIncomeTemplatePayload,
+): Promise<IncomeTemplate> {
+  const { data } = await api.post<IncomeTemplate>(
+    `/households/${householdId}/incomes/templates`,
+    payload,
+  );
+  return data;
+}
+
+export async function updateIncomeTemplate(
+  householdId: string,
+  templateId: string,
+  payload: UpdateIncomeTemplatePayload,
+): Promise<IncomeTemplate> {
+  const { data } = await api.patch<IncomeTemplate>(
+    `/households/${householdId}/incomes/templates/${templateId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function deleteIncomeTemplate(
+  householdId: string,
+  templateId: string,
+): Promise<IncomeTemplate> {
+  const { data } = await api.delete<IncomeTemplate>(
+    `/households/${householdId}/incomes/templates/${templateId}`,
+  );
+  return data;
+}
+
+export async function createIncome(
+  householdId: string,
+  payload: CreateIncomePayload,
+): Promise<Income> {
+  const { data } = await api.post<Income>(`/households/${householdId}/incomes`, payload);
+  return data;
+}
+
+export async function updateIncome(
+  householdId: string,
+  incomeId: string,
+  payload: UpdateIncomePayload,
+): Promise<Income> {
+  const { data } = await api.patch<Income>(
+    `/households/${householdId}/incomes/${incomeId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function deleteIncome(householdId: string, incomeId: string): Promise<Income> {
+  const { data } = await api.delete<Income>(
+    `/households/${householdId}/incomes/${incomeId}`,
+  );
+  return data;
+}
+
+export async function getIncomeStats(householdId: string, month: string): Promise<IncomeStats> {
+  const { data } = await api.get<IncomeStats>(`/households/${householdId}/incomes/stats`, {
+    params: { month },
+  });
   return data;
 }

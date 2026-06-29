@@ -6,6 +6,15 @@ export interface ExpenseListFilterInput {
   month?: string;
 }
 
+export function monthToDateRange(month: string): { gte: Date; lt: Date } {
+  const [yearStr, monthStr] = month.split("-");
+  const year = Number(yearStr);
+  const monthIndex = Number(monthStr) - 1;
+  const gte = new Date(year, monthIndex, 1);
+  const lt = new Date(year, monthIndex + 1, 1);
+  return { gte, lt };
+}
+
 export function buildExpenseListWhere(
   filters: ExpenseListFilterInput,
 ): Prisma.ExpenseWhereInput {
@@ -18,11 +27,7 @@ export function buildExpenseListWhere(
   }
 
   if (filters.month) {
-    const [yearStr, monthStr] = filters.month.split("-");
-    const year = Number(yearStr);
-    const monthIndex = Number(monthStr) - 1;
-    const gte = new Date(year, monthIndex, 1);
-    const lt = new Date(year, monthIndex + 1, 1);
+    const { gte, lt } = monthToDateRange(filters.month);
     where.date = { gte, lt };
   }
 

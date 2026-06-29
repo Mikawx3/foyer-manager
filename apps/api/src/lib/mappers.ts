@@ -5,6 +5,8 @@ import type {
   ExpenseSplit,
   Household,
   HouseholdType,
+  Income,
+  IncomeTemplate,
   Settlement,
   SettlementPeriod,
   SplitMode,
@@ -16,6 +18,8 @@ import type {
   Expense as PrismaExpense,
   ExpenseSplit as PrismaExpenseSplit,
   Household as PrismaHousehold,
+  Income as PrismaIncome,
+  IncomeTemplate as PrismaIncomeTemplate,
   Settlement as PrismaSettlement,
   Tenant as PrismaTenant,
 } from "@prisma/client";
@@ -119,5 +123,33 @@ export function toExpenseSplitDto(split: PrismaExpenseSplit): ExpenseSplit {
     tenantId: split.tenantId,
     amount: decimalToNumber(split.amount),
     ...(split.percentage !== null && { percentage: split.percentage }),
+  };
+}
+
+export function toIncomeDto(income: PrismaIncome): Income {
+  return {
+    id: income.id,
+    householdId: income.householdId,
+    tenantId: income.tenantId,
+    amount: decimalToNumber(income.amount),
+    label: income.label,
+    month: income.month,
+    ...(income.note !== null && { note: income.note }),
+    createdAt: income.createdAt.toISOString(),
+    updatedAt: income.updatedAt.toISOString(),
+  };
+}
+
+export function toIncomeTemplateDto(template: PrismaIncomeTemplate): IncomeTemplate {
+  return {
+    id: template.id,
+    householdId: template.householdId,
+    tenantId: template.tenantId,
+    amount: decimalToNumber(template.amount),
+    label: template.label,
+    ...(template.note !== null && { note: template.note }),
+    active: template.active,
+    createdAt: template.createdAt.toISOString(),
+    updatedAt: template.updatedAt.toISOString(),
   };
 }

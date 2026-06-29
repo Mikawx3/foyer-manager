@@ -247,3 +247,97 @@ export interface TenantBalance {
   balance: number;
   settledAmount: number;
 }
+
+export interface Income {
+  id: string;
+  householdId: string;
+  tenantId: string;
+  amount: number;
+  label: string;
+  month: string;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type IncomeSource = "template" | "override" | "one-off";
+
+/** Income resolved for a specific month (template + optional override). */
+export interface ResolvedIncome {
+  id: string;
+  householdId: string;
+  tenantId: string;
+  amount: number;
+  label: string;
+  month: string;
+  note?: string;
+  source: IncomeSource;
+  templateId?: string;
+  overrideId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IncomeTemplate {
+  id: string;
+  householdId: string;
+  tenantId: string;
+  amount: number;
+  label: string;
+  note?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateIncomeTemplatePayload {
+  tenantId: string;
+  amount: number;
+  label: string;
+  note?: string;
+  householdId: string;
+}
+
+export interface UpdateIncomeTemplatePayload {
+  amount?: number;
+  label?: string;
+  note?: string;
+  active?: boolean;
+}
+
+export interface CreateIncomePayload {
+  tenantId: string;
+  amount: number;
+  label: string;
+  month: string;
+  note?: string;
+  householdId: string;
+}
+
+export interface UpdateIncomePayload {
+  amount?: number;
+  label?: string;
+  note?: string;
+}
+
+export interface IncomeStats {
+  month: string;
+  totalIncome: number;
+  totalExpenses: number;
+  savingsRate: number;
+  remainingBudget: number;
+  byTenant: {
+    tenantId: string;
+    tenantName: string;
+    income: number;
+    expenses: number;
+    balance: number;
+    savingsRate: number;
+  }[];
+  trend: {
+    month: string;
+    income: number;
+    expenses: number;
+    savings: number;
+  }[];
+}

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Home } from "lucide-react";
+import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Home, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
@@ -14,6 +14,7 @@ import { MobileBottomTabBar } from "./MobileBottomTabBar.tsx";
 const navItems = [
   { to: "dashboard", labelKey: "dashboard", icon: LayoutDashboard, end: true },
   { to: "expenses", labelKey: "expenses", icon: Receipt, end: false },
+  { to: "income", labelKey: "income", icon: TrendingUp, end: false },
   { to: "balances", labelKey: "balances", icon: Scale, end: false },
 ] as const;
 

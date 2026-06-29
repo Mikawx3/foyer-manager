@@ -2,8 +2,14 @@ import type { Expense, ExpenseSplit, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { handlePrismaError } from "../lib/prisma-errors.js";
 import { numberToDecimal, decimalToNumber } from "../lib/decimal.js";
+import { monthToDateRange } from "./expense-list-filters.js";
 
 export type ExpenseWithSplits = Expense & { splits: ExpenseSplit[] };
+
+export interface ExpenseWithSplitsOptions {
+  dateFrom?: Date;
+  month?: string;
+}
 
 export class ExpenseRepository {
   async findById(id: string): Promise<Expense | null> {
@@ -19,6 +25,17 @@ export class ExpenseRepository {
 
   async countByWhere(where: Prisma.ExpenseWhereInput): Promise<number> {
     return prisma.expense.count({ where });
+  }
+
+  async sumAmountByWhere(where: Prisma.ExpenseWhereInput): Promise<number> {
+    const result = await prisma.expense.aggregate({
+      where,
+      _sum: { amount: true },
+    });
+    if (result._sum.amount === null) {
+      return 0;
+    }
+    return decimalToNumber(result._sum.amount);
   }
 
   async sumAmountByHousehold(householdId: string): Promise<number> {
@@ -46,14 +63,20 @@ export class ExpenseRepository {
 
   async findAllByHouseholdWithSplits(
     householdId: string,
-    options?: { dateFrom?: Date },
+    options?: ExpenseWithSplitsOptions,
   ): Promise<ExpenseWithSplits[]> {
+    let dateFilter: { gte?: Date; lt?: Date } | undefined;
+    if (options?.month !== undefined) {
+      const { gte, lt } = monthToDateRange(options.month);
+      dateFilter = { gte, lt };
+    } else if (options?.dateFrom !== undefined) {
+      dateFilter = { gte: options.dateFrom };
+    }
+
     return prisma.expense.findMany({
       where: {
         householdId,
-        ...(options?.dateFrom !== undefined && {
-          date: { gte: options.dateFrom },
-        }),
+        ...(dateFilter !== undefined && { date: dateFilter }),
       },
       include: { splits: true },
       orderBy: { date: "desc" },

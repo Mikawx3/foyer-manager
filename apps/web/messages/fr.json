@@ -151,9 +151,13 @@
     "dashboard": "Tableau de bord",
     "dashboardShort": "Accueil",
     "expenses": "Dépenses",
+    "income": "Revenus & budget",
+    "incomeShort": "Revenus",
     "balances": "Soldes",
     "settings": "Paramètres",
     "settingsShort": "Réglages",
+    "more": "Plus",
+    "moreMenu": "Plus d'options",
     "allHouseholds": "Tous les foyers",
     "signOut": "Déconnexion",
     "accountMenu": "Menu du compte",
@@ -397,7 +401,10 @@
     "splitsOnlyParticipants": "Les parts ne doivent inclure que les participants sélectionnés",
     "addAtLeastOneSplit": "Ajoutez au moins une part",
     "eachTenantOnce": "Chaque membre ne peut apparaître qu'une fois",
-    "titleRequired": "Le titre est requis"
+    "titleRequired": "Le titre est requis",
+    "labelRequired": "Le libellé est requis",
+    "selectMember": "Sélectionnez un membre",
+    "useMonthFormat": "Utilisez le format AAAA-MM"
   },
   "errors": {
     "somethingWentWrong": "Une erreur est survenue",
@@ -453,7 +460,68 @@
     "householdDeleted": "Foyer supprimé.",
     "defaultRuleUpdated": "Règle par défaut mise à jour",
     "balancePeriodUpdated": "Période de solde mise à jour",
-    "ruleResetToGlobal": "Règle réinitialisée au global"
+    "ruleResetToGlobal": "Règle réinitialisée au global",
+    "incomeRecorded": "Revenu enregistré",
+    "incomeUpdated": "Revenu mis à jour",
+    "incomeDeleted": "Revenu supprimé",
+    "incomeTemplateRecorded": "Revenu récurrent enregistré",
+    "incomeTemplateUpdated": "Revenu récurrent mis à jour",
+    "incomeTemplateDeleted": "Revenu récurrent supprimé",
+    "incomeOverrideReset": "Mois rétabli au montant récurrent"
+  },
+  "income": {
+    "title": "Revenus & budget",
+    "subtitle": "Suivez les revenus mensuels et comparez-les aux dépenses du foyer.",
+    "addIncome": "Ajouter un revenu",
+    "editIncome": "Modifier le revenu",
+    "deleteIncome": "Supprimer le revenu",
+    "deleteConfirm": "Supprimer cette entrée de revenu ?",
+    "noIncome": "Aucun revenu enregistré pour ce mois",
+    "memberIncomes": "{{name}} — revenus",
+    "amount": "Montant",
+    "label": "Libellé",
+    "note": "Note (facultatif)",
+    "month": "Mois",
+    "member": "Membre",
+    "customLabel": "Libellé personnalisé",
+    "income": "Revenus",
+    "expenses": "Dépenses",
+    "savings": "Épargne",
+    "recurringTitle": "Revenus mensuels récurrents",
+    "recurringSubtitle": "Appliqués automatiquement chaque mois. Une modification sur un mois précis est prioritaire.",
+    "everyMonth": "Chaque mois (récurrent)",
+    "thisMonthOnly": "Ce mois uniquement",
+    "monthOverride": "Personnalisé pour ce mois",
+    "resetToRecurring": "Rétablir le montant récurrent",
+    "editRecurring": "Modifier le revenu récurrent",
+    "source": {
+      "template": "Récurrent",
+      "override": "Personnalisé ce mois",
+      "one-off": "Ponctuel"
+    },
+    "labels": {
+      "salary": "Salaire",
+      "freelance": "Freelance",
+      "benefits": "Allocations",
+      "other": "Autre"
+    },
+    "stats": {
+      "totalIncome": "Revenus totaux",
+      "totalExpenses": "Dépenses totales",
+      "remaining": "Budget restant",
+      "savingsRate": "Taux d'épargne",
+      "largestExpense": "Plus grosse dépense",
+      "trend": "Tendance sur 6 mois",
+      "breakdown": "Répartition par membre",
+      "budgetVsExpenses": "Revenus vs dépenses par membre"
+    },
+    "columns": {
+      "member": "Membre",
+      "income": "Revenus",
+      "expenses": "Dépenses",
+      "balance": "Solde",
+      "savingsRate": "Taux d'épargne"
+    }
   },
   "households": {
     "title": "Foyers",

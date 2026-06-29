@@ -180,3 +180,51 @@ export type UpdateExpenseForm = z.infer<ReturnType<typeof updateExpenseSchema>>;
 export type AssignSplitsForm = z.infer<ReturnType<typeof assignSplitsSchema>>;
 export type CreateRecurringExpenseForm = z.infer<ReturnType<typeof createRecurringExpenseSchema>>;
 export type UpdateRecurringExpenseForm = z.infer<ReturnType<typeof updateRecurringExpenseSchema>>;
+
+const incomeMonthSchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Use YYYY-MM format");
+
+export function createIncomeSchema(t: TFunction<"validation">) {
+  return z.object({
+    tenantId: z.string().cuid(t("selectMember")),
+    amount: z.number().positive(t("amountMustBePositive")).max(999_999_999.99),
+    label: z.string().trim().min(1, t("labelRequired")).max(100),
+    month: incomeMonthSchema,
+    note: z.string().trim().max(500).optional(),
+    householdId: z.string().cuid(),
+  });
+}
+
+export function updateIncomeSchema(t: TFunction<"validation">) {
+  return z.object({
+    amount: z.number().positive(t("amountMustBePositive")).max(999_999_999.99).optional(),
+    label: z.string().trim().min(1, t("labelRequired")).max(100).optional(),
+    note: z.string().trim().max(500).nullable().optional(),
+  });
+}
+
+export type CreateIncomeForm = z.infer<ReturnType<typeof createIncomeSchema>>;
+export type UpdateIncomeForm = z.infer<ReturnType<typeof updateIncomeSchema>>;
+
+export function createIncomeTemplateSchema(t: TFunction<"validation">) {
+  return z.object({
+    tenantId: z.string().cuid(t("selectMember")),
+    amount: z.number().positive(t("amountMustBePositive")).max(999_999_999.99),
+    label: z.string().trim().min(1, t("labelRequired")).max(100),
+    note: z.string().trim().max(500).optional(),
+    householdId: z.string().cuid(),
+  });
+}
+
+export function updateIncomeTemplateSchema(t: TFunction<"validation">) {
+  return z.object({
+    amount: z.number().positive(t("amountMustBePositive")).max(999_999_999.99).optional(),
+    label: z.string().trim().min(1, t("labelRequired")).max(100).optional(),
+    note: z.string().trim().max(500).nullable().optional(),
+    active: z.boolean().optional(),
+  });
+}
+
+export type CreateIncomeTemplateForm = z.infer<ReturnType<typeof createIncomeTemplateSchema>>;
+export type UpdateIncomeTemplateForm = z.infer<ReturnType<typeof updateIncomeTemplateSchema>>;

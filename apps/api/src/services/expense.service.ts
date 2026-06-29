@@ -286,6 +286,31 @@ export class ExpenseService {
     return applySettlements(expenseBalances, settlementInputs);
   }
 
+  async getTenantOwedTotalsForMonth(
+    householdId: string,
+    month: string,
+  ): Promise<Map<string, number>> {
+    const expensesWithSplits = await this.expenses.findAllByHouseholdWithSplits(
+      householdId,
+      { month },
+    );
+
+    const owedByTenant = new Map<string, number>();
+
+    const splitResults = await Promise.all(
+      expensesWithSplits.map((expense) => this.getSplitsForExpense(expense)),
+    );
+
+    for (const expenseSplits of splitResults) {
+      for (const split of expenseSplits) {
+        const current = owedByTenant.get(split.tenantId) ?? 0;
+        owedByTenant.set(split.tenantId, current + split.amount);
+      }
+    }
+
+    return owedByTenant;
+  }
+
   private async getSplitsForExpense(expense: PrismaExpense): Promise<ExpenseSplit[]> {
     if (expense.splitMode === "custom") {
       const items = await this.splits.findByExpenseId(expense.id);
