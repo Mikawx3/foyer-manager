@@ -56,6 +56,7 @@
     "edit": "Modifier",
     "delete": "Supprimer",
     "reset": "Réinitialiser",
+    "search": "Rechercher",
     "undo": "Annuler",
     "archive": "Archiver",
     "restore": "Restaurer",
@@ -192,6 +193,9 @@
     "monthlyTrendEmpty": "Aucune dépense sur les 6 derniers mois.",
     "balancesChart": "Soldes",
     "balancesChartEmpty": "Aucun membre ou donnée de solde.",
+    "balancesCumulativeNote": "Soldes cumulés — indépendants du mois affiché ci-dessus.",
+    "incomeThisMonth": "Revenus ce mois-ci",
+    "remainingBudget": "Reste à dépenser",
     "recentExpenses": "Dépenses récentes",
     "recentExpensesEmpty": "Aucune dépense pour l'instant.",
     "tableTitle": "Titre",
@@ -203,6 +207,7 @@
   "expenses": {
     "title": "Dépenses",
     "subtitle": "Suivez les dépenses et répartissez les coûts.",
+    "statsTitle": "Vue mensuelle",
     "exportCsv": "Exporter CSV",
     "newExpense": "Nouvelle dépense",
     "editExpense": "Modifier la dépense",
@@ -222,6 +227,15 @@
     "newCategory": "Nouvelle catégorie",
     "categoryNamePlaceholder": "ex. Loyer",
     "addCategory": "Ajouter la catégorie",
+    "categoryColor": "Couleur",
+    "categoryColorOption": "Couleur {{color}}",
+    "categoryColorInUse": "Déjà utilisée par une autre catégorie",
+    "categoryColorSuggested": "Couleur libre suggérée",
+    "createCategoryInline": "+ Créer une catégorie",
+    "newCategoryNamePlaceholder": "Nom de la nouvelle catégorie",
+    "pickExistingCategory": "Choisir une catégorie existante",
+    "createCategoryFailed": "Impossible de créer la catégorie",
+    "searchPlaceholder": "Rechercher par libellé, montant ou payeur…",
     "deleteCategoryTitle": "Supprimer la catégorie",
     "deleteCategoryMessage": "Supprimer « {{name}} » ? Les dépenses de cette catégorie conserveront leurs données."
   },
@@ -513,7 +527,10 @@
       "largestExpense": "Plus grosse dépense",
       "trend": "Tendance sur 6 mois",
       "breakdown": "Répartition par membre",
-      "budgetVsExpenses": "Revenus vs dépenses par membre"
+      "budgetVsExpenses": "Revenus vs dépenses par membre",
+      "spendingByCategory": "Dépenses par catégorie",
+      "spendingByCategoryEmpty": "Aucune dépense ce mois-ci. Ajoutez des dépenses pour voir où part votre budget.",
+      "categoryBreakdown": "Répartition par catégorie"
     },
     "columns": {
       "member": "Membre",
@@ -522,6 +539,19 @@
       "balance": "Solde",
       "savingsRate": "Taux d'épargne"
     }
+  },
+  "stats": {
+    "totalExpenses": "Total dépenses",
+    "expenseCount": "Dépenses",
+    "topCategory": "Catégorie principale",
+    "largestExpense": "Plus grosse dépense",
+    "category": "Catégorie",
+    "amount": "Montant",
+    "share": "Part",
+    "expenseCountColumn": "Nb",
+    "view": "Voir",
+    "spendingByCategory": "Dépenses par catégorie",
+    "spendingByCategoryEmpty": "Aucune dépense ce mois-ci."
   },
   "households": {
     "title": "Foyers",

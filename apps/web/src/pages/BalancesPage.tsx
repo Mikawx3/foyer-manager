@@ -7,6 +7,9 @@ import {
   SettlementModal,
   type SettlementModalDraft,
 } from "../components/balances/SettlementModal.tsx";
+import { CategoryBreakdownTable } from "../components/stats/CategoryBreakdownTable.tsx";
+import { CategorySpendingChart } from "../components/stats/CategorySpendingChart.tsx";
+import { MonthNavigator } from "../components/stats/MonthNavigator.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
@@ -17,12 +20,13 @@ import {
   getApiErrorMessage,
   getBalances,
   getCategories,
+  getExpenseStats,
   getHousehold,
   getSettlements,
   getTenants,
 } from "../lib/api.ts";
-import { computeCategorySpending } from "../lib/dashboard-stats.ts";
-import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
+import { getCategoryDisplayName } from "../lib/category-label.ts";
+import { currentMonthValue } from "../lib/expense-list-filters.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { computeSuggestedSettlements } from "../lib/suggested-settlements.ts";
@@ -46,9 +50,12 @@ export function BalancesPage() {
   const { t } = useTranslation("balances");
   const { t: tCommon } = useTranslation("common");
   const { t: tToast } = useTranslation("toast");
+  const { t: tCategories } = useTranslation("categories");
+  const { t: tStats } = useTranslation("stats");
   const { formatCurrency, formatDate } = useFormat();
 
   const [balancePeriod, setBalancePeriod] = useState<"all" | "current">("all");
+  const [categoryMonth, setCategoryMonth] = useState(currentMonthValue);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [modalDraft, setModalDraft] = useState<SettlementModalDraft | null>(null);
   const [modalAmount, setModalAmount] = useState("");
@@ -65,9 +72,9 @@ export function BalancesPage() {
 
   const showPeriodTabs = !isSolo && householdQuery.data?.settlementPeriod !== "none";
 
-  const expensesQuery = useQuery({
-    queryKey: queryKeys.expensesAll(householdId),
-    queryFn: () => fetchAllExpenses(householdId),
+  const expenseStatsQuery = useQuery({
+    queryKey: queryKeys.expenseStats(householdId, categoryMonth),
+    queryFn: () => getExpenseStats(householdId, categoryMonth),
     enabled: Boolean(householdId) && isSolo,
   });
 
@@ -76,17 +83,6 @@ export function BalancesPage() {
     queryFn: () => getCategories(householdId),
     enabled: Boolean(householdId) && isSolo,
   });
-
-  const categorySpending = useMemo(() => {
-    if (!expensesQuery.data || !categoriesQuery.data) {
-      return [];
-    }
-    return computeCategorySpending(
-      expensesQuery.data,
-      categoriesQuery.data,
-      tCommon("unknown"),
-    );
-  }, [expensesQuery.data, categoriesQuery.data, tCommon]);
 
   const balancesQuery = useQuery({
     queryKey: queryKeys.balances(householdId, balancePeriod),
@@ -154,7 +150,7 @@ export function BalancesPage() {
   });
 
   const isLoading = isSolo
-    ? expensesQuery.isLoading || categoriesQuery.isLoading || householdQuery.isLoading
+    ? expenseStatsQuery.isLoading || categoriesQuery.isLoading || householdQuery.isLoading
     : balancesQuery.isLoading || tenantsQuery.isLoading || householdQuery.isLoading;
 
   const tenants = tenantsQuery.data ?? [];
@@ -256,6 +252,10 @@ export function BalancesPage() {
         </div>
       )}
 
+      {isSolo && (
+        <MonthNavigator month={categoryMonth} onChange={setCategoryMonth} />
+      )}
+
       {isLoading && <ListSkeleton rows={3} />}
       {!isSolo && balancesQuery.isError && (
         <ErrorMessage
@@ -263,66 +263,38 @@ export function BalancesPage() {
           onRetry={() => balancesQuery.refetch()}
         />
       )}
-      {isSolo && (expensesQuery.isError || categoriesQuery.isError) && (
+      {isSolo && (expenseStatsQuery.isError || categoriesQuery.isError) && (
         <ErrorMessage
-          message={getApiErrorMessage(expensesQuery.error ?? categoriesQuery.error)}
+          message={getApiErrorMessage(expenseStatsQuery.error ?? categoriesQuery.error)}
           onRetry={() => {
-            void expensesQuery.refetch();
+            void expenseStatsQuery.refetch();
             void categoriesQuery.refetch();
           }}
         />
       )}
-      {isSolo && expensesQuery.isSuccess && categoriesQuery.isSuccess && categorySpending.length === 0 && (
+      {isSolo && expenseStatsQuery.isSuccess && categoriesQuery.isSuccess && expenseStatsQuery.data.byCategory.length === 0 && (
         <EmptyState
           title={t("noSpendingTitle")}
           description={t("noSpendingDescription")}
         />
       )}
-      {isSolo && expensesQuery.isSuccess && categoriesQuery.isSuccess && categorySpending.length > 0 && (
-        <>
-          <ul className="space-y-3 md:hidden">
-            {categorySpending.map((row) => (
-              <li key={row.name} className={card}>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="inline-flex min-w-0 items-center gap-2 font-medium text-stone-900">
-                    <span
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: row.fill }}
-                    />
-                    {row.name}
-                  </span>
-                  <span className={`${amount} shrink-0 text-lg`}>{formatCurrency(row.value)}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className={`${card} hidden overflow-hidden p-0 md:block`}>
-          <table className="min-w-full divide-y divide-border text-sm">
-            <thead className="bg-bg">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableCategory")}</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableTotalSpent")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border bg-surface">
-              {categorySpending.map((row) => (
-                <tr key={row.name}>
-                  <td className="px-4 py-3 font-medium text-stone-900">
-                    <span className="inline-flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: row.fill }}
-                      />
-                      {row.name}
-                    </span>
-                  </td>
-                  <td className={`px-4 py-3 text-right ${amount}`}>{formatCurrency(row.value)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {isSolo && expenseStatsQuery.isSuccess && categoriesQuery.isSuccess && expenseStatsQuery.data.byCategory.length > 0 && (
+        <div className="space-y-4">
+          <CategorySpendingChart
+            title={tStats("spendingByCategory")}
+            emptyMessage={tStats("spendingByCategoryEmpty")}
+            byCategory={expenseStatsQuery.data.byCategory}
+            categories={categoriesQuery.data}
+            getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
+          />
+          <CategoryBreakdownTable
+            householdId={householdId}
+            month={categoryMonth}
+            byCategory={expenseStatsQuery.data.byCategory}
+            categories={categoriesQuery.data}
+            getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
+          />
         </div>
-        </>
       )}
       {!isSolo && balancesQuery.isSuccess && balancesQuery.data.length === 0 && (
         <EmptyState

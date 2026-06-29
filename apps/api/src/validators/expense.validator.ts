@@ -132,6 +132,7 @@ export const listExpensesQuerySchema = z.object({
     .regex(/^\d{4}-\d{2}$/, "Use YYYY-MM format")
     .optional(),
   categoryId: z.string().cuid().optional(),
+  search: z.string().trim().min(1).max(100).optional(),
 });
 
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;

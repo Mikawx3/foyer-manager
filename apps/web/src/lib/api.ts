@@ -3,6 +3,7 @@ import type {
   AuthResponse,
   AuthUser,
   Category,
+  CategoryColorKey,
   CreateExpensePayload,
   CreateHouseholdPayload,
   CreateIncomePayload,
@@ -11,6 +12,7 @@ import type {
   DefaultSplitRules,
   Expense,
   ExpenseSplit,
+  ExpenseStats,
   Household,
   HouseholdDeletionPreview,
   Income,
@@ -234,6 +236,7 @@ export async function getCategories(householdId: string): Promise<Category[]> {
 export async function createCategory(input: {
   name: string;
   householdId: string;
+  color?: CategoryColorKey;
 }): Promise<Category> {
   const { data } = await api.post<Category>("/categories", input);
   return data;
@@ -248,6 +251,7 @@ export interface ExpenseListParams {
   limit?: number;
   month?: string;
   categoryId?: string;
+  search?: string;
 }
 
 export async function getExpenses(
@@ -263,6 +267,7 @@ export async function getExpenses(
       ...(params.categoryId !== undefined && params.categoryId !== "" && {
         categoryId: params.categoryId,
       }),
+      ...(params.search !== undefined && params.search !== "" && { search: params.search }),
     },
   });
   return data;
@@ -514,6 +519,16 @@ export async function deleteIncome(householdId: string, incomeId: string): Promi
 
 export async function getIncomeStats(householdId: string, month: string): Promise<IncomeStats> {
   const { data } = await api.get<IncomeStats>(`/households/${householdId}/incomes/stats`, {
+    params: { month },
+  });
+  return data;
+}
+
+export async function getExpenseStats(
+  householdId: string,
+  month: string,
+): Promise<ExpenseStats> {
+  const { data } = await api.get<ExpenseStats>(`/households/${householdId}/expenses/stats`, {
     params: { month },
   });
   return data;

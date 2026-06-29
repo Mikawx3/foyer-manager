@@ -74,6 +74,8 @@ export function ExpenseEditModal({
       successMessage: tToast("expenseUpdated"),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
+        void queryClient.invalidateQueries({ queryKey: ["expense-stats", householdId] });
+        void queryClient.invalidateQueries({ queryKey: ["income-stats", householdId] });
         void queryClient.invalidateQueries({
           queryKey: queryKeys.expenses(householdId, expenseFilters),
         });

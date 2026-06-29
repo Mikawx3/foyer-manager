@@ -3,10 +3,19 @@ export const pageTitle = "text-lg font-semibold tracking-tight text-stone-900 md
 export const pageSubtitle = "mt-1 text-base text-stone-600 md:text-sm";
 
 export const card =
-  "rounded-xl border border-border bg-surface p-4 shadow-sm transition hover:shadow-md active:shadow-sm";
+  "rounded-2xl border border-stone-200/50 bg-surface p-4 shadow-none transition";
 
 export const cardInteractive =
-  "block rounded-xl border border-border bg-surface p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md active:border-primary/40 active:shadow-sm";
+  "block rounded-2xl border border-stone-200/50 bg-surface p-4 shadow-none transition hover:border-primary/20 hover:bg-stone-50/80 active:bg-stone-100/60";
+
+export const kpiCard =
+  "@container min-w-0 rounded-2xl bg-stone-100/50 p-4 ring-1 ring-stone-200/35";
+
+export const kpiCardInteractive =
+  `${kpiCard} block transition hover:bg-stone-100/70 hover:ring-primary/15 active:bg-stone-100/90`;
+
+export const kpiAmount =
+  "font-semibold tabular-nums tracking-tight text-stone-900 text-[clamp(0.875rem,11cqw,1.25rem)] leading-tight";
 
 export const btnPrimary =
   "inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-2 text-base font-medium text-white hover:bg-primary-hover active:scale-[0.98] active:opacity-90 disabled:opacity-50 md:text-sm";

@@ -48,6 +48,7 @@ export function CategoriesSettingsPage() {
           )}
           <CategoryForm
             householdId={householdId}
+            categories={categoriesQuery.data}
             onSubmit={(data) => createCategoryMutation.mutate(data)}
             isPending={createCategoryMutation.isPending}
           />

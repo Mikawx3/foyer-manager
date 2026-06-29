@@ -3,11 +3,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ExpenseEditModal } from "../components/expenses/ExpenseEditModal.tsx";
 import { RecurringExpensesSection } from "../components/expenses/RecurringExpensesSection.tsx";
-import { inputClassName, selectClassName } from "../components/forms/FormField.tsx";
+import { ChartSkeleton } from "../components/dashboard/ChartSkeleton.tsx";
+import { KpiGridSkeleton } from "../components/dashboard/KpiGridSkeleton.tsx";
+import { CategorySpendingChart } from "../components/stats/CategorySpendingChart.tsx";
+import { ExpenseStatsKpis } from "../components/stats/ExpenseStatsKpis.tsx";
+import { MonthNavigator } from "../components/stats/MonthNavigator.tsx";
+import { selectClassName } from "../components/forms/FormField.tsx";
 import { ExpenseForm } from "../components/forms/ExpenseForm.tsx";
 import { SplitForm } from "../components/forms/SplitForm.tsx";
 import { CategoryBadge } from "../components/ui/CategoryBadge.tsx";
@@ -19,11 +24,13 @@ import { Modal } from "../components/ui/Modal.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useFormat } from "../hooks/useFormat.ts";
 import {
+  createCategory,
   createExpense,
   createSplits,
   deleteExpense,
   getApiErrorMessage,
   getCategories,
+  getExpenseStats,
   getExpenses,
   getHousehold,
   getSplits,
@@ -216,6 +223,7 @@ function ExpenseSplits({
 
 export function ExpensesPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { t } = useTranslation("expenses");
   const { t: tCommon } = useTranslation("common");
@@ -224,6 +232,7 @@ export function ExpensesPage() {
   const { t: tRecurring } = useTranslation("recurring");
   const { t: tExport } = useTranslation("export");
   const { t: tCategories } = useTranslation("categories");
+  const { t: tStats } = useTranslation("stats");
   const { formatCurrency, formatDate } = useFormat();
 
   const csvHeaders = useMemo(() => getCsvHeaders(tExport), [tExport]);
@@ -234,17 +243,34 @@ export function ExpensesPage() {
     null,
   );
   const [page, setPage] = useState(1);
-  const [month, setMonth] = useState(currentMonthValue);
-  const [categoryId, setCategoryId] = useState("");
+  const [month, setMonth] = useState(() => {
+    const monthParam = searchParams.get("month");
+    if (monthParam !== null && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthParam)) {
+      return monthParam;
+    }
+    return currentMonthValue();
+  });
+  const [categoryId, setCategoryId] = useState(() => searchParams.get("categoryId") ?? "");
   const [limit, setLimit] = useState(10);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"expenses" | "recurring">("expenses");
   const lastGeneratedToastRef = useRef(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   const expenseFilters: ExpenseListFilters = {
     page,
     limit,
     month,
     ...(categoryId !== "" && { categoryId }),
+    ...(search !== "" && { search }),
   };
 
   const expensesQuery = useQuery({
@@ -255,6 +281,7 @@ export function ExpensesPage() {
         limit,
         month,
         ...(categoryId !== "" && { categoryId }),
+        ...(search !== "" && { search }),
       }),
     enabled: Boolean(householdId),
   });
@@ -277,6 +304,19 @@ export function ExpensesPage() {
     enabled: Boolean(householdId),
   });
 
+  const expenseStatsQuery = useQuery({
+    queryKey: queryKeys.expenseStats(householdId, month),
+    queryFn: () => getExpenseStats(householdId, month),
+    enabled: Boolean(householdId),
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: createCategory,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.categories(householdId) });
+    },
+  });
+
   const createExpenseMutation = useMutation({
     mutationFn: createExpense,
     ...mutationToastHandlers({
@@ -284,6 +324,7 @@ export function ExpensesPage() {
       onSuccess: () => {
         setPage(1);
         void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
+        void queryClient.invalidateQueries({ queryKey: ["expense-stats", householdId] });
         void queryClient.invalidateQueries({ queryKey: queryKeys.balances(householdId) });
         setModalOpen(false);
       },
@@ -320,6 +361,7 @@ export function ExpensesPage() {
       onSuccess: () => {
         setPendingDelete(null);
         void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
+        void queryClient.invalidateQueries({ queryKey: ["expense-stats", householdId] });
         void queryClient.invalidateQueries({
           queryKey: queryKeys.expenses(householdId, expenseFilters),
         });
@@ -343,12 +385,13 @@ export function ExpensesPage() {
   const isLoading =
     expensesQuery.isLoading || tenantsQuery.isLoading || categoriesQuery.isLoading;
 
-  const hasCategories = Boolean(categoriesQuery.data && categoriesQuery.data.length > 0);
-  const canAddExpense = Boolean(
-    activeTenantsForPickers.length > 0 &&
-      categoriesQuery.data &&
-      categoriesQuery.data.length > 0,
-  );
+  const canAddExpense = activeTenantsForPickers.length > 0;
+
+  const handleCreateCategory = (input: { name: string }) =>
+    createCategoryMutation.mutateAsync({
+      name: input.name,
+      householdId,
+    });
 
   const handleExportCsv = async () => {
     const customExpenses = expenseList.filter((expense) => expense.splitMode === "custom");
@@ -419,22 +462,7 @@ export function ExpensesPage() {
         </div>
       </div>
 
-      {categoriesQuery.isSuccess && categoriesQuery.data.length === 0 && (
-        <EmptyState
-          title={t("noCategoriesTitle")}
-          description={t("noCategoriesDescription")}
-          action={
-            <Link
-              to={`/households/${householdId}/settings/categories`}
-              className={btnPrimary}
-            >
-              {tNav("categories")}
-            </Link>
-          }
-        />
-      )}
-
-      {hasCategories && (
+      {categoriesQuery.isSuccess && (
         <div className="flex flex-col gap-8 xl:flex-row xl:items-start">
           <section className="min-w-0 flex-1">
             <div className="mb-4 flex gap-2 border-b border-border">
@@ -472,20 +500,51 @@ export function ExpensesPage() {
 
             {activeTab === "expenses" && (
               <>
+            <MonthNavigator
+              month={month}
+              onChange={(nextMonth) => {
+                setMonth(nextMonth);
+                setPage(1);
+              }}
+            />
+
+            {expenseStatsQuery.isLoading && (
+              <div className="mb-4 space-y-4">
+                <KpiGridSkeleton />
+                <ChartSkeleton />
+              </div>
+            )}
+
+            {expenseStatsQuery.isSuccess && expenseStatsQuery.data && categoriesQuery.data && (
+              <div className="mb-6 space-y-4">
+                <ExpenseStatsKpis
+                  stats={expenseStatsQuery.data}
+                  topCategory={expenseStatsQuery.data.byCategory[0] ?? null}
+                  getTopCategoryLabel={(id) => categoryNameById.get(id) ?? tCommon("unknown")}
+                />
+                <CategorySpendingChart
+                  title={t("statsTitle")}
+                  emptyMessage={tStats("spendingByCategoryEmpty")}
+                  byCategory={expenseStatsQuery.data.byCategory}
+                  categories={categoriesQuery.data}
+                  getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
+                  highlightedCategoryId={categoryId}
+                />
+              </div>
+            )}
+
             <div className="mb-4 flex flex-wrap gap-3">
-              <div className="space-y-1">
-                <label htmlFor="expense-filter-month" className="block text-sm font-medium text-stone-700">
-                  {tCommon("month")}
+              <div className="min-w-[220px] flex-1 space-y-1">
+                <label htmlFor="expense-search" className="block text-sm font-medium text-stone-700">
+                  {tCommon("search")}
                 </label>
                 <input
-                  id="expense-filter-month"
-                  type="month"
-                  className={inputClassName}
-                  value={month}
-                  onChange={(event) => {
-                    setMonth(event.target.value);
-                    setPage(1);
-                  }}
+                  id="expense-search"
+                  type="search"
+                  className={selectClassName}
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder={t("searchPlaceholder")}
                 />
               </div>
               <div className="space-y-1">
@@ -577,6 +636,7 @@ export function ExpensesPage() {
                             <CategoryBadge
                               name={category?.name ?? tCommon("category")}
                               slug={category?.slug}
+                              color={category?.color}
                             />
                             <SplitModeBadge splitMode={expense.splitMode} />
                             <span>{formatDate(expense.date)}</span>
@@ -658,16 +718,17 @@ export function ExpensesPage() {
             )}
           </section>
 
-          {activeTab === "expenses" && canAddExpense && categoriesQuery.data && (
+          {activeTab === "expenses" && canAddExpense && categoriesQuery.isSuccess && (
             <aside className={expenseFormPanel}>
               <ExpenseForm
                 layout="panel"
                 householdId={householdId}
-                categories={categoriesQuery.data}
+                categories={categoriesQuery.data ?? []}
                 tenants={activeTenantsForPickers}
                 isSolo={isSolo}
                 onSubmit={handleCreateExpense}
-                isPending={createExpenseMutation.isPending}
+                onCreateCategory={handleCreateCategory}
+                isPending={createExpenseMutation.isPending || createCategoryMutation.isPending}
               />
               {createExpenseMutation.error !== undefined &&
                 createExpenseMutation.error !== null && (
@@ -710,7 +771,7 @@ export function ExpensesPage() {
         isLoading={deleteExpenseMutation.isPending}
       />
 
-      {canAddExpense && categoriesQuery.data && (
+      {canAddExpense && categoriesQuery.isSuccess && (
         <Modal
           title={t("newExpense")}
           open={modalOpen}
@@ -719,11 +780,12 @@ export function ExpensesPage() {
         >
           <ExpenseForm
             householdId={householdId}
-            categories={categoriesQuery.data}
+            categories={categoriesQuery.data ?? []}
             tenants={activeTenantsForPickers}
             isSolo={isSolo}
             onSubmit={handleCreateExpense}
-            isPending={createExpenseMutation.isPending}
+            onCreateCategory={handleCreateCategory}
+            isPending={createExpenseMutation.isPending || createCategoryMutation.isPending}
           />
           {createExpenseMutation.error !== undefined && createExpenseMutation.error !== null && (
             <p className={inlineError}>{getApiErrorMessage(createExpenseMutation.error)}</p>
@@ -731,7 +793,7 @@ export function ExpensesPage() {
         </Modal>
       )}
 
-      {canAddExpense && hasCategories && (
+      {canAddExpense && (
         <button
           type="button"
           className={fabButton}

@@ -1,5 +1,10 @@
 import type { Category } from "@foyer/types";
 import { NotFoundError, ValidationError } from "../errors/app.errors.js";
+import {
+  isCategoryColorKey,
+  pickUnusedCategoryColor,
+  slugifyCategoryName,
+} from "../lib/category-colors.js";
 import { toCategoryDto } from "../lib/mappers.js";
 import {
   categoryRepository,
@@ -25,12 +30,25 @@ export class CategoryService {
     return categories.map(toCategoryDto);
   }
 
-  async create(data: { name: string; householdId: string }): Promise<Category> {
+  async create(data: { name: string; householdId: string; color?: string }): Promise<Category> {
     const household = await this.households.findById(data.householdId);
     if (!household) {
       throw new NotFoundError("Household not found");
     }
-    const category = await this.repository.create(data);
+
+    const existing = await this.repository.findAllByHousehold(data.householdId);
+    const usedColors = existing.map((category) => category.color);
+    const color =
+      data.color !== undefined && isCategoryColorKey(data.color)
+        ? data.color
+        : pickUnusedCategoryColor(usedColors);
+
+    const category = await this.repository.create({
+      name: data.name,
+      householdId: data.householdId,
+      slug: slugifyCategoryName(data.name),
+      color,
+    });
     return toCategoryDto(category);
   }
 

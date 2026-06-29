@@ -7,6 +7,7 @@ import type { IncomeTemplateRepository } from "../repositories/income-template.r
 import type { IncomeRepository } from "../repositories/income.repository.js";
 import type { TenantRepository } from "../repositories/tenant.repository.js";
 import type { ExpenseService } from "./expense.service.js";
+import type { ExpenseStatsService } from "./expense-stats.service.js";
 import { IncomeService } from "./income.service.js";
 
 const householdId = "clh12345678901234567890123";
@@ -73,6 +74,19 @@ function buildHouseholds(): HouseholdRepository {
     updateById: vi.fn(),
     deleteById: vi.fn(),
   };
+}
+
+function mockExpenseStatsSvc(totalExpenses: number): ExpenseStatsService {
+  return {
+    getStatsForMonth: vi.fn().mockResolvedValue({
+      month: "2026-06",
+      totalExpenses,
+      expenseCount: totalExpenses > 0 ? 1 : 0,
+      largestExpense: totalExpenses > 0 ? { description: "Test", amount: totalExpenses } : null,
+      byCategory: [],
+      trend: [],
+    }),
+  } as unknown as ExpenseStatsService;
 }
 
 describe("IncomeService", () => {
@@ -190,6 +204,7 @@ describe("IncomeService", () => {
       buildHouseholds(),
       tenants,
       expenseSvc,
+      mockExpenseStatsSvc(500),
     );
 
     const stats = await service.getIncomeStats(householdId, "2026-06");
@@ -244,6 +259,7 @@ describe("IncomeService", () => {
       buildHouseholds(),
       tenants,
       { getTenantOwedTotalsForMonth: vi.fn().mockResolvedValue(new Map()) } as unknown as ExpenseService,
+      mockExpenseStatsSvc(1000),
     );
 
     const stats = await service.getIncomeStats(householdId, "2026-06");
@@ -291,6 +307,7 @@ describe("IncomeService", () => {
       buildHouseholds(),
       tenants,
       expenseSvc,
+      mockExpenseStatsSvc(1500),
     );
 
     const stats = await service.getIncomeStats(householdId, "2026-06");
@@ -329,6 +346,7 @@ describe("IncomeService", () => {
       buildHouseholds(),
       tenants,
       expenseSvc,
+      mockExpenseStatsSvc(0),
     );
 
     const stats = await service.getIncomeStats(householdId, "2026-06");

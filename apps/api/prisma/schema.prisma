@@ -76,6 +76,7 @@ model Category {
   id          String    @id @default(cuid())
   name        String
   slug        String?
+  color       String    @default("other")
   householdId String
   household     Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
   expenses      Expense[]

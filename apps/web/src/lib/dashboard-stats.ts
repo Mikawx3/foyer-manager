@@ -1,5 +1,5 @@
 import type { Category, Expense, Tenant, TenantBalance } from "@foyer/types";
-import { getCategoryHexForName } from "./category-colors.ts";
+import { getCategoryHexForCategory } from "./category-colors.ts";
 import { formatMonthShort } from "./format.ts";
 import { computeSuggestedSettlements } from "./suggested-settlements.ts";
 import { DEFAULT_TENANT_COLOR } from "./tenant-colors.ts";
@@ -135,7 +135,7 @@ export function computeCategorySpending(
     slices.push({
       name,
       value,
-      fill: getCategoryHexForName(category?.slug ?? name),
+      fill: getCategoryHexForCategory(name, category?.slug, category?.color),
     });
   }
 

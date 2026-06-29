@@ -1,9 +1,11 @@
 import type { Prisma } from "@prisma/client";
+import { numberToDecimal } from "../lib/decimal.js";
 
 export interface ExpenseListFilterInput {
   householdId: string;
   categoryId?: string;
   month?: string;
+  search?: string;
 }
 
 export function monthToDateRange(month: string): { gte: Date; lt: Date } {
@@ -18,18 +20,34 @@ export function monthToDateRange(month: string): { gte: Date; lt: Date } {
 export function buildExpenseListWhere(
   filters: ExpenseListFilterInput,
 ): Prisma.ExpenseWhereInput {
-  const where: Prisma.ExpenseWhereInput = {
-    householdId: filters.householdId,
-  };
+  const conditions: Prisma.ExpenseWhereInput[] = [{ householdId: filters.householdId }];
 
   if (filters.categoryId) {
-    where.categoryId = filters.categoryId;
+    conditions.push({ categoryId: filters.categoryId });
   }
 
   if (filters.month) {
     const { gte, lt } = monthToDateRange(filters.month);
-    where.date = { gte, lt };
+    conditions.push({ date: { gte, lt } });
   }
 
-  return where;
+  const search = filters.search?.trim();
+  if (search) {
+    const orConditions: Prisma.ExpenseWhereInput[] = [
+      { description: { contains: search, mode: "insensitive" } },
+      { paidByTenant: { name: { contains: search, mode: "insensitive" } } },
+    ];
+    const normalizedAmount = search.replace(",", ".");
+    const parsedAmount = Number(normalizedAmount);
+    if (Number.isFinite(parsedAmount) && parsedAmount > 0) {
+      orConditions.push({ amount: { equals: numberToDecimal(parsedAmount) } });
+    }
+    conditions.push({ OR: orConditions });
+  }
+
+  if (conditions.length === 1) {
+    return conditions[0] ?? { householdId: filters.householdId };
+  }
+
+  return { AND: conditions };
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_CATEGORIES } from "../lib/default-categories.js";
+import { colorKeyForSlug } from "../lib/category-colors.js";
 import { CategoryRepository } from "./category.repository.js";
 
 vi.mock("../lib/prisma.js", () => ({
@@ -23,6 +24,7 @@ describe("CategoryRepository", () => {
       data: DEFAULT_CATEGORIES.map((category) => ({
         name: category.name,
         slug: category.slug,
+        color: colorKeyForSlug(category.slug),
         householdId,
       })),
     });

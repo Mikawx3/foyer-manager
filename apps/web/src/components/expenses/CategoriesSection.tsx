@@ -51,7 +51,7 @@ export function CategoriesSection({ householdId, categories }: CategoriesSection
               key={category.id}
               className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1"
             >
-              <CategoryBadge name={category.name} slug={category.slug} />
+              <CategoryBadge name={category.name} slug={category.slug} color={category.color} />
               <button
                 type="button"
                 onClick={() =>

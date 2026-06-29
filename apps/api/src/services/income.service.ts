@@ -37,6 +37,7 @@ import type {
   UpdateIncomeTemplateInput,
 } from "../validators/income.validator.js";
 import { expenseService, type ExpenseService } from "./expense.service.js";
+import { expenseStatsService, type ExpenseStatsService } from "./expense-stats.service.js";
 
 export class IncomeService {
   constructor(
@@ -46,6 +47,7 @@ export class IncomeService {
     private readonly households: HouseholdRepository = householdRepository,
     private readonly tenants: TenantRepository = tenantRepository,
     private readonly expenseSvc: ExpenseService = expenseService,
+    private readonly expenseStatsSvc: ExpenseStatsService = expenseStatsService,
   ) {}
 
   async listTemplatesByHousehold(householdId: string): Promise<IncomeTemplate[]> {
@@ -177,18 +179,17 @@ export class IncomeService {
     await this.assertHouseholdExists(householdId);
 
     const months = last6MonthKeys(month);
-    const [templates, overrides, tenants, tenantOwed] = await Promise.all([
+    const [templates, overrides, tenants, tenantOwed, expenseMonthStats] = await Promise.all([
       this.incomeTemplates.findAllByHousehold(householdId),
       this.incomes.findByHousehold(householdId, months),
       this.tenants.findAllByHousehold(householdId, { includeArchived: false }),
       this.expenseSvc.getTenantOwedTotalsForMonth(householdId, month),
+      this.expenseStatsSvc.getStatsForMonth(householdId, month),
     ]);
 
     const resolvedMonth = resolveIncomesForMonth(templates, overrides, month);
     const totalIncome = sumResolvedIncomes(resolvedMonth);
-    const totalExpenses = await this.expenses.sumAmountByWhere(
-      buildExpenseListWhere({ householdId, month }),
-    );
+    const totalExpenses = expenseMonthStats.totalExpenses;
     const remainingBudget = totalIncome - totalExpenses;
     const savingsRate = computeSavingsRate(totalIncome, totalExpenses);
 
@@ -234,6 +235,8 @@ export class IncomeService {
       totalExpenses,
       savingsRate,
       remainingBudget,
+      largestExpense: expenseMonthStats.largestExpense,
+      byCategory: expenseMonthStats.byCategory,
       byTenant,
       trend,
     };

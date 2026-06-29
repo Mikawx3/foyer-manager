@@ -56,6 +56,7 @@
     "edit": "Edit",
     "delete": "Delete",
     "reset": "Reset",
+    "search": "Search",
     "undo": "Undo",
     "archive": "Archive",
     "restore": "Restore",
@@ -192,6 +193,9 @@
     "monthlyTrendEmpty": "No spending in the last 6 months.",
     "balancesChart": "Balances",
     "balancesChartEmpty": "No members or balance data yet.",
+    "balancesCumulativeNote": "Cumulative balances — independent of the month shown above.",
+    "incomeThisMonth": "Income this month",
+    "remainingBudget": "Remaining budget",
     "recentExpenses": "Recent expenses",
     "recentExpensesEmpty": "No expenses yet.",
     "tableTitle": "Title",
@@ -203,6 +207,7 @@
   "expenses": {
     "title": "Expenses",
     "subtitle": "Track spending and split costs.",
+    "statsTitle": "Monthly overview",
     "exportCsv": "Export CSV",
     "newExpense": "New expense",
     "editExpense": "Edit expense",
@@ -222,6 +227,15 @@
     "newCategory": "New category",
     "categoryNamePlaceholder": "e.g. Rent",
     "addCategory": "Add category",
+    "categoryColor": "Color",
+    "categoryColorOption": "Color {{color}}",
+    "categoryColorInUse": "Already used by another category",
+    "categoryColorSuggested": "Suggested unused color selected",
+    "createCategoryInline": "+ Create new category",
+    "newCategoryNamePlaceholder": "New category name",
+    "pickExistingCategory": "Pick an existing category",
+    "createCategoryFailed": "Could not create category",
+    "searchPlaceholder": "Search by description, amount or payer…",
     "deleteCategoryTitle": "Delete category",
     "deleteCategoryMessage": "Delete \"{{name}}\"? Expenses using this category will keep their data."
   },
@@ -513,7 +527,10 @@
       "largestExpense": "Largest expense",
       "trend": "6-month trend",
       "breakdown": "Per member breakdown",
-      "budgetVsExpenses": "Income vs expenses by member"
+      "budgetVsExpenses": "Income vs expenses by member",
+      "spendingByCategory": "Spending by category",
+      "spendingByCategoryEmpty": "No expenses this month. Add expenses to see where your budget goes.",
+      "categoryBreakdown": "Category breakdown"
     },
     "columns": {
       "member": "Member",
@@ -522,6 +539,19 @@
       "balance": "Balance",
       "savingsRate": "Savings rate"
     }
+  },
+  "stats": {
+    "totalExpenses": "Total expenses",
+    "expenseCount": "Expenses",
+    "topCategory": "Top category",
+    "largestExpense": "Largest expense",
+    "category": "Category",
+    "amount": "Amount",
+    "share": "Share",
+    "expenseCountColumn": "Count",
+    "view": "View",
+    "spendingByCategory": "Spending by category",
+    "spendingByCategoryEmpty": "No expenses this month."
   },
   "households": {
     "title": "Households",

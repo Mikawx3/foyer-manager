@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import { z } from "zod";
+import { CATEGORY_COLOR_KEYS } from "@foyer/types";
 
 function splitItemSchema() {
   return z.object({
@@ -88,6 +89,7 @@ export function createCategorySchema(t: TFunction<"validation">) {
   return z.object({
     name: z.string().trim().min(1, t("nameRequired")).max(255),
     householdId: z.string().cuid(),
+    color: z.enum(CATEGORY_COLOR_KEYS).optional(),
   });
 }
 

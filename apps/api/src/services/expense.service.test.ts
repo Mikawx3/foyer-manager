@@ -160,12 +160,16 @@ describe("ExpenseService", () => {
     });
 
     expect(expenses.countByWhere).toHaveBeenCalledWith({
-      householdId,
-      categoryId,
-      date: {
-        gte: new Date(2026, 5, 1),
-        lt: new Date(2026, 6, 1),
-      },
+      AND: [
+        { householdId },
+        { categoryId },
+        {
+          date: {
+            gte: new Date(2026, 5, 1),
+            lt: new Date(2026, 6, 1),
+          },
+        },
+      ],
     });
   });
 

@@ -1,0 +1,46 @@
+---
+description: Design and engineering bar inspired by proven fintech products (Stripe, Revolut, Tricount, etc.)
+alwaysApply: true
+---
+
+# Industry-standard product thinking
+
+Before proposing or implementing anything, reason like teams at **Stripe, Revolut, N26, Tricount, Splitwise, Monzo** — products known for clarity, trust, and polish in money UX.
+
+## Default mindset
+
+- **Clarity over cleverness**: users must understand amounts, who owes whom, and what changed — instantly.
+- **Trust by design**: money flows must be predictable, reversible when reasonable, and never ambiguous.
+- **Progressive disclosure**: show the essential KPI first; details on drill-down (sheets, modals, tables).
+- **Mobile-first, desktop-enhanced**: thumb-friendly targets, horizontal KPI scroll, bottom sheets; richer grids on large screens.
+- **Consistency**: reuse existing patterns (`KpiCard`, bottom sheets, TanStack Query, service layer) instead of inventing one-off flows.
+
+## UI / UX (Revolut / N26 / Stripe Dashboard)
+
+- Lead with **scannable numbers**: large monospace amounts, color only for meaning (positive / negative / warning).
+- **Month and period navigation** must feel effortless (prev/next, clear label, no raw `YYYY-MM` in primary UI).
+- Charts: minimal chrome, readable tooltips, empty states that explain what to do next.
+- Forms: few fields visible at once, smart defaults, inline validation, destructive actions confirmed.
+- Loading / error / empty: always handled — never a blank screen.
+- Copy: short, human, action-oriented (EN/FR via i18n only).
+
+## Frontend logic (Stripe / Tricount)
+
+- **Server state in TanStack Query** — no `useEffect` for fetching or cache invalidation hacks.
+- **Pure functions** for stats, splits, trends; components only render.
+- Types from `@foyer/types`; Zod on every form and API payload shape.
+- Optimistic UX only when rollback is trivial; otherwise explicit loading on mutations that change money.
+
+## Backend logic (Stripe API style)
+
+- **Route → Controller → Service → Repository**; business rules live in services only.
+- Validate every input with Zod; return `{ error, details? }` on failure.
+- Money: `Decimal` in DB, `number` in JSON DTOs, explicit rounding rules in one place.
+- Idempotent-friendly writes where duplicates hurt (unique constraints, clear 409).
+- Stats endpoints return **ready-to-display aggregates**; avoid pushing heavy joins to the client.
+- Authorization and household scoping on every protected route.
+
+## When in doubt, ask
+
+> “Would Stripe / Revolut / Tricount ship this?”  
+If not — simplify the UX, tighten the API contract, or add the missing empty/error/loading state.

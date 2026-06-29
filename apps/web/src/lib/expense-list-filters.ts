@@ -3,6 +3,7 @@ export interface ExpenseListFilters {
   limit: number;
   month: string;
   categoryId?: string;
+  search?: string;
 }
 
 export function currentMonthValue(): string {

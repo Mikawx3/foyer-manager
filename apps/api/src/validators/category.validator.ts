@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { CATEGORY_COLOR_KEYS } from "@foyer/types";
 
 export const createCategorySchema = z.object({
   name: z.string().trim().min(1).max(255),
   householdId: z.string().cuid(),
+  color: z.enum(CATEGORY_COLOR_KEYS).optional(),
 });
 
 export const listCategoriesQuerySchema = z.object({

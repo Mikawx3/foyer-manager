@@ -13,11 +13,13 @@ import { IncomeMemberCards } from "../components/income/IncomeMemberCards.tsx";
 import { IncomeStatsKpis } from "../components/income/IncomeStatsKpis.tsx";
 import { IncomeTrendChart } from "../components/income/IncomeTrendChart.tsx";
 import { MemberBreakdownTable } from "../components/income/MemberBreakdownTable.tsx";
-import { MonthNavigator } from "../components/income/MonthNavigator.tsx";
 import { RecurringIncomeSection } from "../components/income/RecurringIncomeSection.tsx";
 import { TenantIncomeListModal } from "../components/income/TenantIncomeListModal.tsx";
 import { KpiGridSkeleton } from "../components/dashboard/KpiGridSkeleton.tsx";
 import { ChartSkeleton } from "../components/dashboard/ChartSkeleton.tsx";
+import { CategoryBreakdownTable } from "../components/stats/CategoryBreakdownTable.tsx";
+import { CategorySpendingChart } from "../components/stats/CategorySpendingChart.tsx";
+import { MonthNavigator } from "../components/stats/MonthNavigator.tsx";
 import { ConfirmModal } from "../components/ui/ConfirmModal.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
@@ -25,16 +27,16 @@ import {
   deleteIncome,
   deleteIncomeTemplate,
   getApiErrorMessage,
+  getCategories,
   getHousehold,
   getIncomeStats,
   getTenants,
   listIncomeTemplates,
   listIncomes,
 } from "../lib/api.ts";
+import { getCategoryDisplayName } from "../lib/category-label.ts";
 import { aggregateIncomeByTenant } from "../lib/income-stats.ts";
-import { computeDashboardKpis, filterExpensesThisMonth } from "../lib/dashboard-stats.ts";
 import { currentMonthValue } from "../lib/expense-list-filters.ts";
-import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
 import { fabBottomOffset, fabButton, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
@@ -43,6 +45,7 @@ export function IncomePage() {
   const { t } = useTranslation("income");
   const { t: tCommon } = useTranslation("common");
   const { t: tToast } = useTranslation("toast");
+  const { t: tCategories } = useTranslation("categories");
   const queryClient = useQueryClient();
   const { id: householdId = "" } = useParams<{ id: string }>();
   const [month, setMonth] = useState(currentMonthValue);
@@ -67,6 +70,12 @@ export function IncomePage() {
     enabled: Boolean(householdId),
   });
 
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.categories(householdId),
+    queryFn: () => getCategories(householdId),
+    enabled: Boolean(householdId),
+  });
+
   const templatesQuery = useQuery({
     queryKey: queryKeys.incomeTemplates(householdId),
     queryFn: () => listIncomeTemplates(householdId),
@@ -82,12 +91,6 @@ export function IncomePage() {
   const statsQuery = useQuery({
     queryKey: queryKeys.incomeStats(householdId, month),
     queryFn: () => getIncomeStats(householdId, month),
-    enabled: Boolean(householdId),
-  });
-
-  const expensesQuery = useQuery({
-    queryKey: queryKeys.expensesAll(householdId),
-    queryFn: () => fetchAllExpenses(householdId),
     enabled: Boolean(householdId),
   });
 
@@ -125,23 +128,13 @@ export function IncomePage() {
     [incomesQuery.data],
   );
 
-  const largestExpense = useMemo(() => {
-    const expenses = expensesQuery.data ?? [];
-    const monthDate = new Date(
-      Number(month.split("-")[0]),
-      Number(month.split("-")[1]) - 1,
-      1,
-    );
-    const monthExpenses = filterExpensesThisMonth(expenses, monthDate);
-    const kpis = computeDashboardKpis(monthExpenses, [], new Map());
-    return kpis.largestExpense;
-  }, [expensesQuery.data, month]);
-
   const listTenant = tenants.find((tenant) => tenant.id === listTenantId) ?? null;
+  const categories = categoriesQuery.data ?? [];
 
   const isLoading =
     householdQuery.isLoading ||
     tenantsQuery.isLoading ||
+    categoriesQuery.isLoading ||
     templatesQuery.isLoading ||
     incomesQuery.isLoading ||
     statsQuery.isLoading;
@@ -149,18 +142,18 @@ export function IncomePage() {
   const queryError =
     householdQuery.error ??
     tenantsQuery.error ??
+    categoriesQuery.error ??
     templatesQuery.error ??
     incomesQuery.error ??
-    statsQuery.error ??
-    expensesQuery.error;
+    statsQuery.error;
 
   const refetchAll = () => {
     void householdQuery.refetch();
     void tenantsQuery.refetch();
+    void categoriesQuery.refetch();
     void templatesQuery.refetch();
     void incomesQuery.refetch();
     void statsQuery.refetch();
-    void expensesQuery.refetch();
   };
 
   const openCreateMonth = (tenantId?: string) => {
@@ -240,7 +233,24 @@ export function IncomePage() {
             onAddForTenant={openCreateMonth}
           />
 
-          <IncomeStatsKpis stats={statsQuery.data} largestExpense={largestExpense} />
+          <IncomeStatsKpis stats={statsQuery.data} />
+
+          <section className="space-y-4">
+            <CategorySpendingChart
+              title={t("stats.spendingByCategory")}
+              emptyMessage={t("stats.spendingByCategoryEmpty")}
+              byCategory={statsQuery.data.byCategory}
+              categories={categories}
+              getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
+            />
+            <CategoryBreakdownTable
+              householdId={householdId}
+              month={month}
+              byCategory={statsQuery.data.byCategory}
+              categories={categories}
+              getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
+            />
+          </section>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <BudgetVsExpensesChart stats={statsQuery.data} tenants={tenants} />

@@ -103,10 +103,28 @@ export interface CreateTenantPayload {
   householdId: string;
 }
 
+export const CATEGORY_COLOR_KEYS = [
+  "rent",
+  "groceries",
+  "utilities",
+  "internet",
+  "streaming",
+  "water",
+  "insurance",
+  "transport",
+  "health",
+  "teal",
+  "pink",
+  "other",
+] as const;
+
+export type CategoryColorKey = (typeof CATEGORY_COLOR_KEYS)[number];
+
 export interface Category {
   id: string;
   name: string;
   slug?: string | null;
+  color: CategoryColorKey;
   householdId: string;
 }
 
@@ -320,12 +338,31 @@ export interface UpdateIncomePayload {
   note?: string;
 }
 
+export interface CategoryExpenseStat {
+  categoryId: string;
+  categorySlug: string;
+  amount: number;
+  sharePercent: number;
+  expenseCount: number;
+}
+
+export interface ExpenseStats {
+  month: string;
+  totalExpenses: number;
+  expenseCount: number;
+  largestExpense: { description: string; amount: number } | null;
+  byCategory: CategoryExpenseStat[];
+  trend: { month: string; total: number }[];
+}
+
 export interface IncomeStats {
   month: string;
   totalIncome: number;
   totalExpenses: number;
   savingsRate: number;
   remainingBudget: number;
+  largestExpense: { description: string; amount: number } | null;
+  byCategory: CategoryExpenseStat[];
   byTenant: {
     tenantId: string;
     tenantName: string;

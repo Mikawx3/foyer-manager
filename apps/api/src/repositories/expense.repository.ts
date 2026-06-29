@@ -49,6 +49,40 @@ export class ExpenseRepository {
     return decimalToNumber(result._sum.amount);
   }
 
+  async groupByCategoryForWhere(
+    where: Prisma.ExpenseWhereInput,
+  ): Promise<{ categoryId: string; amount: number; expenseCount: number }[]> {
+    const groups = await prisma.expense.groupBy({
+      by: ["categoryId"],
+      where,
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+
+    return groups.map((group) => ({
+      categoryId: group.categoryId,
+      amount: group._sum.amount !== null ? decimalToNumber(group._sum.amount) : 0,
+      expenseCount: group._count._all,
+    }));
+  }
+
+  async findLargestExpenseByWhere(
+    where: Prisma.ExpenseWhereInput,
+  ): Promise<{ description: string; amount: number } | null> {
+    const expense = await prisma.expense.findFirst({
+      where,
+      orderBy: [{ amount: "desc" }, { date: "desc" }],
+      select: { description: true, amount: true },
+    });
+    if (!expense) {
+      return null;
+    }
+    return {
+      description: expense.description,
+      amount: decimalToNumber(expense.amount),
+    };
+  }
+
   async findPageByWhere(
     where: Prisma.ExpenseWhereInput,
     options: { skip: number; take: number },

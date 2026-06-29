@@ -12,6 +12,7 @@ import type {
   SplitMode,
   Tenant,
 } from "@foyer/types";
+import { isCategoryColorKey } from "./category-colors.js";
 import type {
   Category as PrismaCategory,
   DefaultSplit as PrismaDefaultSplit,
@@ -64,6 +65,7 @@ export function toCategoryDto(category: PrismaCategory): Category {
     id: category.id,
     name: category.name,
     ...(category.slug !== null && { slug: category.slug }),
+    color: isCategoryColorKey(category.color) ? category.color : "other",
     householdId: category.householdId,
   };
 }

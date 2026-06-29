@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Category, Expense, Tenant } from "@foyer/types";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { ExpenseParticipantSplits, isCustomSplitValid } from "../expenses/ExpenseParticipantSplits.tsx";
@@ -30,6 +30,7 @@ interface ExpenseFormProps {
   isSolo?: boolean;
   onSubmit: (data: ExpenseFormValues) => void;
   isPending: boolean;
+  onCreateCategory?: (input: { name: string }) => Promise<Category>;
   variant?: "create" | "edit";
   initialExpense?: Expense;
   initialParticipantIds?: string[];
@@ -46,6 +47,7 @@ export function ExpenseForm({
   isSolo = false,
   onSubmit,
   isPending,
+  onCreateCategory,
   variant = "create",
   initialExpense,
   initialParticipantIds,
@@ -98,6 +100,8 @@ export function ExpenseForm({
     setValue,
     watch,
     control,
+    trigger,
+    getValues,
     formState: { errors },
   } = useForm<ExpenseFormValues>({
     resolver: zodResolver(schema),
@@ -110,6 +114,10 @@ export function ExpenseForm({
   const [useAutoSplit, setUseAutoSplit] = useState(
     initialExpense ? initialExpense.splitMode === "default" : true,
   );
+  const [newCategoryMode, setNewCategoryMode] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [createCategoryError, setCreateCategoryError] = useState<string | null>(null);
 
   const amount = watch("amount") ?? 0;
   const categoryId = watch("categoryId") ?? "";
@@ -258,8 +266,28 @@ export function ExpenseForm({
     };
   };
 
-  const submit = handleSubmit((data) => {
-    onSubmit(buildPayload(data));
+  const submitExpense = async (data: ExpenseFormValues) => {
+    let payload = buildPayload(data);
+    if (variant === "create" && newCategoryMode) {
+      const trimmedName = newCategoryName.trim();
+      if (!onCreateCategory || trimmedName.length === 0) {
+        return;
+      }
+      setCreatingCategory(true);
+      setCreateCategoryError(null);
+      try {
+        const created = await onCreateCategory({ name: trimmedName });
+        payload = { ...payload, categoryId: created.id };
+      } catch (error) {
+        setCreateCategoryError(
+          error instanceof Error ? error.message : t("createCategoryFailed"),
+        );
+        setCreatingCategory(false);
+        return;
+      }
+      setCreatingCategory(false);
+    }
+    onSubmit(payload);
     if (variant === "create") {
       reset({
         description: "",
@@ -274,8 +302,23 @@ export function ExpenseForm({
       });
       setSelectedParticipantIds(allTenantIds);
       setUseAutoSplit(true);
+      setNewCategoryMode(false);
+      setNewCategoryName("");
     }
-  });
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (newCategoryMode && variant === "create") {
+      const valid = await trigger(["amount", "description", "paidByTenantId", "date"]);
+      if (!valid) {
+        return;
+      }
+      await submitExpense(getValues());
+      return;
+    }
+    void handleSubmit(submitExpense)(event);
+  };
 
   const selectedTenantIds = selectedTenants.map((tenant) => tenant.id);
   const customValid = isCustomSplitValid(useAutoSplit, customPercentageValues, selectedTenantIds);
@@ -287,10 +330,12 @@ export function ExpenseForm({
 
   const submitDisabled =
     isPending ||
-    categories.length === 0 ||
+    creatingCategory ||
     tenants.length === 0 ||
     !customValid ||
-    selectedParticipantIds.length === 0;
+    selectedParticipantIds.length === 0 ||
+    (!newCategoryMode && categories.length === 0) ||
+    (newCategoryMode ? newCategoryName.trim().length === 0 : categoryId === "");
 
   const hiddenFields = (
     <>
@@ -319,16 +364,56 @@ export function ExpenseForm({
         <input className={inputClassName} {...register("description")} />
       </FormField>
       <FormField label={tCommon("category")} error={errors.categoryId?.message}>
-        <select className={selectClassName} {...register("categoryId")} defaultValue="">
-          <option value="" disabled>
-            {tCommon("selectCategory")}
-          </option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {getCategoryDisplayName(category, tCategories)}
-            </option>
-          ))}
-        </select>
+        {newCategoryMode ? (
+          <div className="space-y-2">
+            <input
+              className={inputClassName}
+              value={newCategoryName}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              placeholder={t("newCategoryNamePlaceholder")}
+              disabled={creatingCategory}
+            />
+            <button
+              type="button"
+              className="text-sm font-medium text-primary hover:underline"
+              onClick={() => {
+                setNewCategoryMode(false);
+                setNewCategoryName("");
+                setCreateCategoryError(null);
+              }}
+            >
+              {t("pickExistingCategory")}
+            </button>
+            {createCategoryError && (
+              <p className="text-sm text-negative">{createCategoryError}</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <select className={selectClassName} {...register("categoryId")} defaultValue="">
+              <option value="" disabled>
+                {tCommon("selectCategory")}
+              </option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {getCategoryDisplayName(category, tCategories)}
+                </option>
+              ))}
+            </select>
+            {onCreateCategory && variant === "create" && (
+              <button
+                type="button"
+                className="text-sm font-medium text-primary hover:underline"
+                onClick={() => {
+                  setNewCategoryMode(true);
+                  setValue("categoryId", "");
+                }}
+              >
+                {t("createCategoryInline")}
+              </button>
+            )}
+          </div>
+        )}
       </FormField>
 
       {tenants.length > 0 && !isSolo && (

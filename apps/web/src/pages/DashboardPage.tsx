@@ -25,6 +25,8 @@ import { ChartSkeleton } from "../components/dashboard/ChartSkeleton.tsx";
 import { KpiCard } from "../components/dashboard/KpiCard.tsx";
 import { KpiGridSkeleton } from "../components/dashboard/KpiGridSkeleton.tsx";
 import { ExpenseEditModal } from "../components/expenses/ExpenseEditModal.tsx";
+import { CategorySpendingChart } from "../components/stats/CategorySpendingChart.tsx";
+import { MonthNavigator } from "../components/stats/MonthNavigator.tsx";
 import { CategoryBadge } from "../components/ui/CategoryBadge.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
@@ -34,20 +36,16 @@ import {
   getApiErrorMessage,
   getBalances,
   getCategories,
+  getExpenseStats,
   getExpenses,
   getHousehold,
+  getIncomeStats,
   getTenants,
 } from "../lib/api.ts";
 import { getCategoryDisplayName } from "../lib/category-label.ts";
-import {
-  computeBalanceChartData,
-  computeCategorySpending,
-  computeDashboardKpis,
-  computeMonthlyTrend,
-  filterExpensesThisMonth,
-} from "../lib/dashboard-stats.ts";
-import type { ExpenseListFilters } from "../lib/expense-list-filters.ts";
-import { fetchAllExpenses } from "../lib/fetch-all-expenses.ts";
+import { computeBalanceChartData, computeDashboardKpis } from "../lib/dashboard-stats.ts";
+import { currentMonthValue } from "../lib/expense-list-filters.ts";
+import { formatMonthShort } from "../lib/format.ts";
 import { formatTenantName } from "../lib/format-tenant-name.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { queryKeys } from "../lib/query-keys.ts";
@@ -59,8 +57,6 @@ const CHART_HEIGHT = 280;
 const PRIMARY_STROKE = "#6d28d9";
 const AXIS_TICK = { fill: "#78716c", fontSize: 12 };
 const GRID_STROKE = "oklch(0.2 0.01 80 / 0.08)";
-
-const RECENT_FILTERS: ExpenseListFilters = { page: 1, limit: 5, month: "" };
 
 function toDateInputValue(iso?: string): string {
   const date = iso !== undefined ? new Date(iso) : new Date();
@@ -110,6 +106,8 @@ export function DashboardPage() {
   const { t: tCategories } = useTranslation("categories");
   const { locale, formatCurrency, formatDate, formatSignedCurrency } = useFormat();
 
+  const [month, setMonth] = useState(currentMonthValue);
+
   const currencyTooltipFormatter = (value: unknown): string => {
     if (typeof value === "number" && Number.isFinite(value)) {
       return formatCurrency(value);
@@ -127,21 +125,32 @@ export function DashboardPage() {
   const [modalDate, setModalDate] = useState(toDateInputValue());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
+  const recentFilters = useMemo(
+    () => ({ page: 1, limit: 5, month }),
+    [month],
+  );
+
   const householdQuery = useQuery({
     queryKey: queryKeys.household(householdId),
     queryFn: () => getHousehold(householdId),
     enabled: Boolean(householdId),
   });
 
-  const expensesQuery = useQuery({
-    queryKey: queryKeys.expensesAll(householdId),
-    queryFn: () => fetchAllExpenses(householdId),
+  const expenseStatsQuery = useQuery({
+    queryKey: queryKeys.expenseStats(householdId, month),
+    queryFn: () => getExpenseStats(householdId, month),
+    enabled: Boolean(householdId),
+  });
+
+  const incomeStatsQuery = useQuery({
+    queryKey: queryKeys.incomeStats(householdId, month),
+    queryFn: () => getIncomeStats(householdId, month),
     enabled: Boolean(householdId),
   });
 
   const recentExpensesQuery = useQuery({
-    queryKey: queryKeys.expenses(householdId, RECENT_FILTERS),
-    queryFn: () => getExpenses(householdId, { page: 1, limit: 5 }),
+    queryKey: queryKeys.expenses(householdId, recentFilters),
+    queryFn: () => getExpenses(householdId, recentFilters),
     enabled: Boolean(householdId),
   });
 
@@ -164,14 +173,16 @@ export function DashboardPage() {
   });
 
   const isLoading =
-    expensesQuery.isLoading ||
+    expenseStatsQuery.isLoading ||
+    incomeStatsQuery.isLoading ||
     balancesQuery.isLoading ||
     categoriesQuery.isLoading ||
     tenantsQuery.isLoading ||
     householdQuery.isLoading;
 
   const queryError =
-    expensesQuery.error ??
+    expenseStatsQuery.error ??
+    incomeStatsQuery.error ??
     balancesQuery.error ??
     categoriesQuery.error ??
     tenantsQuery.error ??
@@ -180,7 +191,8 @@ export function DashboardPage() {
   const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
 
   const refetchAll = () => {
-    void expensesQuery.refetch();
+    void expenseStatsQuery.refetch();
+    void incomeStatsQuery.refetch();
     void recentExpensesQuery.refetch();
     void balancesQuery.refetch();
     void categoriesQuery.refetch();
@@ -221,7 +233,9 @@ export function DashboardPage() {
         setModalNote("");
         void queryClient.invalidateQueries({ queryKey: ["balances", householdId] });
         void queryClient.invalidateQueries({ queryKey: queryKeys.settlements(householdId) });
-        void queryClient.invalidateQueries({ queryKey: queryKeys.expensesAll(householdId) });
+        void queryClient.invalidateQueries({ queryKey: ["expense-stats", householdId] });
+        void queryClient.invalidateQueries({ queryKey: ["income-stats", householdId] });
+        void queryClient.invalidateQueries({ queryKey: ["expenses", householdId] });
       },
     }),
   });
@@ -264,43 +278,45 @@ export function DashboardPage() {
     });
   };
 
-  const stats = useMemo(() => {
-    if (
-      !expensesQuery.data ||
-      !balancesQuery.data ||
-      !categoriesQuery.data ||
-      !tenantsQuery.data
-    ) {
+  const balanceKpis = useMemo(() => {
+    if (!balancesQuery.data) {
       return null;
     }
+    return computeDashboardKpis([], balancesQuery.data, tenantNameById);
+  }, [balancesQuery.data, tenantNameById]);
 
-    const monthExpenses = filterExpensesThisMonth(expensesQuery.data);
+  const monthlyTrend = useMemo(() => {
+    if (!expenseStatsQuery.data) {
+      return [];
+    }
+    return expenseStatsQuery.data.trend.map((point) => {
+      const [yearStr, monthStr] = point.month.split("-");
+      const date = new Date(Number(yearStr), Number(monthStr) - 1, 1);
+      return {
+        label: formatMonthShort(date, locale),
+        total: point.total,
+        monthKey: point.month,
+      };
+    });
+  }, [expenseStatsQuery.data, locale]);
 
-    return {
-      kpis: computeDashboardKpis(monthExpenses, balancesQuery.data, tenantNameById),
-      categorySlices: computeCategorySpending(
-        expensesQuery.data,
-        categoriesQuery.data,
-        tCommon("unknown"),
-        (category) => getCategoryDisplayName(category, tCategories),
-      ),
-      monthlyTrend: computeMonthlyTrend(expensesQuery.data, locale),
-      balanceBars: computeBalanceChartData(balancesQuery.data, tenantsQuery.data),
-    };
-  }, [
-    expensesQuery.data,
-    balancesQuery.data,
-    categoriesQuery.data,
-    tenantsQuery.data,
-    tenantNameById,
-    locale,
-    tCommon,
-    tCategories,
-  ]);
+  const balanceBars = useMemo(() => {
+    if (!balancesQuery.data || !tenantsQuery.data) {
+      return [];
+    }
+    return computeBalanceChartData(balancesQuery.data, tenantsQuery.data);
+  }, [balancesQuery.data, tenantsQuery.data]);
 
-  const categoryChartHeight = stats
-    ? Math.max(CHART_HEIGHT, stats.categorySlices.length * 40 + 40)
-    : CHART_HEIGHT;
+  const expenseStats = expenseStatsQuery.data;
+  const incomeStats = incomeStatsQuery.data;
+  const categories = categoriesQuery.data ?? [];
+
+  const remainingClass =
+    incomeStats && incomeStats.remainingBudget >= 0 ? "text-positive" : "text-negative";
+
+  const kpiGridClass =
+    "-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:px-0 lg:grid-cols-3";
+  const kpiItemClass = "min-w-[148px] shrink-0 md:min-w-0";
 
   return (
     <div className="space-y-8">
@@ -308,6 +324,8 @@ export function DashboardPage() {
         <h1 className={pageTitle}>{t("title")}</h1>
         <p className={pageSubtitle}>{t("subtitle")}</p>
       </div>
+
+      <MonthNavigator month={month} onChange={setMonth} />
 
       {queryError && (
         <ErrorMessage message={getApiErrorMessage(queryError)} onRetry={refetchAll} />
@@ -326,89 +344,75 @@ export function DashboardPage() {
         </>
       )}
 
-      {!isLoading && stats && (
+      {!isLoading && expenseStats && incomeStats && balanceKpis && (
         <>
-          <section className={`grid grid-cols-2 gap-4 ${isSolo ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
-            <KpiCard
-              title={t("totalThisMonth")}
-              value={
-                <span className={amount}>{formatCurrency(stats.kpis.totalThisMonth)}</span>
-              }
-            />
-            <KpiCard
-              title={t("expensesThisMonth")}
-              value={stats.kpis.expenseCountThisMonth}
-            />
-            <KpiCard
-              title={t("largestExpense")}
-              value={
-                stats.kpis.largestExpense ? (
-                  <span className={amount}>{formatCurrency(stats.kpis.largestExpense.amount)}</span>
-                ) : (
-                  tCommon("dash")
-                )
-              }
-              subtitle={stats.kpis.largestExpense?.description}
-            />
-            {!isSolo && (
+          <section className={kpiGridClass}>
+            <div className={kpiItemClass}>
               <KpiCard
-                to={`/households/${householdId}/balances`}
-                title={t("pendingSettlements")}
-                value={stats.kpis.pendingSettlementCount}
-                subtitle={
-                  stats.kpis.mostIndebted
-                    ? `${stats.kpis.mostIndebted.name} · ${formatSignedCurrency(stats.kpis.mostIndebted.balance)}`
-                    : undefined
-                }
+                title={t("incomeThisMonth")}
+                value={formatCurrency(incomeStats.totalIncome)}
+                valueClassName="text-positive"
               />
+            </div>
+            <div className={kpiItemClass}>
+              <KpiCard
+                title={t("remainingBudget")}
+                value={formatCurrency(incomeStats.remainingBudget)}
+                valueClassName={remainingClass}
+              />
+            </div>
+            <div className={kpiItemClass}>
+              <KpiCard
+                title={t("totalThisMonth")}
+                value={formatCurrency(expenseStats.totalExpenses)}
+              />
+            </div>
+            <div className={kpiItemClass}>
+              <KpiCard title={t("expensesThisMonth")} value={expenseStats.expenseCount} />
+            </div>
+            <div className={kpiItemClass}>
+              <KpiCard
+                title={t("largestExpense")}
+                value={
+                  expenseStats.largestExpense
+                    ? formatCurrency(expenseStats.largestExpense.amount)
+                    : tCommon("dash")
+                }
+                subtitle={expenseStats.largestExpense?.description}
+              />
+            </div>
+            {!isSolo && (
+              <div className={kpiItemClass}>
+                <KpiCard
+                  to={`/households/${householdId}/balances`}
+                  title={t("pendingSettlements")}
+                  value={balanceKpis.pendingSettlementCount}
+                  subtitle={
+                    balanceKpis.mostIndebted
+                      ? `${balanceKpis.mostIndebted.name} · ${formatSignedCurrency(balanceKpis.mostIndebted.balance)}`
+                      : undefined
+                  }
+                />
+              </div>
             )}
           </section>
 
           <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ChartCard
+            <CategorySpendingChart
               title={t("spendingByCategory")}
-              isEmpty={stats.categorySlices.length === 0}
               emptyMessage={t("spendingByCategoryEmpty")}
-            >
-              <ResponsiveContainer width="100%" height={categoryChartHeight}>
-                <BarChart
-                  layout="vertical"
-                  data={stats.categorySlices}
-                  margin={{ left: 8, right: 56, top: 8, bottom: 8 }}
-                >
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={100}
-                    tick={AXIS_TICK}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip formatter={currencyTooltipFormatter} />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
-                    {stats.categorySlices.map((entry) => (
-                      <Cell key={entry.name} fill={entry.fill} />
-                    ))}
-                    <LabelList
-                      dataKey="value"
-                      position="right"
-                      formatter={currencyTooltipFormatter}
-                      fill="#78716c"
-                      fontSize={12}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
+              byCategory={expenseStats.byCategory}
+              categories={categories}
+              getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
+            />
 
             <ChartCard
               title={t("monthlyTrend")}
-              isEmpty={stats.monthlyTrend.every((point) => point.total === 0)}
+              isEmpty={monthlyTrend.every((point) => point.total === 0)}
               emptyMessage={t("monthlyTrendEmpty")}
             >
               <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-                <LineChart data={stats.monthlyTrend}>
+                <LineChart data={monthlyTrend}>
                   <CartesianGrid stroke={GRID_STROKE} vertical={false} />
                   <XAxis dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} />
                   <YAxis
@@ -436,13 +440,14 @@ export function DashboardPage() {
             <section className="mt-4">
               <ChartCard
                 title={t("balancesChart")}
-                isEmpty={stats.balanceBars.length === 0}
+                subtitle={t("balancesCumulativeNote")}
+                isEmpty={balanceBars.length === 0}
                 emptyMessage={t("balancesChartEmpty")}
               >
                 <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
                   <div className="min-w-[280px]">
                     <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-                      <BarChart data={stats.balanceBars} margin={{ top: 20, bottom: 20 }}>
+                      <BarChart data={balanceBars} margin={{ top: 20, bottom: 20 }}>
                         <CartesianGrid stroke={GRID_STROKE} vertical={false} />
                         <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} />
                         <YAxis
@@ -454,7 +459,7 @@ export function DashboardPage() {
                         />
                         <Tooltip formatter={currencyTooltipFormatter} />
                         <Bar dataKey="balance" radius={[6, 6, 0, 0]}>
-                          {stats.balanceBars.map((entry) => (
+                          {balanceBars.map((entry) => (
                             <Cell key={entry.name} fill={entry.fill} />
                           ))}
                           <LabelList
@@ -473,8 +478,8 @@ export function DashboardPage() {
           )}
 
           {!isSolo && (
-          <section className={card}>
-            <h2 className="text-sm font-semibold tracking-tight text-stone-900">
+          <section className={`${card} bg-stone-50/30`}>
+            <h2 className="text-sm font-medium tracking-tight text-stone-800">
               {t("pendingSettlementsSection")}
             </h2>
             {suggestions.length > 0 ? (
@@ -529,9 +534,9 @@ export function DashboardPage() {
           </section>
           )}
 
-          <section className="mt-4 overflow-hidden rounded-xl border border-border bg-surface">
-            <div className="border-b border-border p-4">
-              <h2 className="font-semibold text-stone-800">{t("recentExpenses")}</h2>
+          <section className="mt-4 overflow-hidden rounded-2xl border border-stone-200/50 bg-surface">
+            <div className="border-b border-stone-200/50 p-4">
+              <h2 className="text-sm font-medium text-stone-800">{t("recentExpenses")}</h2>
             </div>
             {recentExpensesQuery.isLoading && (
               <div className="p-4">
@@ -565,6 +570,7 @@ export function DashboardPage() {
                             <CategoryBadge
                               name={category?.name ?? tCommon("category")}
                               slug={category?.slug}
+                              color={category?.color}
                             />
                             <span>{formatDate(expense.date)}</span>
                           </div>
@@ -600,6 +606,7 @@ export function DashboardPage() {
                               <CategoryBadge
                                 name={category?.name ?? tCommon("category")}
                                 slug={category?.slug}
+                                color={category?.color}
                               />
                             </td>
                             <td className={`px-3 py-2.5 text-right ${amount}`}>
@@ -670,7 +677,7 @@ export function DashboardPage() {
           categories={categoriesQuery.data}
           tenants={tenantsQuery.data}
           isSolo={isSolo}
-          expenseFilters={RECENT_FILTERS}
+          expenseFilters={recentFilters}
           open
           onClose={() => setEditingExpense(null)}
         />

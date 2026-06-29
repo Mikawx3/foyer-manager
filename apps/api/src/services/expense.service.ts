@@ -65,13 +65,14 @@ export class ExpenseService {
   ) {}
 
   async listByHousehold(query: ListExpensesQuery): Promise<PaginatedExpenses> {
-    const { householdId, page, limit, month, categoryId } = query;
+    const { householdId, page, limit, month, categoryId, search } = query;
     await this.assertHouseholdExists(householdId);
 
     const where = buildExpenseListWhere({
       householdId,
       ...(month !== undefined && { month }),
       ...(categoryId !== undefined && { categoryId }),
+      ...(search !== undefined && { search }),
     });
 
     const total = await this.expenses.countByWhere(where);

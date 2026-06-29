@@ -1,6 +1,8 @@
 import type { Category, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { handlePrismaError } from "../lib/prisma-errors.js";
+import { colorKeyForSlug } from "../lib/category-colors.js";
+import type { CategoryColorKey } from "@foyer/types";
 
 export class CategoryRepository {
   async findById(id: string): Promise<Category | null> {
@@ -14,7 +16,12 @@ export class CategoryRepository {
     });
   }
 
-  async create(data: { name: string; householdId: string }): Promise<Category> {
+  async create(data: {
+    name: string;
+    householdId: string;
+    slug?: string;
+    color: CategoryColorKey;
+  }): Promise<Category> {
     try {
       return await prisma.category.create({ data });
     } catch (error) {
@@ -34,6 +41,7 @@ export class CategoryRepository {
       data: categories.map((category) => ({
         name: category.name,
         slug: category.slug,
+        color: colorKeyForSlug(category.slug),
         householdId,
       })),
     });

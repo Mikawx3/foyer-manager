@@ -10,6 +10,8 @@ const categoryId = "clc12345678901234567890123";
 const prismaCategory = {
   id: categoryId,
   name: "Rent",
+  slug: "rent",
+  color: "rent",
   householdId,
 };
 
@@ -44,15 +46,20 @@ describe("CategoryService", () => {
     await expect(service.listByHousehold(householdId)).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("create returns mapped category", async () => {
+  it("create returns mapped category with auto color", async () => {
     const { repository, service } = createMocks({
-      repository: { create: vi.fn().mockResolvedValue(prismaCategory) },
+      repository: {
+        findAllByHousehold: vi.fn().mockResolvedValue([]),
+        create: vi.fn().mockResolvedValue(prismaCategory),
+      },
     });
 
     const result = await service.create({ name: "Rent", householdId });
 
-    expect(result).toEqual(prismaCategory);
-    expect(repository.create).toHaveBeenCalledWith({ name: "Rent", householdId });
+    expect(result.color).toBe("rent");
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Rent", householdId, color: "rent" }),
+    );
   });
 
   it("delete removes category when it has no expenses", async () => {
