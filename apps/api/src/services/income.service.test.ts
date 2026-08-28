@@ -12,6 +12,7 @@ import { IncomeService } from "./income.service.js";
 
 const householdId = "clh12345678901234567890123";
 const tenantId = "clt12345678901234567890123";
+const otherTenantId = "clt98765432109876543210987";
 const incomeId = "cli12345678901234567890123";
 const templateId = "ctp12345678901234567890123";
 
@@ -354,6 +355,126 @@ describe("IncomeService", () => {
     expect(stats.trend).toHaveLength(6);
     expect(stats.trend[5]?.month).toBe("2026-06");
     expect(stats.trend[0]?.month).toBe("2026-01");
+  });
+
+  it("focuses stats on a single tenant when focusTenantId is provided", async () => {
+    const incomes: IncomeRepository = {
+      findByHouseholdAndMonth: vi.fn(),
+      findByHousehold: vi.fn().mockResolvedValue([
+        buildIncomeRecord({ tenantId, amount: 3000 }),
+        buildIncomeRecord({ id: "cli-other-income", tenantId: otherTenantId, amount: 1000 }),
+      ]),
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    };
+    const expenses: ExpenseRepository = {
+      sumAmountByWhere: vi.fn().mockResolvedValue(2000),
+    } as unknown as ExpenseRepository;
+    const tenants: TenantRepository = {
+      findAllByHousehold: vi.fn().mockResolvedValue([
+        {
+          id: tenantId,
+          name: "Alice",
+          email: "alice@test.com",
+          color: null,
+          active: true,
+          archivedAt: null,
+          householdId,
+          createdAt: new Date(),
+        },
+        {
+          id: otherTenantId,
+          name: "Bob",
+          email: "bob@test.com",
+          color: null,
+          active: true,
+          archivedAt: null,
+          householdId,
+          createdAt: new Date(),
+        },
+      ]),
+      findById: vi.fn().mockImplementation(async (id: string) => {
+        if (id === tenantId) {
+          return {
+            id: tenantId,
+            name: "Alice",
+            email: "alice@test.com",
+            color: null,
+            active: true,
+            archivedAt: null,
+            householdId,
+            createdAt: new Date(),
+          };
+        }
+        if (id === otherTenantId) {
+          return {
+            id: otherTenantId,
+            name: "Bob",
+            email: "bob@test.com",
+            color: null,
+            active: true,
+            archivedAt: null,
+            householdId,
+            createdAt: new Date(),
+          };
+        }
+        return null;
+      }),
+      create: vi.fn(),
+      deleteById: vi.fn(),
+    };
+    const expenseSvc: ExpenseService = {
+      getTenantOwedTotalsForMonth: vi.fn().mockResolvedValue(
+        new Map([
+          [tenantId, 500],
+          [otherTenantId, 1500],
+        ]),
+      ),
+      getTenantCategoryStatsForMonth: vi.fn().mockResolvedValue([
+        {
+          categoryId: "clc12345678901234567890123",
+          categorySlug: "food",
+          amount: 500,
+          sharePercent: 100,
+          expenseCount: 2,
+        },
+      ]),
+    } as unknown as ExpenseService;
+
+    const service = new IncomeService(
+      incomes,
+      emptyIncomeTemplates(),
+      expenses,
+      buildHouseholds(),
+      tenants,
+      expenseSvc,
+      mockExpenseStatsSvc(2000),
+    );
+
+    const stats = await service.getIncomeStats(householdId, "2026-06", "personal", tenantId);
+
+    expect(stats.totalIncome).toBe(3000);
+    expect(stats.totalExpenses).toBe(500);
+    expect(stats.remainingBudget).toBe(2500);
+    expect(stats.byTenant[0]?.tenantId).toBe(tenantId);
+    expect(stats.byCategory).toEqual([
+      {
+        categoryId: "clc12345678901234567890123",
+        categorySlug: "food",
+        amount: 500,
+        sharePercent: 100,
+        expenseCount: 2,
+      },
+    ]);
+    expect(expenseSvc.getTenantOwedTotalsForMonth).toHaveBeenCalled();
+    expect(expenseSvc.getTenantCategoryStatsForMonth).toHaveBeenCalledWith(
+      householdId,
+      "2026-06",
+      tenantId,
+      "personal",
+    );
   });
 
   it("throws NotFoundError when deleting unknown income", async () => {

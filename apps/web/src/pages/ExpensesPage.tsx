@@ -1,4 +1,4 @@
-import type { Expense, ExpenseSplit, Tenant } from "@foyer/types";
+import type { Category, Expense, ExpenseSplit, Tenant } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ExpenseEditModal } from "../components/expenses/ExpenseEditModal.tsx";
+import { ParticipantScopeToggle } from "../components/expenses/ParticipantScopeToggle.tsx";
 import { RecurringExpensesSection } from "../components/expenses/RecurringExpensesSection.tsx";
 import { ChartSkeleton } from "../components/dashboard/ChartSkeleton.tsx";
 import { KpiGridSkeleton } from "../components/dashboard/KpiGridSkeleton.tsx";
@@ -42,7 +43,11 @@ import { exportExpensesToCSV, getCsvHeaders, slugifyHouseholdName } from "../lib
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { formatTenantName } from "../lib/format-tenant-name.ts";
 import { getActiveTenants } from "../lib/active-tenants.ts";
-import { currentMonthValue, type ExpenseListFilters } from "../lib/expense-list-filters.ts";
+import {
+  currentMonthValue,
+  type ExpenseListFilters,
+  type ParticipantScope,
+} from "../lib/expense-list-filters.ts";
 import {
   initialSplitsFromExpenseSplits,
   isExpenseSplitsComplete,
@@ -254,6 +259,7 @@ export function ExpensesPage() {
   const [limit, setLimit] = useState(10);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [participantScope, setParticipantScope] = useState<ParticipantScope>("all");
   const [activeTab, setActiveTab] = useState<"expenses" | "recurring">("expenses");
   const lastGeneratedToastRef = useRef(0);
 
@@ -264,27 +270,6 @@ export function ExpensesPage() {
     }, 300);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
-
-  const expenseFilters: ExpenseListFilters = {
-    page,
-    limit,
-    month,
-    ...(categoryId !== "" && { categoryId }),
-    ...(search !== "" && { search }),
-  };
-
-  const expensesQuery = useQuery({
-    queryKey: queryKeys.expenses(householdId, expenseFilters),
-    queryFn: () =>
-      getExpenses(householdId, {
-        page,
-        limit,
-        month,
-        ...(categoryId !== "" && { categoryId }),
-        ...(search !== "" && { search }),
-      }),
-    enabled: Boolean(householdId),
-  });
 
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
@@ -304,15 +289,50 @@ export function ExpensesPage() {
     enabled: Boolean(householdId),
   });
 
+  const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
+  const effectiveParticipantScope: ParticipantScope = isSolo ? "all" : participantScope;
+
+  const expenseFilters: ExpenseListFilters = {
+    page,
+    limit,
+    month,
+    participantScope: effectiveParticipantScope,
+    ...(categoryId !== "" && { categoryId }),
+    ...(search !== "" && { search }),
+  };
+
+  const expensesQuery = useQuery({
+    queryKey: queryKeys.expenses(householdId, expenseFilters),
+    queryFn: () =>
+      getExpenses(householdId, {
+        page,
+        limit,
+        month,
+        participantScope: effectiveParticipantScope,
+        ...(categoryId !== "" && { categoryId }),
+        ...(search !== "" && { search }),
+      }),
+    enabled: Boolean(householdId),
+  });
+
   const expenseStatsQuery = useQuery({
-    queryKey: queryKeys.expenseStats(householdId, month),
-    queryFn: () => getExpenseStats(householdId, month),
+    queryKey: queryKeys.expenseStats(householdId, month, effectiveParticipantScope),
+    queryFn: () => getExpenseStats(householdId, month, effectiveParticipantScope),
     enabled: Boolean(householdId),
   });
 
   const createCategoryMutation = useMutation({
     mutationFn: createCategory,
-    onSuccess: () => {
+    onSuccess: (created) => {
+      queryClient.setQueryData<Category[]>(queryKeys.categories(householdId), (current) => {
+        if (!current) {
+          return [created];
+        }
+        if (current.some((category) => category.id === created.id)) {
+          return current;
+        }
+        return [...current, created];
+      });
       void queryClient.invalidateQueries({ queryKey: queryKeys.categories(householdId) });
     },
   });
@@ -424,11 +444,9 @@ export function ExpensesPage() {
     toast.success(tExport("csvExported", { count: expenseList.length }));
   };
 
-  const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
-
-  const handleCreateExpense = (data: CreateExpenseForm | UpdateExpenseForm) => {
+  const handleCreateExpense = async (data: CreateExpenseForm | UpdateExpenseForm) => {
     if ("householdId" in data) {
-      createExpenseMutation.mutate(data);
+      await createExpenseMutation.mutateAsync(data);
     }
   };
 
@@ -500,13 +518,24 @@ export function ExpensesPage() {
 
             {activeTab === "expenses" && (
               <>
-            <MonthNavigator
-              month={month}
-              onChange={(nextMonth) => {
-                setMonth(nextMonth);
-                setPage(1);
-              }}
-            />
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <MonthNavigator
+                month={month}
+                onChange={(nextMonth) => {
+                  setMonth(nextMonth);
+                  setPage(1);
+                }}
+              />
+              {!isSolo && (
+                <ParticipantScopeToggle
+                  value={participantScope}
+                  onChange={(nextScope) => {
+                    setParticipantScope(nextScope);
+                    setPage(1);
+                  }}
+                />
+              )}
+            </div>
 
             {expenseStatsQuery.isLoading && (
               <div className="mb-4 space-y-4">
@@ -599,8 +628,20 @@ export function ExpensesPage() {
             )}
             {expensesQuery.isSuccess && expensesQuery.data.total === 0 && (
               <EmptyState
-                title={t("noExpensesTitle")}
-                description={t("noExpensesDescription")}
+                title={
+                  effectiveParticipantScope === "shared"
+                    ? t("noSharedExpensesTitle")
+                    : effectiveParticipantScope === "personal"
+                      ? t("noPersonalExpensesTitle")
+                      : t("noExpensesTitle")
+                }
+                description={
+                  effectiveParticipantScope === "shared"
+                    ? t("noSharedExpensesDescription")
+                    : effectiveParticipantScope === "personal"
+                      ? t("noPersonalExpensesDescription")
+                      : t("noExpensesDescription")
+                }
                 action={
                   canAddExpense ? (
                     <button

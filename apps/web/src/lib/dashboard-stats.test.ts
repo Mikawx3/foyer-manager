@@ -95,26 +95,38 @@ describe("filterExpensesThisMonth", () => {
   });
 });
 
+/** Balance row with no personal spending and no settlement yet. */
+function balanceRow(
+  row: Pick<TenantBalance, "tenantId" | "tenantName" | "paid" | "owed" | "balance">,
+): TenantBalance {
+  return {
+    ...row,
+    personalShare: 0,
+    paidForOthers: row.paid,
+    owedToOthers: row.owed,
+    settledAmount: 0,
+    settledReceived: 0,
+  };
+}
+
 describe("computeDashboardKpis", () => {
   it("aggregates month totals and finds largest expense", () => {
     const monthExpenses = filterExpensesThisMonth(expenses, referenceDate);
     const balances: TenantBalance[] = [
-      {
+      balanceRow({
         tenantId: "t1",
         tenantName: "Alice",
         paid: 150,
         owed: 75,
         balance: 75,
-        settledAmount: 0,
-      },
-      {
+      }),
+      balanceRow({
         tenantId: "t2",
         tenantName: "Bob",
         paid: 0,
         owed: 75,
         balance: -75,
-        settledAmount: 0,
-      },
+      }),
     ];
     const tenantNames = new Map(tenants.map((t) => [t.id, t.name]));
 
@@ -130,22 +142,20 @@ describe("computeDashboardKpis", () => {
 
   it("marks all settled when no negative balances", () => {
     const balances: TenantBalance[] = [
-      {
+      balanceRow({
         tenantId: "t1",
         tenantName: "Alice",
         paid: 100,
         owed: 50,
         balance: 50,
-        settledAmount: 0,
-      },
-      {
+      }),
+      balanceRow({
         tenantId: "t2",
         tenantName: "Bob",
         paid: 50,
         owed: 50,
         balance: 0,
-        settledAmount: 0,
-      },
+      }),
     ];
     const tenantNames = new Map(tenants.map((t) => [t.id, t.name]));
 
@@ -185,22 +195,20 @@ describe("computeMonthlyTrend", () => {
 describe("computeBalanceChartData", () => {
   it("uses tenant colors for non-zero balances", () => {
     const balances: TenantBalance[] = [
-      {
+      balanceRow({
         tenantId: "t1",
         tenantName: "Alice",
         paid: 100,
         owed: 50,
         balance: 50,
-        settledAmount: 0,
-      },
-      {
+      }),
+      balanceRow({
         tenantId: "t2",
         tenantName: "Bob",
         paid: 0,
         owed: 50,
         balance: -50,
-        settledAmount: 0,
-      },
+      }),
     ];
     const bars = computeBalanceChartData(balances, tenants);
     expect(bars[0]).toMatchObject({ name: "Alice", balance: 50, fill: "#01696f" });
@@ -209,14 +217,13 @@ describe("computeBalanceChartData", () => {
 
   it("uses neutral fill for zero balance", () => {
     const balances: TenantBalance[] = [
-      {
+      balanceRow({
         tenantId: "t1",
         tenantName: "Alice",
         paid: 50,
         owed: 50,
         balance: 0,
-        settledAmount: 0,
-      },
+      }),
     ];
     const bars = computeBalanceChartData(balances, tenants);
     expect(bars[0]?.fill).toBe("#6b7280");

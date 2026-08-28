@@ -9,7 +9,10 @@ import {
   sumResolvedIncomesForMonth,
 } from "../lib/income-stats.js";
 import { toIncomeDto, toIncomeTemplateDto } from "../lib/mappers.js";
-import { buildExpenseListWhere } from "../repositories/expense-list-filters.js";
+import {
+  buildExpenseListWhere,
+  type ParticipantScope,
+} from "../repositories/expense-list-filters.js";
 import {
   expenseRepository,
   type ExpenseRepository,
@@ -175,23 +178,41 @@ export class IncomeService {
     return toIncomeDto(deleted);
   }
 
-  async getIncomeStats(householdId: string, month: string): Promise<IncomeStats> {
+  async getIncomeStats(
+    householdId: string,
+    month: string,
+    participantScope: ParticipantScope = "all",
+    focusTenantId?: string,
+  ): Promise<IncomeStats> {
     await this.assertHouseholdExists(householdId);
+    if (focusTenantId) {
+      await this.assertTenantInHousehold(focusTenantId, householdId);
+    }
 
     const months = last6MonthKeys(month);
-    const [templates, overrides, tenants, tenantOwed, expenseMonthStats] = await Promise.all([
+    const [templates, overrides, tenants, tenantOwed, expenseMonthStats, focusedByCategory] =
+      await Promise.all([
       this.incomeTemplates.findAllByHousehold(householdId),
       this.incomes.findByHousehold(householdId, months),
       this.tenants.findAllByHousehold(householdId, { includeArchived: false }),
-      this.expenseSvc.getTenantOwedTotalsForMonth(householdId, month),
-      this.expenseStatsSvc.getStatsForMonth(householdId, month),
+      this.expenseSvc.getTenantOwedTotalsForMonth(householdId, month, participantScope),
+      this.expenseStatsSvc.getStatsForMonth(householdId, month, participantScope),
+      focusTenantId
+        ? this.expenseSvc.getTenantCategoryStatsForMonth(
+            householdId,
+            month,
+            focusTenantId,
+            participantScope,
+          )
+        : Promise.resolve(null),
     ]);
 
+    const householdTenantIds =
+      participantScope === "shared" || participantScope === "personal"
+        ? tenants.map((tenant) => tenant.id)
+        : [];
+
     const resolvedMonth = resolveIncomesForMonth(templates, overrides, month);
-    const totalIncome = sumResolvedIncomes(resolvedMonth);
-    const totalExpenses = expenseMonthStats.totalExpenses;
-    const remainingBudget = totalIncome - totalExpenses;
-    const savingsRate = computeSavingsRate(totalIncome, totalExpenses);
 
     const tenantIdsWithIncome = new Set(resolvedMonth.map((income) => income.tenantId));
     const relevantTenants = tenants.filter(
@@ -212,13 +233,58 @@ export class IncomeService {
           savingsRate: computeSavingsRate(income, expenses),
         };
       })
-      .sort((a, b) => b.balance - a.balance);
+      .sort((a, b) => {
+        if (focusTenantId) {
+          if (a.tenantId === focusTenantId) {
+            return -1;
+          }
+          if (b.tenantId === focusTenantId) {
+            return 1;
+          }
+        }
+        return b.balance - a.balance;
+      });
+
+    const focusedRow = focusTenantId
+      ? byTenant.find((row) => row.tenantId === focusTenantId)
+      : undefined;
+
+    let totalIncome = focusTenantId
+      ? (focusedRow?.income ?? sumResolvedIncomesByTenant(resolvedMonth, focusTenantId))
+      : sumResolvedIncomes(resolvedMonth);
+    let totalExpenses = focusTenantId
+      ? (focusedRow?.expenses ?? tenantOwed.get(focusTenantId) ?? 0)
+      : expenseMonthStats.totalExpenses;
 
     const trend = await Promise.all(
       months.map(async (trendMonth) => {
+        if (focusTenantId) {
+          const monthIncome = sumResolvedIncomesByTenant(
+            resolveIncomesForMonth(templates, overrides, trendMonth),
+            focusTenantId,
+          );
+          const monthOwed = await this.expenseSvc.getTenantOwedTotalsForMonth(
+            householdId,
+            trendMonth,
+            participantScope,
+          );
+          const monthExpenses = monthOwed.get(focusTenantId) ?? 0;
+          return {
+            month: trendMonth,
+            income: monthIncome,
+            expenses: monthExpenses,
+            savings: monthIncome - monthExpenses,
+          };
+        }
+
         const monthIncome = sumResolvedIncomesForMonth(templates, overrides, trendMonth);
         const monthExpenses = await this.expenses.sumAmountByWhere(
-          buildExpenseListWhere({ householdId, month: trendMonth }),
+          buildExpenseListWhere({
+            householdId,
+            month: trendMonth,
+            participantScope,
+            ...(householdTenantIds.length > 0 && { householdTenantIds }),
+          }),
         );
         return {
           month: trendMonth,
@@ -229,6 +295,9 @@ export class IncomeService {
       }),
     );
 
+    const remainingBudget = totalIncome - totalExpenses;
+    const savingsRate = computeSavingsRate(totalIncome, totalExpenses);
+
     return {
       month,
       totalIncome,
@@ -236,7 +305,7 @@ export class IncomeService {
       savingsRate,
       remainingBudget,
       largestExpense: expenseMonthStats.largestExpense,
-      byCategory: expenseMonthStats.byCategory,
+      byCategory: focusedByCategory ?? expenseMonthStats.byCategory,
       byTenant,
       trend,
     };

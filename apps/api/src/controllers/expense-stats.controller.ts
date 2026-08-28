@@ -17,7 +17,11 @@ export class ExpenseStatsController {
     const { id } = parseOrThrow(expenseStatsHouseholdParamSchema, c.req.param());
     assertHouseholdAccess(c, id);
     const query = parseOrThrow(expenseStatsQuerySchema, c.req.query());
-    const stats = await this.service.getStatsForMonth(id, query.month);
+    const stats = await this.service.getStatsForMonth(
+      id,
+      query.month,
+      query.participantScope,
+    );
     return c.json(stats, 200);
   };
 }

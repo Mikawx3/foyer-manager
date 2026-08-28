@@ -7,4 +7,5 @@ export const expenseStatsHouseholdParamSchema = z.object({
 
 export const expenseStatsQuerySchema = z.object({
   month: monthSchema,
+  participantScope: z.enum(["shared", "personal", "all"]).default("all"),
 });

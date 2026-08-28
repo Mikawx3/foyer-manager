@@ -133,6 +133,7 @@ export const listExpensesQuerySchema = z.object({
     .optional(),
   categoryId: z.string().cuid().optional(),
   search: z.string().trim().min(1).max(100).optional(),
+  participantScope: z.enum(["shared", "personal", "all"]).default("all"),
 });
 
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;

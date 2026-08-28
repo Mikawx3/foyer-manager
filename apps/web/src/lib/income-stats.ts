@@ -53,3 +53,8 @@ export function formatMonthLabel(month: string, locale: string): string {
   const date = parseMonthKey(month);
   return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(date);
 }
+
+export function formatMonthShortLabel(month: string, locale: string): string {
+  const date = parseMonthKey(month);
+  return new Intl.DateTimeFormat(locale, { month: "short" }).format(date);
+}

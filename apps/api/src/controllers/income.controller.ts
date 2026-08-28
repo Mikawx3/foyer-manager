@@ -82,7 +82,12 @@ export class IncomeController {
     const { id } = parseOrThrow(incomeHouseholdParamSchema, c.req.param());
     assertHouseholdAccess(c, id);
     const query = parseOrThrow(incomeStatsQuerySchema, c.req.query());
-    const stats = await this.service.getIncomeStats(id, query.month);
+    const stats = await this.service.getIncomeStats(
+      id,
+      query.month,
+      query.participantScope,
+      query.focusTenantId,
+    );
     return c.json(stats, 200);
   };
 }

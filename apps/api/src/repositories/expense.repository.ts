@@ -107,11 +107,17 @@ export class ExpenseRepository {
       dateFilter = { gte: options.dateFrom };
     }
 
+    return this.findAllByWhereWithSplits({
+      householdId,
+      ...(dateFilter !== undefined && { date: dateFilter }),
+    });
+  }
+
+  async findAllByWhereWithSplits(
+    where: Prisma.ExpenseWhereInput,
+  ): Promise<ExpenseWithSplits[]> {
     return prisma.expense.findMany({
-      where: {
-        householdId,
-        ...(dateFilter !== undefined && { date: dateFilter }),
-      },
+      where,
       include: { splits: true },
       orderBy: { date: "desc" },
     });

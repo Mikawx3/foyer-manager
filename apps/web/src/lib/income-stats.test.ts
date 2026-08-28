@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aggregateIncomeByTenant,
   computeSavingsRate,
+  formatMonthShortLabel,
   savingsRateTone,
   shiftMonth,
 } from "./income-stats.ts";
@@ -64,5 +65,11 @@ describe("income-stats", () => {
     ]);
     expect(totals.get("a")).toBe(1200);
     expect(totals.get("b")).toBe(800);
+  });
+
+  it("formatMonthShortLabel keeps June and July distinct in French", () => {
+    expect(formatMonthShortLabel("2026-06", "fr-FR")).not.toBe(
+      formatMonthShortLabel("2026-07", "fr-FR"),
+    );
   });
 });

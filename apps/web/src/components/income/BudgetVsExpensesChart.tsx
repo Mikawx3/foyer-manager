@@ -21,9 +21,14 @@ const GRID_STROKE = "#e7e5e4";
 interface BudgetVsExpensesChartProps {
   stats: IncomeStats;
   tenants: Tenant[];
+  focusTenantId?: string;
 }
 
-export function BudgetVsExpensesChart({ stats, tenants }: BudgetVsExpensesChartProps) {
+export function BudgetVsExpensesChart({
+  stats,
+  tenants,
+  focusTenantId,
+}: BudgetVsExpensesChartProps) {
   const { t } = useTranslation("income");
   const { formatCurrency } = useFormat();
 
@@ -36,6 +41,8 @@ export function BudgetVsExpensesChart({ stats, tenants }: BudgetVsExpensesChartP
     income: row.income,
     expenses: row.expenses,
     color: tenantColorById.get(row.tenantId) ?? DEFAULT_TENANT_COLOR,
+    tenantId: row.tenantId,
+    focused: focusTenantId === row.tenantId,
   }));
 
   const isEmpty = data.every((row) => row.income === 0 && row.expenses === 0);
@@ -56,7 +63,27 @@ export function BudgetVsExpensesChart({ stats, tenants }: BudgetVsExpensesChartP
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-          <XAxis dataKey="name" tick={AXIS_TICK} />
+          <XAxis
+            dataKey="name"
+            tick={(props) => {
+              const { x, y, payload } = props;
+              const entry = data.find((row) => row.name === payload.value);
+              const isFocused = entry?.focused ?? false;
+              return (
+                <text
+                  x={x}
+                  y={y}
+                  dy={16}
+                  textAnchor="middle"
+                  fill={isFocused ? "#1c1917" : "#78716c"}
+                  fontSize={12}
+                  fontWeight={isFocused ? 600 : 400}
+                >
+                  {payload.value}
+                </text>
+              );
+            }}
+          />
           <YAxis tick={AXIS_TICK} tickFormatter={(v: number) => formatCurrency(v)} width={72} />
           <Tooltip formatter={currencyTooltipFormatter} labelFormatter={(label) => String(label)} />
           <Legend />

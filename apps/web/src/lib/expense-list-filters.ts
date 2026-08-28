@@ -1,9 +1,12 @@
+export type ParticipantScope = "shared" | "personal" | "all";
+
 export interface ExpenseListFilters {
   page: number;
   limit: number;
   month: string;
   categoryId?: string;
   search?: string;
+  participantScope?: ParticipantScope;
 }
 
 export function currentMonthValue(): string {

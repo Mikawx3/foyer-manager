@@ -71,6 +71,7 @@ export interface BalanceExpenseInput {
 
 export interface BalanceSplitInput {
   tenantId: string;
+  paidByTenantId: string;
   amount: number;
 }
 
@@ -85,10 +86,12 @@ export function computeTenantBalances(
 ): TenantBalance[] {
   const paidByTenant = new Map<string, number>();
   const owedByTenant = new Map<string, number>();
+  const personalByTenant = new Map<string, number>();
 
   for (const tenant of tenants) {
     paidByTenant.set(tenant.id, 0);
     owedByTenant.set(tenant.id, 0);
+    personalByTenant.set(tenant.id, 0);
   }
 
   for (const expense of expenses) {
@@ -99,18 +102,28 @@ export function computeTenantBalances(
   for (const split of splits) {
     const current = owedByTenant.get(split.tenantId) ?? 0;
     owedByTenant.set(split.tenantId, current + split.amount);
+
+    if (split.tenantId === split.paidByTenantId) {
+      const personal = personalByTenant.get(split.tenantId) ?? 0;
+      personalByTenant.set(split.tenantId, personal + split.amount);
+    }
   }
 
   return tenants.map((tenant) => {
     const paid = paidByTenant.get(tenant.id) ?? 0;
     const owed = owedByTenant.get(tenant.id) ?? 0;
+    const personalShare = personalByTenant.get(tenant.id) ?? 0;
     return {
       tenantId: tenant.id,
       tenantName: "",
       paid: round2(paid),
       owed: round2(owed),
+      personalShare: round2(personalShare),
+      paidForOthers: round2(paid - personalShare),
+      owedToOthers: round2(owed - personalShare),
       balance: round2(paid - owed),
       settledAmount: 0,
+      settledReceived: 0,
     };
   });
 }

@@ -3,6 +3,7 @@ import { NotFoundError } from "../errors/app.errors.js";
 import type { CategoryRepository } from "../repositories/category.repository.js";
 import type { ExpenseRepository } from "../repositories/expense.repository.js";
 import type { HouseholdRepository } from "../repositories/household.repository.js";
+import type { TenantRepository } from "../repositories/tenant.repository.js";
 import { ExpenseStatsService } from "./expense-stats.service.js";
 
 const householdId = "clh12345678901234567890123";
@@ -95,6 +96,35 @@ describe("ExpenseStatsService", () => {
 
     expect(stats.largestExpense).toBeNull();
     expect(stats.byCategory).toEqual([]);
+  });
+
+  it("passes participantScope into expense filters", async () => {
+    const tenants = {
+      findAllByHousehold: vi.fn().mockResolvedValue([
+        { id: "t1", name: "A", email: "a@test.com", householdId, active: true },
+        { id: "t2", name: "B", email: "b@test.com", householdId, active: true },
+      ]),
+    } as unknown as TenantRepository;
+    const expenses = buildExpenses();
+    const service = new ExpenseStatsService(
+      expenses,
+      buildCategories(),
+      buildHouseholds(),
+      tenants,
+    );
+
+    await service.getStatsForMonth(householdId, "2026-06", "shared");
+
+    expect(tenants.findAllByHousehold).toHaveBeenCalledWith(householdId);
+    expect(expenses.sumAmountByWhere).toHaveBeenCalledWith(
+      expect.objectContaining({
+        AND: expect.arrayContaining([
+          expect.objectContaining({
+            OR: expect.arrayContaining([{ splitMode: "default" }]),
+          }),
+        ]),
+      }),
+    );
   });
 
   it("throws when household is not found", async () => {

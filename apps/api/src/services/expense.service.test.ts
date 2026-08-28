@@ -306,16 +306,24 @@ describe("ExpenseService", () => {
         tenantName: "A",
         paid: 120,
         owed: 60,
+        personalShare: 60,
+        paidForOthers: 60,
+        owedToOthers: 0,
         balance: 60,
         settledAmount: 0,
+        settledReceived: 0,
       },
       {
         tenantId: "clt22345678901234567890123",
         tenantName: "B",
         paid: 0,
         owed: 60,
+        personalShare: 0,
+        paidForOthers: 0,
+        owedToOthers: 60,
         balance: -60,
         settledAmount: 0,
+        settledReceived: 0,
       },
     ]);
   });
@@ -547,16 +555,24 @@ describe("ExpenseService", () => {
         tenantName: "A",
         paid: 100,
         owed: 70,
+        personalShare: 70,
+        paidForOthers: 30,
+        owedToOthers: 0,
         balance: 30,
         settledAmount: 0,
+        settledReceived: 0,
       },
       {
         tenantId: tenantB,
         tenantName: "B",
         paid: 0,
         owed: 30,
+        personalShare: 0,
+        paidForOthers: 0,
+        owedToOthers: 30,
         balance: -30,
         settledAmount: 0,
+        settledReceived: 0,
       },
     ]);
   });
@@ -658,6 +674,86 @@ describe("ExpenseService", () => {
     await expect(service.resetSplitsToDefault(expenseId)).rejects.toBeInstanceOf(
       ValidationError,
     );
+  });
+
+  it("getTenantCategoryStatsForMonth aggregates tenant share by category", async () => {
+    const customExpense = {
+      ...prismaExpense,
+      splitMode: "custom" as const,
+    };
+    const expenses = createExpenseRepoMock({
+      findAllByWhereWithSplits: vi.fn().mockResolvedValue([customExpense]),
+    });
+    const splits: ExpenseSplitRepository = {
+      findByExpenseId: vi.fn().mockResolvedValue([
+        {
+          id: "split-1",
+          expenseId,
+          tenantId: tenantInHouse,
+          amount: new Prisma.Decimal(80),
+          percentage: new Prisma.Decimal(66.67),
+        },
+        {
+          id: "split-2",
+          expenseId,
+          tenantId: tenantOutHouse,
+          amount: new Prisma.Decimal(40),
+          percentage: new Prisma.Decimal(33.33),
+        },
+      ]),
+      replaceForExpense: vi.fn(),
+    };
+    const categories: CategoryRepository = {
+      findAllByHousehold: vi.fn().mockResolvedValue([
+        {
+          id: categoryId,
+          name: "Rent",
+          slug: "rent",
+          color: "#000000",
+          householdId,
+          createdAt: new Date(),
+        },
+      ]),
+      findById: vi.fn(),
+      create: vi.fn(),
+      deleteById: vi.fn(),
+    };
+    const tenants: TenantRepository = {
+      findAllByHousehold: vi.fn().mockResolvedValue([
+        { id: tenantInHouse, householdId },
+        { id: tenantOutHouse, householdId },
+      ]),
+      findById: vi.fn(),
+      create: vi.fn(),
+      deleteById: vi.fn(),
+    };
+
+    const service = new ExpenseService(
+      expenses,
+      splits,
+      { findById: vi.fn() },
+      tenants,
+      categories,
+      createDefaultSplitServiceMock(),
+      createSettlementRepositoryMock(),
+    );
+
+    const stats = await service.getTenantCategoryStatsForMonth(
+      householdId,
+      "2026-06",
+      tenantInHouse,
+      "personal",
+    );
+
+    expect(stats).toEqual([
+      {
+        categoryId,
+        categorySlug: "rent",
+        amount: 80,
+        sharePercent: 100,
+        expenseCount: 1,
+      },
+    ]);
   });
 });
 

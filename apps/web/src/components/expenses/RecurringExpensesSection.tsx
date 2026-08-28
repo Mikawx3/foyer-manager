@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormat } from "../../hooks/useFormat.ts";
 import { RecurringExpenseForm } from "../forms/RecurringExpenseForm.tsx";
+import { CategoryBadge } from "../ui/CategoryBadge.tsx";
 import { ConfirmModal } from "../ui/ConfirmModal.tsx";
 import { EmptyState } from "../ui/EmptyState.tsx";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
@@ -60,7 +61,7 @@ export function RecurringExpensesSection({
     generatedExpenseCount: number;
   } | null>(null);
 
-  const categoryNameById = new Map(categories.map((category) => [category.id, category.name]));
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
 
   const recurringQuery = useQuery({
     queryKey: queryKeys.recurringExpenses(householdId),
@@ -171,6 +172,7 @@ export function RecurringExpensesSection({
           <ul className="space-y-3 md:hidden">
             {recurringQuery.data.map((item) => {
               const status = dueStatus(item.nextDueDate);
+              const category = item.category ? categoryById.get(item.category) : undefined;
               return (
                 <li key={item.id} className={card}>
                   <div className="flex items-start justify-between gap-3">
@@ -180,11 +182,15 @@ export function RecurringExpensesSection({
                         <p className={`${amount} shrink-0`}>{formatCurrency(item.amount)}</p>
                       </div>
                       <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
-                        <span>
-                          {item.category
-                            ? (categoryNameById.get(item.category) ?? item.category)
-                            : tCommon("dash")}
-                        </span>
+                        {category ? (
+                          <CategoryBadge
+                            name={category.name}
+                            slug={category.slug}
+                            color={category.color}
+                          />
+                        ) : (
+                          <span>{tCommon("dash")}</span>
+                        )}
                         <span>· {tCommon(item.frequency)}</span>
                         <span>· {formatDate(item.nextDueDate)}</span>
                       </p>
@@ -266,6 +272,7 @@ export function RecurringExpensesSection({
             <tbody className="divide-y divide-border bg-surface">
               {recurringQuery.data.map((item) => {
                 const status = dueStatus(item.nextDueDate);
+                const category = item.category ? categoryById.get(item.category) : undefined;
                 return (
                   <tr key={item.id}>
                     <td className="px-4 py-3 font-medium text-stone-900">{item.title}</td>
@@ -273,7 +280,15 @@ export function RecurringExpensesSection({
                       {formatCurrency(item.amount)}
                     </td>
                     <td className="px-4 py-3 text-stone-600">
-                      {item.category ? (categoryNameById.get(item.category) ?? item.category) : tCommon("dash")}
+                      {category ? (
+                        <CategoryBadge
+                          name={category.name}
+                          slug={category.slug}
+                          color={category.color}
+                        />
+                      ) : (
+                        tCommon("dash")
+                      )}
                     </td>
                     <td className="px-4 py-3 text-stone-600">{item.paidBy.name}</td>
                     <td className="px-4 py-3 text-stone-600">{tCommon(item.frequency)}</td>

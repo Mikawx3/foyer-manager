@@ -17,7 +17,7 @@ import {
   type CreateExpenseForm,
   type UpdateExpenseForm,
 } from "../../lib/schemas.ts";
-import { btnPrimary, formCard } from "../../lib/ui-classes.ts";
+import { btnPrimary, btnSecondary, formCard } from "../../lib/ui-classes.ts";
 import { FormField, inputClassName, selectClassName } from "./FormField.tsx";
 import { CalculableAmountInput } from "./CalculableAmountInput.tsx";
 
@@ -28,7 +28,7 @@ interface ExpenseFormProps {
   categories: Category[];
   tenants: Tenant[];
   isSolo?: boolean;
-  onSubmit: (data: ExpenseFormValues) => void;
+  onSubmit: (data: ExpenseFormValues) => void | Promise<void>;
   isPending: boolean;
   onCreateCategory?: (input: { name: string }) => Promise<Category>;
   variant?: "create" | "edit";
@@ -266,28 +266,43 @@ export function ExpenseForm({
     };
   };
 
+  const confirmNewCategory = async (): Promise<Category | null> => {
+    const trimmedName = newCategoryName.trim();
+    if (!onCreateCategory || trimmedName.length === 0) {
+      return null;
+    }
+    setCreatingCategory(true);
+    setCreateCategoryError(null);
+    try {
+      const created = await onCreateCategory({ name: trimmedName });
+      setValue("categoryId", created.id);
+      setNewCategoryMode(false);
+      setNewCategoryName("");
+      return created;
+    } catch (error) {
+      setCreateCategoryError(
+        error instanceof Error ? error.message : t("createCategoryFailed"),
+      );
+      return null;
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
   const submitExpense = async (data: ExpenseFormValues) => {
     let payload = buildPayload(data);
     if (variant === "create" && newCategoryMode) {
-      const trimmedName = newCategoryName.trim();
-      if (!onCreateCategory || trimmedName.length === 0) {
+      const created = await confirmNewCategory();
+      if (!created) {
         return;
       }
-      setCreatingCategory(true);
-      setCreateCategoryError(null);
-      try {
-        const created = await onCreateCategory({ name: trimmedName });
-        payload = { ...payload, categoryId: created.id };
-      } catch (error) {
-        setCreateCategoryError(
-          error instanceof Error ? error.message : t("createCategoryFailed"),
-        );
-        setCreatingCategory(false);
-        return;
-      }
-      setCreatingCategory(false);
+      payload = { ...payload, categoryId: created.id };
     }
-    onSubmit(payload);
+    try {
+      await onSubmit(payload);
+    } catch {
+      return;
+    }
     if (variant === "create") {
       reset({
         description: "",
@@ -366,13 +381,33 @@ export function ExpenseForm({
       <FormField label={tCommon("category")} error={errors.categoryId?.message}>
         {newCategoryMode ? (
           <div className="space-y-2">
-            <input
-              className={inputClassName}
-              value={newCategoryName}
-              onChange={(event) => setNewCategoryName(event.target.value)}
-              placeholder={t("newCategoryNamePlaceholder")}
-              disabled={creatingCategory}
-            />
+            <div className="flex gap-2">
+              <input
+                className={inputClassName}
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") {
+                    return;
+                  }
+                  event.preventDefault();
+                  void confirmNewCategory();
+                }}
+                placeholder={t("newCategoryNamePlaceholder")}
+                disabled={creatingCategory}
+                autoFocus
+              />
+              <button
+                type="button"
+                className={`${btnSecondary} shrink-0 px-3`}
+                disabled={creatingCategory || newCategoryName.trim().length === 0}
+                onClick={() => {
+                  void confirmNewCategory();
+                }}
+              >
+                {creatingCategory ? tCommon("creating") : t("confirmCategory")}
+              </button>
+            </div>
             <button
               type="button"
               className="text-sm font-medium text-primary hover:underline"

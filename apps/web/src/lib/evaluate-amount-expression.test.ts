@@ -8,6 +8,7 @@ import {
 describe("evaluateAmountExpression", () => {
   it("parses plain numbers", () => {
     expect(evaluateAmountExpression("12.5")).toBe(12.5);
+    expect(evaluateAmountExpression("12,5")).toBe(12.5);
     expect(evaluateAmountExpression("  42 ")).toBe(42);
   });
 
@@ -15,7 +16,9 @@ describe("evaluateAmountExpression", () => {
     expect(evaluateAmountExpression("12+8")).toBe(20);
     expect(evaluateAmountExpression("100/4")).toBe(25);
     expect(evaluateAmountExpression("10.5*2")).toBe(21);
+    expect(evaluateAmountExpression("10,5*2")).toBe(21);
     expect(evaluateAmountExpression("50 - 12.5")).toBe(37.5);
+    expect(evaluateAmountExpression("50 - 12,5")).toBe(37.5);
     expect(evaluateAmountExpression("(12+8)*2")).toBe(40);
   });
 

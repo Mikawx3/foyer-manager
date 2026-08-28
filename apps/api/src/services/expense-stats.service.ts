@@ -6,7 +6,10 @@ import {
   categoryRepository,
   type CategoryRepository,
 } from "../repositories/category.repository.js";
-import { buildExpenseListWhere } from "../repositories/expense-list-filters.js";
+import {
+  buildExpenseListWhere,
+  type ParticipantScope,
+} from "../repositories/expense-list-filters.js";
 import {
   expenseRepository,
   type ExpenseRepository,
@@ -15,18 +18,37 @@ import {
   householdRepository,
   type HouseholdRepository,
 } from "../repositories/household.repository.js";
+import {
+  tenantRepository,
+  type TenantRepository,
+} from "../repositories/tenant.repository.js";
 
 export class ExpenseStatsService {
   constructor(
     private readonly expenses: ExpenseRepository = expenseRepository,
     private readonly categories: CategoryRepository = categoryRepository,
     private readonly households: HouseholdRepository = householdRepository,
+    private readonly tenants: TenantRepository = tenantRepository,
   ) {}
 
-  async getStatsForMonth(householdId: string, month: string): Promise<ExpenseStats> {
+  async getStatsForMonth(
+    householdId: string,
+    month: string,
+    participantScope: ParticipantScope = "all",
+  ): Promise<ExpenseStats> {
     await this.assertHouseholdExists(householdId);
 
-    const where = buildExpenseListWhere({ householdId, month });
+    const householdTenantIds =
+      participantScope === "shared" || participantScope === "personal"
+        ? (await this.tenants.findAllByHousehold(householdId)).map((tenant) => tenant.id)
+        : [];
+
+    const where = buildExpenseListWhere({
+      householdId,
+      month,
+      participantScope,
+      ...(householdTenantIds.length > 0 && { householdTenantIds }),
+    });
     const months = last6MonthKeys(month);
 
     const [totalExpenses, expenseCount, largestExpense, categoryGroups, householdCategories, trendTotals] =
@@ -40,7 +62,12 @@ export class ExpenseStatsService {
           months.map(async (trendMonth) => ({
             month: trendMonth,
             total: await this.expenses.sumAmountByWhere(
-              buildExpenseListWhere({ householdId, month: trendMonth }),
+              buildExpenseListWhere({
+                householdId,
+                month: trendMonth,
+                participantScope,
+                ...(householdTenantIds.length > 0 && { householdTenantIds }),
+              }),
             ),
           })),
         ),

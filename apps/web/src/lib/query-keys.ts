@@ -19,10 +19,14 @@ export const queryKeys = {
   recurringExpenses: (householdId: string) => ["recurring-expenses", householdId] as const,
   incomes: (householdId: string, month: string) => ["incomes", householdId, month] as const,
   incomeTemplates: (householdId: string) => ["income-templates", householdId] as const,
-  incomeStats: (householdId: string, month: string) =>
-    ["income-stats", householdId, month] as const,
-  expenseStats: (householdId: string, month: string) =>
-    ["expense-stats", householdId, month] as const,
+  incomeStats: (
+    householdId: string,
+    month: string,
+    participantScope: string = "all",
+    focusTenantId?: string,
+  ) => ["income-stats", householdId, month, participantScope, focusTenantId ?? "all"] as const,
+  expenseStats: (householdId: string, month: string, participantScope: string = "all") =>
+    ["expense-stats", householdId, month, participantScope] as const,
   defaultSplits: (householdId: string) => ["default-splits", householdId] as const,
   resolvedDefaultSplits: (householdId: string, categoryId: string) =>
     ["default-splits", householdId, "resolve", categoryId] as const,

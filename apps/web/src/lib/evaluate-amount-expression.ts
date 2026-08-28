@@ -11,17 +11,22 @@ export function formatAmountForInput(value: number): string {
   return String(roundMoney(value));
 }
 
+/** Normalize user input: strip spaces and accept comma as decimal separator. */
+export function normalizeAmountInput(input: string): string {
+  return input.trim().replace(/\s+/g, "").replace(/,/g, ".");
+}
+
 /** True when the input contains arithmetic operators (not just a plain number). */
 export function hasAmountExpression(input: string): boolean {
-  const compact = input.replace(/\s+/g, "");
+  const compact = normalizeAmountInput(input);
   if (/[+*/]/.test(compact)) {
     return true;
   }
-  return /\d[\d.]*\s*-\s*\d/.test(input);
+  return /\d[\d.]*\s*-\s*\d/.test(compact);
 }
 
 export function evaluateAmountExpression(input: string): number | null {
-  const compact = input.trim().replace(/\s+/g, "");
+  const compact = normalizeAmountInput(input);
   if (!compact) {
     return null;
   }

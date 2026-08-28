@@ -26,8 +26,8 @@ describe("split-calculator", () => {
       [{ id: "t1" }, { id: "t2" }],
       [{ paidByTenantId: "t1", amount: 120 }],
       [
-        { tenantId: "t1", amount: 60 },
-        { tenantId: "t2", amount: 60 },
+        { tenantId: "t1", paidByTenantId: "t1", amount: 60 },
+        { tenantId: "t2", paidByTenantId: "t1", amount: 60 },
       ],
     );
 
@@ -37,18 +37,72 @@ describe("split-calculator", () => {
         tenantName: "",
         paid: 120,
         owed: 60,
+        personalShare: 60,
+        paidForOthers: 60,
+        owedToOthers: 0,
         balance: 60,
         settledAmount: 0,
+        settledReceived: 0,
       },
       {
         tenantId: "t2",
         tenantName: "",
         paid: 0,
         owed: 60,
+        personalShare: 0,
+        paidForOthers: 0,
+        owedToOthers: 60,
         balance: -60,
         settledAmount: 0,
+        settledReceived: 0,
       },
     ]);
+  });
+
+  it("computeTenantBalances treats a fully self-assigned expense as neutral", () => {
+    const [balance] = computeTenantBalances(
+      [{ id: "t1" }, { id: "t2" }],
+      [{ paidByTenantId: "t1", amount: 80 }],
+      [{ tenantId: "t1", paidByTenantId: "t1", amount: 80 }],
+    );
+
+    expect(balance).toMatchObject({
+      paid: 80,
+      owed: 80,
+      personalShare: 80,
+      paidForOthers: 0,
+      owedToOthers: 0,
+      balance: 0,
+    });
+  });
+
+  it("computeTenantBalances excludes personal spending from the shared decomposition", () => {
+    const balances = computeTenantBalances(
+      [{ id: "t1" }, { id: "t2" }],
+      [
+        { paidByTenantId: "t1", amount: 200 },
+        { paidByTenantId: "t1", amount: 50 },
+      ],
+      [
+        { tenantId: "t1", paidByTenantId: "t1", amount: 100 },
+        { tenantId: "t2", paidByTenantId: "t1", amount: 100 },
+        { tenantId: "t1", paidByTenantId: "t1", amount: 50 },
+      ],
+    );
+
+    expect(balances[0]).toMatchObject({
+      paid: 250,
+      owed: 150,
+      personalShare: 150,
+      paidForOthers: 100,
+      owedToOthers: 0,
+      balance: 100,
+    });
+    expect(balances[1]).toMatchObject({
+      paidForOthers: 0,
+      owedToOthers: 100,
+      balance: -100,
+    });
   });
 });
 

@@ -1,8 +1,10 @@
+import type { TenantBalance } from "@foyer/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
+import { BalanceHeadline } from "../components/balances/BalanceHeadline.tsx";
 import {
   SettlementModal,
   type SettlementModalDraft,
@@ -160,6 +162,19 @@ export function BalancesPage() {
     setModalDate(toDateInputValue());
   };
 
+  const formatReimbursements = (row: TenantBalance): string => {
+    const parts: string[] = [];
+    if (row.settledAmount > 0) {
+      parts.push(t("reimbursedSent", { amount: formatCurrency(row.settledAmount) }));
+    }
+    if (row.settledReceived > 0) {
+      parts.push(
+        t("reimbursedReceived", { amount: formatCurrency(row.settledReceived) }),
+      );
+    }
+    return parts.length > 0 ? parts.join(" · ") : "—";
+  };
+
   const openSuggestedSettlementModal = (
     fromTenantId: string,
     toTenantId: string,
@@ -304,86 +319,106 @@ export function BalancesPage() {
       )}
       {!isSolo && balancesQuery.isSuccess && balancesQuery.data.length > 0 && (
         <>
-          <ul className="space-y-3 md:hidden">
-            {balancesQuery.data.map((row) => {
-              const memberName =
-                row.tenantName || tenantNameById.get(row.tenantId) || row.tenantId;
-              const memberColor = tenantColorById.get(row.tenantId);
-              return (
-                <li key={row.tenantId} className={card}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <span className="inline-flex items-center gap-2 font-medium text-stone-900">
-                        {memberColor && (
-                          <span
-                            className="h-3 w-3 shrink-0 rounded-full"
-                            style={{ backgroundColor: memberColor }}
-                          />
-                        )}
-                        {memberName}
-                      </span>
-                      <p
-                        className={`mt-2 text-xl font-mono tabular-nums font-bold ${
+          <BalanceHeadline
+            balances={balancesQuery.data}
+            suggestions={suggestions}
+            tenantNameById={tenantNameById}
+            onSettle={openSuggestedSettlementModal}
+          />
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-stone-900">
+              {t("detailsToggle")}
+            </h2>
+
+            <ul className="space-y-3 md:hidden">
+              {balancesQuery.data.map((row) => {
+                const memberName =
+                  row.tenantName || tenantNameById.get(row.tenantId) || row.tenantId;
+                const memberColor = tenantColorById.get(row.tenantId);
+                return (
+                  <li key={row.tenantId} className={card}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <span className="inline-flex items-center gap-2 font-medium text-stone-900">
+                          {memberColor && (
+                            <span
+                              className="h-3 w-3 shrink-0 rounded-full"
+                              style={{ backgroundColor: memberColor }}
+                            />
+                          )}
+                          {memberName}
+                        </span>
+                        <p
+                          className={`mt-2 text-xl font-mono tabular-nums font-bold ${
+                            row.balance >= 0 ? "text-positive" : "text-negative"
+                          }`}
+                        >
+                          {formatCurrency(row.balance)}
+                        </p>
+                        <p className="mt-1 text-sm text-stone-600">
+                          {t("advancedOwedShort", {
+                            advanced: formatCurrency(row.paidForOthers),
+                            due: formatCurrency(row.owedToOthers),
+                          })}
+                        </p>
+                        <p className="mt-1 text-sm text-stone-500">
+                          {formatReimbursements(row)}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className={`${card} hidden overflow-hidden p-0 md:block`}>
+              <table className="min-w-full divide-y divide-border text-sm">
+                <thead className="bg-bg">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableMember")}</th>
+                    <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableAdvanced")}</th>
+                    <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableDue")}</th>
+                    <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableReimbursed")}</th>
+                    <th className="px-4 py-3 text-right font-medium text-stone-500">{t("tablePersonal")}</th>
+                    <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableBalance")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border bg-surface">
+                  {balancesQuery.data.map((row) => (
+                    <tr key={row.tenantId}>
+                      <td className="px-4 py-3 font-medium text-stone-900">
+                        {row.tenantName || tenantNameById.get(row.tenantId) || row.tenantId}
+                      </td>
+                      <td className={`px-4 py-3 text-right text-stone-600 ${amount}`}>
+                        {formatCurrency(row.paidForOthers)}
+                      </td>
+                      <td className={`px-4 py-3 text-right text-stone-600 ${amount}`}>
+                        {formatCurrency(row.owedToOthers)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-stone-600">
+                        {formatReimbursements(row)}
+                      </td>
+                      <td className={`px-4 py-3 text-right text-stone-400 ${amount}`}>
+                        {formatCurrency(row.personalShare)}
+                      </td>
+                      <td
+                        className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${
                           row.balance >= 0 ? "text-positive" : "text-negative"
                         }`}
                       >
                         {formatCurrency(row.balance)}
-                      </p>
-                      <p className="mt-1 text-sm text-stone-600">
-                        {tCommon("paidOwedSettled", {
-                          paid: formatCurrency(row.paid),
-                          owed: formatCurrency(row.owed),
-                          settled: formatCurrency(row.settledAmount),
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          <div className={`${card} hidden overflow-hidden p-0 md:block`}>
-          <table className="min-w-full divide-y divide-border text-sm">
-            <thead className="bg-bg">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-stone-700">{t("tableMember")}</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tablePaid")}</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableOwed")}</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableSettled")}</th>
-                <th className="px-4 py-3 text-right font-medium text-stone-700">{t("tableBalance")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border bg-surface">
-              {balancesQuery.data.map((row) => (
-                <tr key={row.tenantId}>
-                  <td className="px-4 py-3 font-medium text-stone-900">
-                    {row.tenantName || tenantNameById.get(row.tenantId) || row.tenantId}
-                  </td>
-                  <td className={`px-4 py-3 text-right text-stone-600 ${amount}`}>
-                    {formatCurrency(row.paid)}
-                  </td>
-                  <td className={`px-4 py-3 text-right text-stone-600 ${amount}`}>
-                    {formatCurrency(row.owed)}
-                  </td>
-                  <td className={`px-4 py-3 text-right text-stone-600 ${amount}`}>
-                    {formatCurrency(row.settledAmount)}
-                  </td>
-                  <td
-                    className={`px-4 py-3 text-right font-mono tabular-nums font-bold ${
-                      row.balance >= 0 ? "text-positive" : "text-negative"
-                    }`}
-                  >
-                    {formatCurrency(row.balance)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </>
       )}
 
-      {!isSolo && balancesQuery.isSuccess && suggestions.length > 0 && (
+      {!isSolo && balancesQuery.isSuccess && suggestions.length > 1 && (
         <section className={card}>
           <h2 className="text-base font-semibold text-stone-900">{t("suggestedSettlements")}</h2>
           <ul className="mt-3 space-y-2">

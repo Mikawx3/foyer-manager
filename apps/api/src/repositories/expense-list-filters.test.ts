@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Prisma } from "@prisma/client";
-import { buildExpenseListWhere } from "./expense-list-filters.js";
+import {
+  buildExpenseListWhere,
+  buildParticipantScopeWhere,
+} from "./expense-list-filters.js";
 
 describe("buildExpenseListWhere", () => {
   it("filters by household only when no optional filters", () => {
@@ -40,5 +43,64 @@ describe("buildExpenseListWhere", () => {
     const andClauses = where.AND as Prisma.ExpenseWhereInput[];
     const searchClause = andClauses.find((clause) => clause.OR !== undefined);
     expect(searchClause?.OR).toHaveLength(3);
+  });
+
+  it("applies shared participant scope with household members", () => {
+    const where = buildExpenseListWhere({
+      householdId: "clh12345678901234567890123",
+      participantScope: "shared",
+      householdTenantIds: ["t1", "t2"],
+    });
+
+    expect(where).toEqual({
+      AND: [
+        { householdId: "clh12345678901234567890123" },
+        {
+          OR: [
+            { splitMode: "default" },
+            {
+              AND: [
+                { splitMode: "custom" },
+                { splits: { some: { tenantId: "t1" } } },
+                { splits: { some: { tenantId: "t2" } } },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("applies personal participant scope", () => {
+    const where = buildExpenseListWhere({
+      householdId: "clh12345678901234567890123",
+      participantScope: "personal",
+      householdTenantIds: ["t1", "t2"],
+    });
+
+    expect(where).toEqual({
+      AND: [
+        { householdId: "clh12345678901234567890123" },
+        {
+          AND: [
+            { splitMode: "custom" },
+            {
+              OR: [
+                { splits: { none: { tenantId: "t1" } } },
+                { splits: { none: { tenantId: "t2" } } },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+});
+
+describe("buildParticipantScopeWhere", () => {
+  it("returns null for all scope or solo households", () => {
+    expect(buildParticipantScopeWhere("all", ["t1", "t2"])).toBeNull();
+    expect(buildParticipantScopeWhere("shared", ["t1"])).toBeNull();
+    expect(buildParticipantScopeWhere("personal", [])).toBeNull();
   });
 });

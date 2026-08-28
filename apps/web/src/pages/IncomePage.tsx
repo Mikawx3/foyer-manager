@@ -15,9 +15,10 @@ import { IncomeTrendChart } from "../components/income/IncomeTrendChart.tsx";
 import { MemberBreakdownTable } from "../components/income/MemberBreakdownTable.tsx";
 import { RecurringIncomeSection } from "../components/income/RecurringIncomeSection.tsx";
 import { TenantIncomeListModal } from "../components/income/TenantIncomeListModal.tsx";
+import { IncomeFocusTenantPicker } from "../components/income/IncomeFocusTenantPicker.tsx";
+import { ParticipantScopeToggle } from "../components/expenses/ParticipantScopeToggle.tsx";
 import { KpiGridSkeleton } from "../components/dashboard/KpiGridSkeleton.tsx";
 import { ChartSkeleton } from "../components/dashboard/ChartSkeleton.tsx";
-import { CategoryBreakdownTable } from "../components/stats/CategoryBreakdownTable.tsx";
 import { CategorySpendingChart } from "../components/stats/CategorySpendingChart.tsx";
 import { MonthNavigator } from "../components/stats/MonthNavigator.tsx";
 import { ConfirmModal } from "../components/ui/ConfirmModal.tsx";
@@ -36,7 +37,11 @@ import {
 } from "../lib/api.ts";
 import { getCategoryDisplayName } from "../lib/category-label.ts";
 import { aggregateIncomeByTenant } from "../lib/income-stats.ts";
-import { currentMonthValue } from "../lib/expense-list-filters.ts";
+import {
+  currentMonthValue,
+  type ParticipantScope,
+} from "../lib/expense-list-filters.ts";
+import { isSoloHousehold } from "../lib/household-mode.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
 import { fabBottomOffset, fabButton, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
@@ -49,6 +54,8 @@ export function IncomePage() {
   const queryClient = useQueryClient();
   const { id: householdId = "" } = useParams<{ id: string }>();
   const [month, setMonth] = useState(currentMonthValue);
+  const [participantScope, setParticipantScope] = useState<ParticipantScope>("all");
+  const [focusTenantId, setFocusTenantId] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<IncomeFormMode>("create-month");
@@ -63,6 +70,9 @@ export function IncomePage() {
     queryFn: () => getHousehold(householdId),
     enabled: Boolean(householdId),
   });
+
+  const isSolo = householdQuery.data ? isSoloHousehold(householdQuery.data) : false;
+  const effectiveParticipantScope: ParticipantScope = isSolo ? "all" : participantScope;
 
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
@@ -88,9 +98,32 @@ export function IncomePage() {
     enabled: Boolean(householdId),
   });
 
+  const tenants = useMemo(
+    () => (tenantsQuery.data ?? []).filter((tenant) => tenant.active),
+    [tenantsQuery.data],
+  );
+
+  const effectiveFocusTenantId =
+    effectiveParticipantScope === "personal" && tenants.length > 1
+      ? focusTenantId && tenants.some((tenant) => tenant.id === focusTenantId)
+        ? focusTenantId
+        : (tenants[0]?.id ?? null)
+      : null;
+
   const statsQuery = useQuery({
-    queryKey: queryKeys.incomeStats(householdId, month),
-    queryFn: () => getIncomeStats(householdId, month),
+    queryKey: queryKeys.incomeStats(
+      householdId,
+      month,
+      effectiveParticipantScope,
+      effectiveFocusTenantId ?? undefined,
+    ),
+    queryFn: () =>
+      getIncomeStats(
+        householdId,
+        month,
+        effectiveParticipantScope,
+        effectiveFocusTenantId ?? undefined,
+      ),
     enabled: Boolean(householdId),
   });
 
@@ -117,11 +150,6 @@ export function IncomePage() {
       },
     }),
   });
-
-  const tenants = useMemo(
-    () => (tenantsQuery.data ?? []).filter((tenant) => tenant.active),
-    [tenantsQuery.data],
-  );
 
   const incomeByTenant = useMemo(
     () => aggregateIncomeByTenant(incomesQuery.data ?? []),
@@ -202,7 +230,29 @@ export function IncomePage() {
         <p className={pageSubtitle}>{t("subtitle")}</p>
       </header>
 
-      <MonthNavigator month={month} onChange={setMonth} />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <MonthNavigator month={month} onChange={setMonth} />
+          {!isSolo && (
+            <ParticipantScopeToggle
+              value={participantScope}
+              onChange={(nextScope) => {
+                setParticipantScope(nextScope);
+                if (nextScope !== "personal") {
+                  setFocusTenantId(null);
+                }
+              }}
+            />
+          )}
+        </div>
+        {!isSolo && effectiveParticipantScope === "personal" && effectiveFocusTenantId && (
+          <IncomeFocusTenantPicker
+            tenants={tenants}
+            value={effectiveFocusTenantId}
+            onChange={setFocusTenantId}
+          />
+        )}
+      </div>
 
       {queryError && (
         <ErrorMessage message={getApiErrorMessage(queryError)} onRetry={refetchAll} />
@@ -235,25 +285,20 @@ export function IncomePage() {
 
           <IncomeStatsKpis stats={statsQuery.data} />
 
-          <section className="space-y-4">
-            <CategorySpendingChart
-              title={t("stats.spendingByCategory")}
-              emptyMessage={t("stats.spendingByCategoryEmpty")}
-              byCategory={statsQuery.data.byCategory}
-              categories={categories}
-              getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
-            />
-            <CategoryBreakdownTable
-              householdId={householdId}
-              month={month}
-              byCategory={statsQuery.data.byCategory}
-              categories={categories}
-              getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
-            />
-          </section>
+          <CategorySpendingChart
+            title={t("stats.spendingByCategory")}
+            emptyMessage={t("stats.spendingByCategoryEmpty")}
+            byCategory={statsQuery.data.byCategory}
+            categories={categories}
+            getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
+          />
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <BudgetVsExpensesChart stats={statsQuery.data} tenants={tenants} />
+            <BudgetVsExpensesChart
+              stats={statsQuery.data}
+              tenants={tenants}
+              focusTenantId={effectiveFocusTenantId ?? undefined}
+            />
             <IncomeTrendChart stats={statsQuery.data} />
           </div>
 

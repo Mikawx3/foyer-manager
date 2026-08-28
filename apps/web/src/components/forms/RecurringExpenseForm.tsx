@@ -6,6 +6,7 @@ import { useForm, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { ExpenseParticipantSplits, isCustomSplitValid } from "../expenses/ExpenseParticipantSplits.tsx";
 import { resolveDefaultSplits } from "../../lib/api.ts";
+import { getCategoryDisplayName } from "../../lib/category-label.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { redistributeSplits } from "../../lib/redistribute-splits.ts";
 import { equalSplitPercentages } from "../../lib/split-percentages.ts";
@@ -41,6 +42,7 @@ export function RecurringExpenseForm({
 }: RecurringExpenseFormProps) {
   const { t } = useTranslation("recurring");
   const { t: tCommon } = useTranslation("common");
+  const { t: tCategories } = useTranslation("categories");
   const { t: tValidation } = useTranslation("validation");
   const schema = useMemo(() => createRecurringExpenseSchema(tValidation), [tValidation]);
 
@@ -253,7 +255,7 @@ export function RecurringExpenseForm({
           </option>
           {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>
-              {cat.name}
+              {getCategoryDisplayName(cat, tCategories)}
             </option>
           ))}
         </select>

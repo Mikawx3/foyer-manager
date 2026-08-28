@@ -19,6 +19,8 @@ export const listIncomesQuerySchema = z.object({
 
 export const incomeStatsQuerySchema = z.object({
   month: monthSchema,
+  participantScope: z.enum(["shared", "personal", "all"]).default("all"),
+  focusTenantId: z.string().cuid().optional(),
 });
 
 export const createIncomeSchema = z.object({

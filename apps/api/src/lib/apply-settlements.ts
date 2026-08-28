@@ -15,9 +15,11 @@ export function applySettlements(
     balances.map((row) => [row.tenantId, { ...row }]),
   );
 
-  const settledByTenant = new Map<string, number>();
+  const paidByTenant = new Map<string, number>();
+  const receivedByTenant = new Map<string, number>();
   for (const row of balances) {
-    settledByTenant.set(row.tenantId, 0);
+    paidByTenant.set(row.tenantId, 0);
+    receivedByTenant.set(row.tenantId, 0);
   }
 
   for (const settlement of settlements) {
@@ -26,14 +28,18 @@ export function applySettlements(
 
     if (fromRow) {
       fromRow.balance = round2(fromRow.balance + settlement.amount);
-      settledByTenant.set(
+      paidByTenant.set(
         settlement.fromTenantId,
-        round2((settledByTenant.get(settlement.fromTenantId) ?? 0) + settlement.amount),
+        round2((paidByTenant.get(settlement.fromTenantId) ?? 0) + settlement.amount),
       );
     }
 
     if (toRow) {
       toRow.balance = round2(toRow.balance - settlement.amount);
+      receivedByTenant.set(
+        settlement.toTenantId,
+        round2((receivedByTenant.get(settlement.toTenantId) ?? 0) + settlement.amount),
+      );
     }
   }
 
@@ -42,7 +48,8 @@ export function applySettlements(
     return {
       ...updated,
       balance: round2(updated.balance),
-      settledAmount: round2(settledByTenant.get(row.tenantId) ?? 0),
+      settledAmount: round2(paidByTenant.get(row.tenantId) ?? 0),
+      settledReceived: round2(receivedByTenant.get(row.tenantId) ?? 0),
     };
   });
 }

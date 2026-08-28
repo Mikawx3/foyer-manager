@@ -252,6 +252,7 @@ export interface ExpenseListParams {
   month?: string;
   categoryId?: string;
   search?: string;
+  participantScope?: "shared" | "personal" | "all";
 }
 
 export async function getExpenses(
@@ -268,6 +269,9 @@ export async function getExpenses(
         categoryId: params.categoryId,
       }),
       ...(params.search !== undefined && params.search !== "" && { search: params.search }),
+      ...(params.participantScope !== undefined && {
+        participantScope: params.participantScope,
+      }),
     },
   });
   return data;
@@ -517,9 +521,18 @@ export async function deleteIncome(householdId: string, incomeId: string): Promi
   return data;
 }
 
-export async function getIncomeStats(householdId: string, month: string): Promise<IncomeStats> {
+export async function getIncomeStats(
+  householdId: string,
+  month: string,
+  participantScope: "shared" | "personal" | "all" = "all",
+  focusTenantId?: string,
+): Promise<IncomeStats> {
   const { data } = await api.get<IncomeStats>(`/households/${householdId}/incomes/stats`, {
-    params: { month },
+    params: {
+      month,
+      participantScope,
+      ...(focusTenantId !== undefined && { focusTenantId }),
+    },
   });
   return data;
 }
@@ -527,9 +540,10 @@ export async function getIncomeStats(householdId: string, month: string): Promis
 export async function getExpenseStats(
   householdId: string,
   month: string,
+  participantScope: "shared" | "personal" | "all" = "all",
 ): Promise<ExpenseStats> {
   const { data } = await api.get<ExpenseStats>(`/households/${householdId}/expenses/stats`, {
-    params: { month },
+    params: { month, participantScope },
   });
   return data;
 }

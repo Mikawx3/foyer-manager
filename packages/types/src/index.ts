@@ -262,8 +262,17 @@ export interface TenantBalance {
   tenantName: string;
   paid: number;
   owed: number;
+  /** Share of their own payments this member keeps for themselves: never owed to anyone. */
+  personalShare: number;
+  /** Money advanced on behalf of the other members (paid - personalShare). */
+  paidForOthers: number;
+  /** Share of the other members' payments charged to this member (owed - personalShare). */
+  owedToOthers: number;
   balance: number;
+  /** Settlements paid out by this member. */
   settledAmount: number;
+  /** Settlements received by this member. */
+  settledReceived: number;
 }
 
 export interface Income {

@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { ChartCard } from "../dashboard/ChartCard.tsx";
 import { useFormat } from "../../hooks/useFormat.ts";
-import { formatMonthLabel } from "../../lib/income-stats.ts";
+import { formatMonthLabel, formatMonthShortLabel } from "../../lib/income-stats.ts";
 
 const CHART_HEIGHT = 280;
 const AXIS_TICK = { fill: "#78716c", fontSize: 12 };
@@ -32,10 +32,7 @@ export function IncomeTrendChart({ stats }: IncomeTrendChartProps) {
     return String(value ?? "");
   };
 
-  const data = stats.trend.map((point) => ({
-    ...point,
-    label: formatMonthLabel(point.month, locale).slice(0, 3),
-  }));
+  const data = stats.trend;
 
   const isEmpty = data.every(
     (point) => point.income === 0 && point.expenses === 0 && point.savings === 0,
@@ -46,9 +43,16 @@ export function IncomeTrendChart({ stats }: IncomeTrendChartProps) {
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e7e5e4" />
-          <XAxis dataKey="label" tick={AXIS_TICK} />
+          <XAxis
+            dataKey="month"
+            tick={AXIS_TICK}
+            tickFormatter={(month) => formatMonthShortLabel(month, locale)}
+          />
           <YAxis hide />
-          <Tooltip formatter={currencyTooltipFormatter} />
+          <Tooltip
+            formatter={currencyTooltipFormatter}
+            labelFormatter={(month) => formatMonthLabel(String(month), locale)}
+          />
           <Legend />
           <Line
             type="monotone"

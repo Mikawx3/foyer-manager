@@ -1,4 +1,5 @@
 import type {
+  CategoryExpenseStat,
   Expense,
   ExpenseSplit,
   PaginatedExpenses,
@@ -7,6 +8,7 @@ import type {
 } from "@foyer/types";
 import { NotFoundError, ValidationError } from "../errors/app.errors.js";
 import { applySettlements } from "../lib/apply-settlements.js";
+import { buildCategoryExpenseStats } from "../lib/expense-stats.js";
 import { decimalToNumber } from "../lib/decimal.js";
 import { toExpenseDto, toExpenseSplitDto, toHouseholdDto } from "../lib/mappers.js";
 import { getPeriodStart } from "../lib/period-start.js";
@@ -41,7 +43,10 @@ import {
   type TenantRepository,
 } from "../repositories/tenant.repository.js";
 import type { AssignSplitsInput } from "../validators/expense-split.validator.js";
-import { buildExpenseListWhere } from "../repositories/expense-list-filters.js";
+import {
+  buildExpenseListWhere,
+  type ParticipantScope,
+} from "../repositories/expense-list-filters.js";
 import type {
   CreateExpenseInput,
   ListExpensesQuery,
@@ -65,14 +70,21 @@ export class ExpenseService {
   ) {}
 
   async listByHousehold(query: ListExpensesQuery): Promise<PaginatedExpenses> {
-    const { householdId, page, limit, month, categoryId, search } = query;
+    const { householdId, page, limit, month, categoryId, search, participantScope } = query;
     await this.assertHouseholdExists(householdId);
+
+    const householdTenantIds =
+      participantScope === "shared" || participantScope === "personal"
+        ? (await this.tenants.findAllByHousehold(householdId)).map((tenant) => tenant.id)
+        : [];
 
     const where = buildExpenseListWhere({
       householdId,
       ...(month !== undefined && { month }),
       ...(categoryId !== undefined && { categoryId }),
       ...(search !== undefined && { search }),
+      participantScope,
+      ...(householdTenantIds.length > 0 && { householdTenantIds }),
     });
 
     const total = await this.expenses.countByWhere(where);
@@ -255,14 +267,16 @@ export class ExpenseService {
 
     const splitInputs = (
       await Promise.all(
-        expensesWithSplits.map((expense) => this.getSplitsForExpense(expense)),
+        expensesWithSplits.map(async (expense) => {
+          const expenseSplits = await this.getSplitsForExpense(expense);
+          return expenseSplits.map((split) => ({
+            tenantId: split.tenantId,
+            paidByTenantId: expense.paidByTenantId,
+            amount: split.amount,
+          }));
+        }),
       )
-    ).flatMap((expenseSplits) =>
-      expenseSplits.map((split) => ({
-        tenantId: split.tenantId,
-        amount: split.amount,
-      })),
-    );
+    ).flat();
 
     const expenseBalances = computeTenantBalances(
       tenants.map((tenant) => ({ id: tenant.id })),
@@ -290,11 +304,21 @@ export class ExpenseService {
   async getTenantOwedTotalsForMonth(
     householdId: string,
     month: string,
+    participantScope: ParticipantScope = "all",
   ): Promise<Map<string, number>> {
-    const expensesWithSplits = await this.expenses.findAllByHouseholdWithSplits(
+    const householdTenantIds =
+      participantScope === "shared" || participantScope === "personal"
+        ? (await this.tenants.findAllByHousehold(householdId)).map((tenant) => tenant.id)
+        : [];
+
+    const where = buildExpenseListWhere({
       householdId,
-      { month },
-    );
+      month,
+      participantScope,
+      ...(householdTenantIds.length > 0 && { householdTenantIds }),
+    });
+
+    const expensesWithSplits = await this.expenses.findAllByWhereWithSplits(where);
 
     const owedByTenant = new Map<string, number>();
 
@@ -310,6 +334,60 @@ export class ExpenseService {
     }
 
     return owedByTenant;
+  }
+
+  async getTenantCategoryStatsForMonth(
+    householdId: string,
+    month: string,
+    tenantId: string,
+    participantScope: ParticipantScope = "all",
+  ): Promise<CategoryExpenseStat[]> {
+    const householdTenantIds =
+      participantScope === "shared" || participantScope === "personal"
+        ? (await this.tenants.findAllByHousehold(householdId)).map((tenant) => tenant.id)
+        : [];
+
+    const where = buildExpenseListWhere({
+      householdId,
+      month,
+      participantScope,
+      ...(householdTenantIds.length > 0 && { householdTenantIds }),
+    });
+
+    const expensesWithSplits = await this.expenses.findAllByWhereWithSplits(where);
+    const categoryTotals = new Map<string, { amount: number; expenseCount: number }>();
+
+    const splitResults = await Promise.all(
+      expensesWithSplits.map((expense) => this.getSplitsForExpense(expense)),
+    );
+
+    for (const [index, expenseSplits] of splitResults.entries()) {
+      const expense = expensesWithSplits[index];
+      if (!expense) {
+        continue;
+      }
+
+      const tenantSplit = expenseSplits.find((split) => split.tenantId === tenantId);
+      if (!tenantSplit || tenantSplit.amount <= 0) {
+        continue;
+      }
+
+      const current = categoryTotals.get(expense.categoryId) ?? { amount: 0, expenseCount: 0 };
+      categoryTotals.set(expense.categoryId, {
+        amount: current.amount + tenantSplit.amount,
+        expenseCount: current.expenseCount + 1,
+      });
+    }
+
+    const groups = Array.from(categoryTotals.entries()).map(([categoryId, stats]) => ({
+      categoryId,
+      amount: stats.amount,
+      expenseCount: stats.expenseCount,
+    }));
+    const total = groups.reduce((sum, group) => sum + group.amount, 0);
+    const categories = await this.categories.findAllByHousehold(householdId);
+
+    return buildCategoryExpenseStats(groups, categories, total);
   }
 
   private async getSplitsForExpense(expense: PrismaExpense): Promise<ExpenseSplit[]> {
