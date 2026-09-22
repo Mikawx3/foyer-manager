@@ -36,6 +36,23 @@ export function toCategoryChartSlices(
   });
 }
 
+export function toggleCategoryFilter(currentId: string, clickedId: string): string {
+  return currentId === clickedId ? "" : clickedId;
+}
+
+export function categoryIdFromChartClick(
+  slices: ReadonlyArray<Pick<CategoryChartSlice, "categoryId" | "name">>,
+  state: { activeIndex?: number | string; activeLabel?: string | number },
+): string | undefined {
+  if (typeof state.activeIndex === "number") {
+    return slices[state.activeIndex]?.categoryId;
+  }
+  if (typeof state.activeLabel === "string") {
+    return slices.find((slice) => slice.name === state.activeLabel)?.categoryId;
+  }
+  return undefined;
+}
+
 export function monthToReferenceDate(month: string): Date {
   const [yearStr, monthStr] = month.split("-");
   return new Date(Number(yearStr), Number(monthStr) - 1, 1);

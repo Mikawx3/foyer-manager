@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSwipeToClose } from "../../hooks/useSwipeToClose.ts";
-import { bottomSheetPanel, iconBtn } from "../../lib/ui-classes.ts";
+import { bottomSheetPanel, iconBtn, modalSizeClass } from "../../lib/ui-classes.ts";
 
 interface ModalProps {
   title: string;
@@ -12,9 +12,18 @@ interface ModalProps {
   children: ReactNode;
   /** When true, sheet fills most of the viewport on mobile (e.g. expense form). */
   fullHeightMobile?: boolean;
+  /** Desktop dialog width. `xl` fits a two-column form without scrolling. */
+  size?: keyof typeof modalSizeClass;
 }
 
-export function Modal({ title, open, onClose, children, fullHeightMobile = false }: ModalProps) {
+export function Modal({
+  title,
+  open,
+  onClose,
+  children,
+  fullHeightMobile = false,
+  size = "md",
+}: ModalProps) {
   const { t } = useTranslation("common");
   const { panelStyle, swipeHandlers } = useSwipeToClose(onClose, open);
 
@@ -48,8 +57,8 @@ export function Modal({ title, open, onClose, children, fullHeightMobile = false
         onClick={onClose}
       />
       <div
-        className={`${bottomSheetPanel} ${
-          fullHeightMobile ? "h-[calc(100dvh-env(safe-area-inset-top,0px)-1rem)] md:h-auto" : ""
+        className={`${bottomSheetPanel} ${modalSizeClass[size]} ${
+          fullHeightMobile ? "h-[calc(100dvh-env(safe-area-inset-top,0px)-1rem)] md:h-auto md:max-h-[90vh]" : ""
         } transition-transform duration-300 ease-out`}
         style={panelStyle}
         role="dialog"

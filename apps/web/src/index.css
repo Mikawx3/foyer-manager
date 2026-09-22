@@ -32,10 +32,29 @@
   body {
     @apply bg-bg font-sans text-base text-stone-800 antialiased md:text-sm;
   }
+
+  .recharts-wrapper,
+  .recharts-wrapper:focus,
+  .recharts-wrapper:focus-visible,
+  .recharts-surface,
+  .recharts-surface:focus,
+  .recharts-surface:focus-visible {
+    outline: none;
+  }
 }
 
-@media (max-width: 767px) {
-  [data-sonner-toaster][data-y-position="bottom"] {
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
-  }
+[data-sonner-toaster][data-y-position="top"] {
+  top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+}
+
+[data-sonner-toast].app-toast {
+  font-family: var(--font-sans);
+}
+
+[data-sonner-toast].app-toast-success [data-title] {
+  color: var(--color-positive);
+}
+
+[data-sonner-toast].app-toast-error [data-title] {
+  color: var(--color-negative);
 }

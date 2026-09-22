@@ -4,12 +4,11 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ExpenseForm } from "../forms/ExpenseForm.tsx";
 import { Modal } from "../ui/Modal.tsx";
-import { getApiErrorMessage, getSplits, updateExpense } from "../../lib/api.ts";
+import { getSplits, updateExpense } from "../../lib/api.ts";
 import type { ExpenseListFilters } from "../../lib/expense-list-filters.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { mutationToastHandlers } from "../../lib/toast.ts";
 import type { UpdateExpenseForm } from "../../lib/schemas.ts";
-import { inlineError } from "../../lib/ui-classes.ts";
 
 interface ExpenseEditModalProps {
   expense: Expense;
@@ -87,13 +86,15 @@ export function ExpenseEditModal({
   });
 
   return (
-    <Modal title={t("editExpense")} open={open} onClose={onClose}>
+    <Modal title={t("editExpense")} open={open} onClose={onClose} size="xl">
       {splitsQuery.isLoading && (
         <p className="text-sm text-stone-500">{tCommon("loadingSplitDetails")}</p>
       )}
       {splitsQuery.isSuccess && (
         <ExpenseForm
           variant="edit"
+          layout="dialog"
+          showHeading={false}
           householdId={householdId}
           categories={categories}
           tenants={tenants}
@@ -104,9 +105,6 @@ export function ExpenseEditModal({
           onSubmit={(data) => updateMutation.mutate(data as UpdateExpenseForm)}
           isPending={updateMutation.isPending}
         />
-      )}
-      {updateMutation.isError && (
-        <p className={`mt-2 ${inlineError}`}>{getApiErrorMessage(updateMutation.error)}</p>
       )}
     </Modal>
   );

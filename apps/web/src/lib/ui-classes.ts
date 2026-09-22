@@ -33,7 +33,12 @@ export const mobileMainPadding =
   "pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0";
 
 export const bottomSheetPanel =
-  "relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-xl md:max-w-lg md:rounded-xl";
+  "relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-xl md:rounded-xl";
+
+export const modalSizeClass = {
+  md: "md:max-w-lg",
+  xl: "md:max-w-3xl",
+} as const;
 
 export const amount = "font-mono tabular-nums font-semibold text-stone-900";
 
@@ -51,9 +56,6 @@ export const householdNavLinkClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export const pageActionsRow = "flex flex-wrap items-start justify-between gap-4";
-
-export const expenseFormPanel =
-  "hidden xl:flex xl:w-80 xl:shrink-0 xl:sticky xl:top-6 xl:self-start xl:max-h-[calc(100dvh-7rem)] xl:min-h-0 xl:flex-col";
 
 export const tabBarHeight = "56px";
 

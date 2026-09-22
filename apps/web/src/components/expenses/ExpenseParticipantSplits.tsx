@@ -59,7 +59,7 @@ export function ExpenseParticipantSplits({
   const customValid = areCustomPercentagesValid(customPercentageValues, selectedTenantIds);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <MemberSelectorChips
         tenants={tenants}
         selectedIds={selectedParticipantIds}

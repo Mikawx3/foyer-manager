@@ -7,6 +7,11 @@ import { useTranslation } from "react-i18next";
 import { ExpenseParticipantSplits, isCustomSplitValid } from "../expenses/ExpenseParticipantSplits.tsx";
 import { resolveDefaultSplits } from "../../lib/api.ts";
 import { getCategoryDisplayName } from "../../lib/category-label.ts";
+import {
+  resolveExpenseFormDefaults,
+  saveExpenseFormDefaults,
+  subscribeExpenseFormDefaults,
+} from "../../lib/expense-form-defaults.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { redistributeSplits } from "../../lib/redistribute-splits.ts";
 import { equalSplitPercentages } from "../../lib/split-percentages.ts";
@@ -37,7 +42,8 @@ interface ExpenseFormProps {
   initialSplits?: { tenantId: string; percentage: number }[];
   title?: string;
   submitLabel?: string;
-  layout?: "default" | "panel";
+  layout?: "default" | "dialog";
+  showHeading?: boolean;
 }
 
 export function ExpenseForm({
@@ -55,6 +61,7 @@ export function ExpenseForm({
   title,
   submitLabel,
   layout = "default",
+  showHeading = true,
 }: ExpenseFormProps) {
   const { t } = useTranslation("expenses");
   const { t: tCommon } = useTranslation("common");
@@ -67,7 +74,12 @@ export function ExpenseForm({
 
   const today = new Date().toISOString().slice(0, 10);
   const allTenantIds = useMemo(() => tenants.map((tenant) => tenant.id), [tenants]);
+  const tenantIdsKey = allTenantIds.join(",");
   const soleTenantId = allTenantIds[0] ?? "";
+  const rememberedDefaults =
+    variant === "create" && !isSolo
+      ? resolveExpenseFormDefaults(householdId, allTenantIds, today)
+      : null;
 
   const defaultValues: ExpenseFormValues =
     variant === "edit" && initialExpense
@@ -85,12 +97,12 @@ export function ExpenseForm({
           amount: Number.NaN,
           description: "",
           categoryId: "",
-          paidByTenantId: "",
+          paidByTenantId: rememberedDefaults?.paidByTenantId ?? "",
           householdId,
-          date: today,
+          date: rememberedDefaults?.date ?? today,
           splitMode: "default",
           splits: [],
-          participantIds: allTenantIds,
+          participantIds: rememberedDefaults?.participantIds ?? allTenantIds,
         };
 
   const {
@@ -109,7 +121,9 @@ export function ExpenseForm({
   });
 
   const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>(
-    initialParticipantIds ?? allTenantIds,
+    variant === "edit"
+      ? (initialParticipantIds ?? allTenantIds)
+      : (rememberedDefaults?.participantIds ?? allTenantIds),
   );
   const [useAutoSplit, setUseAutoSplit] = useState(
     initialExpense ? initialExpense.splitMode === "default" : true,
@@ -124,8 +138,10 @@ export function ExpenseForm({
   const formSplits = watch("splits") ?? [];
 
   useEffect(() => {
-    setSelectedParticipantIds(initialParticipantIds ?? allTenantIds);
-  }, [initialParticipantIds, allTenantIds]);
+    if (variant === "edit") {
+      setSelectedParticipantIds(initialParticipantIds ?? allTenantIds);
+    }
+  }, [variant, initialParticipantIds, allTenantIds]);
 
   useEffect(() => {
     if (variant === "create") {
@@ -139,6 +155,27 @@ export function ExpenseForm({
       setSelectedParticipantIds([soleTenantId]);
     }
   }, [isSolo, soleTenantId, setValue]);
+
+  useEffect(() => {
+    if (variant !== "create" || isSolo) {
+      return;
+    }
+
+    const applyDefaults = () => {
+      const defaults = resolveExpenseFormDefaults(householdId, allTenantIds, today);
+      setValue("paidByTenantId", defaults.paidByTenantId);
+      setValue("date", defaults.date);
+      setValue("participantIds", defaults.participantIds);
+      setSelectedParticipantIds(defaults.participantIds);
+    };
+
+    applyDefaults();
+    return subscribeExpenseFormDefaults((changedHouseholdId) => {
+      if (changedHouseholdId === householdId) {
+        applyDefaults();
+      }
+    });
+  }, [variant, isSolo, householdId, tenantIdsKey, today, setValue, allTenantIds]);
 
   const resolvedRulesQuery = useQuery({
     queryKey: queryKeys.resolvedDefaultSplits(householdId, categoryId),
@@ -304,18 +341,34 @@ export function ExpenseForm({
       return;
     }
     if (variant === "create") {
+      const nextPaidBy = isSolo ? soleTenantId : payload.paidByTenantId;
+      const nextParticipants = isSolo
+        ? soleTenantId
+          ? [soleTenantId]
+          : allTenantIds
+        : (payload.participantIds ?? allTenantIds);
+      const nextDate = payload.date;
+
+      if (!isSolo) {
+        saveExpenseFormDefaults(householdId, {
+          paidByTenantId: nextPaidBy,
+          participantIds: nextParticipants,
+          date: nextDate,
+        });
+      }
+
       reset({
         description: "",
         categoryId: "",
-        paidByTenantId: "",
+        paidByTenantId: nextPaidBy,
         householdId,
-        date: today,
+        date: nextDate,
         splitMode: "default",
         splits: [],
-        participantIds: allTenantIds,
+        participantIds: nextParticipants,
         amount: Number.NaN,
       });
-      setSelectedParticipantIds(allTenantIds);
+      setSelectedParticipantIds(nextParticipants);
       setUseAutoSplit(true);
       setNewCategoryMode(false);
       setNewCategoryName("");
@@ -359,177 +412,195 @@ export function ExpenseForm({
     </>
   );
 
-  const fields = (
-    <>
-      <FormField label={tCommon("amount")} error={errors.amount?.message}>
-        <Controller
-          name="amount"
-          control={control}
-          render={({ field }) => (
-            <CalculableAmountInput
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              aria-invalid={errors.amount !== undefined}
+  const categoryField = (
+    <FormField label={tCommon("category")} error={errors.categoryId?.message}>
+      {newCategoryMode ? (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              className={inputClassName}
+              value={newCategoryName}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") {
+                  return;
+                }
+                event.preventDefault();
+                void confirmNewCategory();
+              }}
+              placeholder={t("newCategoryNamePlaceholder")}
+              disabled={creatingCategory}
+              autoFocus
             />
+            <button
+              type="button"
+              className={`${btnSecondary} shrink-0 px-3`}
+              disabled={creatingCategory || newCategoryName.trim().length === 0}
+              onClick={() => {
+                void confirmNewCategory();
+              }}
+            >
+              {creatingCategory ? tCommon("creating") : t("confirmCategory")}
+            </button>
+          </div>
+          <button
+            type="button"
+            className="text-sm font-medium text-primary hover:underline"
+            onClick={() => {
+              setNewCategoryMode(false);
+              setNewCategoryName("");
+              setCreateCategoryError(null);
+            }}
+          >
+            {t("pickExistingCategory")}
+          </button>
+          {createCategoryError && (
+            <p className="text-sm text-negative">{createCategoryError}</p>
           )}
-        />
-      </FormField>
-      <FormField label={tCommon("description")} error={errors.description?.message}>
-        <input className={inputClassName} {...register("description")} />
-      </FormField>
-      <FormField label={tCommon("category")} error={errors.categoryId?.message}>
-        {newCategoryMode ? (
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <input
-                className={inputClassName}
-                value={newCategoryName}
-                onChange={(event) => setNewCategoryName(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") {
-                    return;
-                  }
-                  event.preventDefault();
-                  void confirmNewCategory();
-                }}
-                placeholder={t("newCategoryNamePlaceholder")}
-                disabled={creatingCategory}
-                autoFocus
-              />
-              <button
-                type="button"
-                className={`${btnSecondary} shrink-0 px-3`}
-                disabled={creatingCategory || newCategoryName.trim().length === 0}
-                onClick={() => {
-                  void confirmNewCategory();
-                }}
-              >
-                {creatingCategory ? tCommon("creating") : t("confirmCategory")}
-              </button>
-            </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <select className={selectClassName} {...register("categoryId")} defaultValue="">
+            <option value="" disabled>
+              {tCommon("selectCategory")}
+            </option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {getCategoryDisplayName(category, tCategories)}
+              </option>
+            ))}
+          </select>
+          {onCreateCategory && variant === "create" && (
             <button
               type="button"
               className="text-sm font-medium text-primary hover:underline"
               onClick={() => {
-                setNewCategoryMode(false);
-                setNewCategoryName("");
-                setCreateCategoryError(null);
+                setNewCategoryMode(true);
+                setValue("categoryId", "");
               }}
             >
-              {t("pickExistingCategory")}
+              {t("createCategoryInline")}
             </button>
-            {createCategoryError && (
-              <p className="text-sm text-negative">{createCategoryError}</p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <select className={selectClassName} {...register("categoryId")} defaultValue="">
-              <option value="" disabled>
-                {tCommon("selectCategory")}
-              </option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {getCategoryDisplayName(category, tCategories)}
-                </option>
-              ))}
-            </select>
-            {onCreateCategory && variant === "create" && (
-              <button
-                type="button"
-                className="text-sm font-medium text-primary hover:underline"
-                onClick={() => {
-                  setNewCategoryMode(true);
-                  setValue("categoryId", "");
-                }}
-              >
-                {t("createCategoryInline")}
-              </button>
-            )}
-          </div>
-        )}
-      </FormField>
-
-      {tenants.length > 0 && !isSolo && (
-        <ExpenseParticipantSplits
-          tenants={tenants}
-          selectedParticipantIds={selectedParticipantIds}
-          onToggleParticipant={toggleParticipant}
-          useAutoSplit={useAutoSplit}
-          onUseAutoSplitChange={handleUseAutoSplitChange}
-          autoPreview={autoPreview}
-          expenseAmount={Number(amount) || 0}
-          customPercentageValues={customPercentageValues}
-          onCustomPercentagesChange={(values) => {
-            setValue(
-              "splits",
-              selectedTenants.map((tenant) => ({
-                tenantId: tenant.id,
-                percentage: safePercentage(values[tenant.id] ?? 0),
-              })),
-            );
-          }}
-          splitsError={errors.splits?.message}
-        />
+          )}
+        </div>
       )}
+    </FormField>
+  );
 
-      {!isSolo && (
-        <FormField label={tCommon("paidBy")} error={errors.paidByTenantId?.message}>
-          <select className={selectClassName} {...register("paidByTenantId")} defaultValue="">
-            <option value="" disabled>
-              {tCommon("selectMember")}
-            </option>
-            {tenants.map((tenant) => (
-              <option key={tenant.id} value={tenant.id}>
-                {tenant.name}
-              </option>
-            ))}
-          </select>
+  const paidByField = isSolo ? (
+    soleTenantId ? (
+      <input type="hidden" {...register("paidByTenantId")} value={soleTenantId} />
+    ) : null
+  ) : (
+    <FormField label={tCommon("paidBy")} error={errors.paidByTenantId?.message}>
+      <select className={selectClassName} {...register("paidByTenantId")} defaultValue="">
+        <option value="" disabled>
+          {tCommon("selectMember")}
+        </option>
+        {tenants.map((tenant) => (
+          <option key={tenant.id} value={tenant.id}>
+            {tenant.name}
+          </option>
+        ))}
+      </select>
+    </FormField>
+  );
+
+  const showSplits = tenants.length > 0 && !isSolo;
+
+  const detailsColumn = (
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField label={tCommon("amount")} error={errors.amount?.message}>
+          <Controller
+            name="amount"
+            control={control}
+            render={({ field }) => (
+              <CalculableAmountInput
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={errors.amount !== undefined}
+              />
+            )}
+          />
         </FormField>
-      )}
-      {isSolo && soleTenantId && (
-        <input type="hidden" {...register("paidByTenantId")} value={soleTenantId} />
-      )}
-      <FormField label={tCommon("date")} error={errors.date?.message}>
-        <input className={inputClassName} type="date" {...register("date")} />
+        <FormField label={tCommon("date")} error={errors.date?.message}>
+          <input className={inputClassName} type="date" {...register("date")} />
+        </FormField>
+      </div>
+      <FormField label={tCommon("description")} error={errors.description?.message}>
+        <input className={inputClassName} {...register("description")} />
       </FormField>
-    </>
+      {isSolo ? (
+        <>
+          {categoryField}
+          {paidByField}
+        </>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {categoryField}
+          {paidByField}
+        </div>
+      )}
+    </div>
+  );
+
+  const splitsColumn = showSplits ? (
+    <div className="md:border-l md:border-border md:pl-6">
+      <ExpenseParticipantSplits
+        tenants={tenants}
+        selectedParticipantIds={selectedParticipantIds}
+        onToggleParticipant={toggleParticipant}
+        useAutoSplit={useAutoSplit}
+        onUseAutoSplitChange={handleUseAutoSplitChange}
+        autoPreview={autoPreview}
+        expenseAmount={Number(amount) || 0}
+        customPercentageValues={customPercentageValues}
+        onCustomPercentagesChange={(values) => {
+          setValue(
+            "splits",
+            selectedTenants.map((tenant) => ({
+              tenantId: tenant.id,
+              percentage: safePercentage(values[tenant.id] ?? 0),
+            })),
+          );
+        }}
+        splitsError={errors.splits?.message}
+      />
+    </div>
+  ) : null;
+
+  const fields = showSplits ? (
+    <div className="grid items-start gap-6 md:grid-cols-2">
+      {detailsColumn}
+      {splitsColumn}
+    </div>
+  ) : (
+    detailsColumn
   );
 
   const submitButton = (
-    <button type="submit" disabled={submitDisabled} className={btnPrimary}>
+    <button
+      type="submit"
+      disabled={submitDisabled}
+      className={`${btnPrimary} ${layout === "dialog" ? "w-full" : ""}`}
+    >
       {buttonLabel}
     </button>
   );
 
-  if (layout === "panel") {
-    return (
-      <form
-        onSubmit={submit}
-        className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
-      >
-        <h3 className="shrink-0 border-b border-border px-4 py-3 text-sm font-semibold tracking-tight text-stone-900">
-          {heading}
-        </h3>
-        {hiddenFields}
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">{fields}</div>
-        <div className="shrink-0 border-t border-border bg-surface p-4">
-          <button
-            type="submit"
-            disabled={submitDisabled}
-            className={`${btnPrimary} w-full`}
-          >
-            {buttonLabel}
-          </button>
-        </div>
-      </form>
-    );
-  }
+  const headingBlock =
+    showHeading ? (
+      <h3 className="text-sm font-semibold tracking-tight text-stone-900">{heading}</h3>
+    ) : null;
 
   return (
-    <form onSubmit={submit} className={formCard}>
-      <h3 className="text-sm font-semibold tracking-tight text-stone-900">{heading}</h3>
+    <form
+      onSubmit={submit}
+      className={layout === "dialog" ? "space-y-5" : formCard}
+    >
+      {headingBlock}
       {hiddenFields}
       {fields}
       {submitButton}

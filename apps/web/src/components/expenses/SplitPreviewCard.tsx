@@ -21,9 +21,9 @@ export function SplitPreviewCard({
     expenseAmount > 0 && Math.abs(previewTotal - expenseAmount) < 0.01;
 
   return (
-    <div className="rounded-lg border border-border bg-bg p-4">
+    <div className="rounded-lg border border-border bg-bg p-3">
       <h4 className="text-sm font-semibold text-stone-800">{t("splitPreview")}</h4>
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-2 space-y-1.5">
         {activePreview.map((row) => (
           <li
             key={row.tenantId}

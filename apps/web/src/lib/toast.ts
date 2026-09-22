@@ -6,36 +6,36 @@ import { getApiErrorMessage } from "./api.ts";
 export function showMutationError(error: unknown): void {
   if (isAxiosError(error)) {
     if (!error.response) {
-      toast.error(i18n.t("errors:cannotReachServer"));
+      toast.error(i18n.t("errors:cannotReachServer"), { duration: 6000 });
       return;
     }
 
     const status = error.response.status;
 
     if (status === 409) {
-      toast.error(i18n.t("errors:alreadyExists"));
+      toast.error(i18n.t("errors:alreadyExists"), { duration: 6000 });
       return;
     }
 
     if (status >= 500) {
-      toast.error(i18n.t("errors:somethingWentWrongRetry"));
+      toast.error(i18n.t("errors:somethingWentWrongRetry"), { duration: 6000 });
       return;
     }
 
     if (status === 400) {
-      toast.error(getApiErrorMessage(error));
+      toast.error(getApiErrorMessage(error), { duration: 6000 });
       return;
     }
 
-    toast.error(getApiErrorMessage(error));
+    toast.error(getApiErrorMessage(error), { duration: 6000 });
     return;
   }
 
-  toast.error(getApiErrorMessage(error));
+  toast.error(getApiErrorMessage(error), { duration: 6000 });
 }
 
 export function showMutationSuccess(message: string): void {
-  toast.success(message);
+  toast.success(message, { duration: 3500 });
 }
 
 export function mutationToastHandlers(options: {

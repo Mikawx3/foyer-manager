@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
-import { Toaster } from "sonner";
+import { AppToaster } from "./components/ui/AppToaster.tsx";
 import { DocumentLang } from "./components/ui/DocumentLang.tsx";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary.tsx";
 import { DeploymentModeProvider } from "./contexts/DeploymentModeContext.tsx";
@@ -23,15 +23,7 @@ export default function App() {
           <DocumentLang />
           <RouterProvider router={router} />
         </DeploymentModeProvider>
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              fontFamily: "Plus Jakarta Sans, sans-serif",
-              fontSize: "14px",
-            },
-          }}
-        />
+        <AppToaster />
       </QueryClientProvider>
     </ErrorBoundary>
   );

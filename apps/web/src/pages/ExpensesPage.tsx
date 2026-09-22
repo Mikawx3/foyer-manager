@@ -39,6 +39,7 @@ import {
   resetExpenseSplits,
 } from "../lib/api.ts";
 import { getCategoryDisplayName } from "../lib/category-label.ts";
+import { toggleCategoryFilter } from "../lib/category-stats.ts";
 import { exportExpensesToCSV, getCsvHeaders, slugifyHouseholdName } from "../lib/export.ts";
 import { isSoloHousehold } from "../lib/household-mode.ts";
 import { formatTenantName } from "../lib/format-tenant-name.ts";
@@ -68,7 +69,6 @@ import {
   pageActionsRow,
   pageSubtitle,
   pageTitle,
-  expenseFormPanel,
 } from "../lib/ui-classes.ts";
 
 function SplitsSummaryList({
@@ -470,7 +470,7 @@ export function ExpensesPage() {
           {canAddExpense && (
             <button
               type="button"
-              className={`${btnPrimary} hidden items-center gap-2 md:inline-flex xl:hidden`}
+              className={`${btnPrimary} hidden items-center gap-2 md:inline-flex`}
               onClick={() => setModalOpen(true)}
             >
               <Plus className="h-4 w-4" strokeWidth={2} />
@@ -481,8 +481,8 @@ export function ExpensesPage() {
       </div>
 
       {categoriesQuery.isSuccess && (
-        <div className="flex flex-col gap-8 xl:flex-row xl:items-start">
-          <section className="min-w-0 flex-1">
+        <div>
+          <section className="min-w-0">
             <div className="mb-4 flex gap-2 border-b border-border">
               <button
                 type="button"
@@ -558,6 +558,10 @@ export function ExpensesPage() {
                   categories={categoriesQuery.data}
                   getCategoryLabel={(category) => getCategoryDisplayName(category, tCategories)}
                   highlightedCategoryId={categoryId}
+                  onCategoryClick={(clickedId) => {
+                    setCategoryId((current) => toggleCategoryFilter(current, clickedId));
+                    setPage(1);
+                  }}
                 />
               </div>
             )}
@@ -646,7 +650,7 @@ export function ExpensesPage() {
                   canAddExpense ? (
                     <button
                       type="button"
-                      className={`${btnPrimary} hidden items-center gap-2 md:inline-flex xl:hidden`}
+                      className={`${btnPrimary} hidden items-center gap-2 md:inline-flex`}
                       onClick={() => setModalOpen(true)}
                     >
                       <Plus className="h-4 w-4" strokeWidth={2} />
@@ -759,26 +763,6 @@ export function ExpensesPage() {
             )}
           </section>
 
-          {activeTab === "expenses" && canAddExpense && categoriesQuery.isSuccess && (
-            <aside className={expenseFormPanel}>
-              <ExpenseForm
-                layout="panel"
-                householdId={householdId}
-                categories={categoriesQuery.data ?? []}
-                tenants={activeTenantsForPickers}
-                isSolo={isSolo}
-                onSubmit={handleCreateExpense}
-                onCreateCategory={handleCreateCategory}
-                isPending={createExpenseMutation.isPending || createCategoryMutation.isPending}
-              />
-              {createExpenseMutation.error !== undefined &&
-                createExpenseMutation.error !== null && (
-                  <p className={`mt-2 ${inlineError}`}>
-                    {getApiErrorMessage(createExpenseMutation.error)}
-                  </p>
-                )}
-            </aside>
-          )}
         </div>
       )}
 
@@ -818,8 +802,11 @@ export function ExpensesPage() {
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           fullHeightMobile
+          size="xl"
         >
           <ExpenseForm
+            layout="dialog"
+            showHeading={false}
             householdId={householdId}
             categories={categoriesQuery.data ?? []}
             tenants={activeTenantsForPickers}
@@ -828,9 +815,6 @@ export function ExpensesPage() {
             onCreateCategory={handleCreateCategory}
             isPending={createExpenseMutation.isPending || createCategoryMutation.isPending}
           />
-          {createExpenseMutation.error !== undefined && createExpenseMutation.error !== null && (
-            <p className={inlineError}>{getApiErrorMessage(createExpenseMutation.error)}</p>
-          )}
         </Modal>
       )}
 
