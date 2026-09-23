@@ -37,7 +37,7 @@ export function PrivacyPage() {
         <p className="mt-6 text-base text-stone-700">{t("intro")}</p>
         <div className="mt-10 space-y-8">
           {SECTIONS.map((section) => (
-            <section key={section}>
+            <section key={section} id={section} className="scroll-mt-20">
               <h2 className="text-lg font-semibold tracking-tight text-stone-900">
                 {t(`${section}Title`)}
               </h2>

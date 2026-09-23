@@ -5,6 +5,7 @@ export const queryKeys = {
   me: ["auth", "me"] as const,
   households: ["households"] as const,
   household: (id: string) => ["households", id] as const,
+  householdAccess: (householdId: string) => ["households", householdId, "access"] as const,
   householdDeletionPreview: (householdId: string) =>
     ["households", householdId, "deletion-preview"] as const,
   tenants: (householdId: string) => ["tenants", householdId] as const,

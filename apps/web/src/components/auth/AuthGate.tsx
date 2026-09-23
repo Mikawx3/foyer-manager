@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Navigate, Outlet, useLocation, useParams } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../ui/Skeleton.tsx";
@@ -19,9 +19,18 @@ function isLocalWizardPath(pathname: string): boolean {
   return pathname === "/households/new";
 }
 
+function householdIdFromPath(pathname: string): string {
+  const match = pathname.match(/^\/households\/([^/]+)/);
+  const id = match?.[1];
+  if (!id || id === "new") {
+    return "";
+  }
+  return id;
+}
+
 export function AuthGate() {
   const location = useLocation();
-  const { id: routeHouseholdId } = useParams<{ id: string }>();
+  const routeHouseholdId = householdIdFromPath(location.pathname);
   const { isLocalMode, isLoading: isConfigLoading } = useDeploymentMode();
   const token = getToken();
 
@@ -32,12 +41,12 @@ export function AuthGate() {
     retry: false,
   });
 
-  const householdId = isLocalMode ? (routeHouseholdId ?? "") : (meQuery.data?.householdId ?? "");
+  const householdId = routeHouseholdId;
 
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
     queryFn: () => getTenants(householdId),
-    enabled: !isLocalMode && Boolean(householdId) && meQuery.isSuccess,
+    enabled: !isLocalMode && routeHouseholdId.length > 0 && meQuery.isSuccess,
   });
 
   if (isConfigLoading) {
@@ -71,17 +80,7 @@ export function AuthGate() {
     );
   }
 
-  if (
-    !isLocalMode &&
-    routeHouseholdId &&
-    meQuery.data &&
-    routeHouseholdId !== meQuery.data.householdId
-  ) {
-    const suffix = location.pathname.replace(/^\/households\/[^/]+/, "") || "/dashboard";
-    return <Navigate to={`/households/${householdId}${suffix}`} replace />;
-  }
-
-  if (!isLocalMode && householdId && tenantsQuery.isLoading) {
+  if (!isLocalMode && routeHouseholdId && tenantsQuery.isLoading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <ListSkeleton rows={2} />

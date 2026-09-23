@@ -64,7 +64,7 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="border-t border-border bg-surface">
+        <section id="how" className="scroll-mt-20 border-t border-border bg-surface">
           <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
             <h2 className="text-lg font-semibold tracking-tight text-stone-900">{t("howTitle")}</h2>
             <ol className="mt-6 grid gap-6 md:grid-cols-3">
@@ -79,7 +79,7 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+        <section id="features" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-12 sm:px-6">
           <h2 className="text-lg font-semibold tracking-tight text-stone-900">{t("featuresTitle")}</h2>
           <ul className="mt-6 grid gap-4 sm:grid-cols-2">
             {FEATURES.map((feature) => (

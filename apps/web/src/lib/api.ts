@@ -14,7 +14,11 @@ import type {
   ExpenseSplit,
   ExpenseStats,
   Household,
+  HouseholdAccessMember,
   HouseholdDeletionPreview,
+  HouseholdInviteCreated,
+  HouseholdInvitePreview,
+  AcceptInviteResponse,
   Income,
   IncomeStats,
   IncomeTemplate,
@@ -76,7 +80,8 @@ api.interceptors.response.use(
       if (
         getCachedDeploymentMode() !== "local" &&
         window.location.pathname !== "/login" &&
-        window.location.pathname !== "/register"
+        window.location.pathname !== "/register" &&
+        !window.location.pathname.startsWith("/invite/")
       ) {
         window.location.assign("/login");
       }
@@ -126,6 +131,43 @@ export async function getMe(): Promise<AuthUser> {
 
 export async function getHouseholds(): Promise<Household[]> {
   const { data } = await api.get<Household[]>("/households");
+  return data;
+}
+
+export async function getHouseholdAccess(householdId: string): Promise<HouseholdAccessMember[]> {
+  const { data } = await api.get<HouseholdAccessMember[]>(`/households/${householdId}/access`);
+  return data;
+}
+
+export async function createHouseholdInvite(householdId: string): Promise<HouseholdInviteCreated> {
+  const { data } = await api.post<HouseholdInviteCreated>(`/households/${householdId}/invites`);
+  return data;
+}
+
+export async function getInvitePreview(token: string): Promise<HouseholdInvitePreview> {
+  const { data } = await api.get<HouseholdInvitePreview>(`/invites/${encodeURIComponent(token)}`);
+  return data;
+}
+
+export async function acceptInvite(
+  token: string,
+  input: { mode: "guest"; name: string } | { mode: "member" },
+): Promise<AcceptInviteResponse> {
+  const { data } = await api.post<AcceptInviteResponse>(
+    `/invites/${encodeURIComponent(token)}/accept`,
+    input,
+  );
+  return data;
+}
+
+export async function registerWithInvite(
+  token: string,
+  input: { email: string; password: string },
+): Promise<AcceptInviteResponse> {
+  const { data } = await api.post<AcceptInviteResponse>(
+    `/invites/${encodeURIComponent(token)}/register`,
+    input,
+  );
   return data;
 }
 

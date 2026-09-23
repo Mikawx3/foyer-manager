@@ -6,9 +6,14 @@ import { SettingsLayout } from "./components/settings/SettingsLayout.tsx";
 import { HouseholdDetailPage } from "./pages/HouseholdDetailPage.tsx";
 import { HouseholdWizardPage } from "./pages/HouseholdWizardPage.tsx";
 import { HouseholdsPage } from "./pages/HouseholdsPage.tsx";
+import { AccessibilityPage } from "./pages/AccessibilityPage.tsx";
+import { HelpPage } from "./pages/HelpPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
+import { InvitePage } from "./pages/InvitePage.tsx";
+import { LegalNoticePage } from "./pages/LegalNoticePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
 import { PrivacyPage } from "./pages/PrivacyPage.tsx";
+import { TermsPage } from "./pages/TermsPage.tsx";
 import { RegisterPage } from "./pages/RegisterPage.tsx";
 import { BalancesPage } from "./pages/BalancesPage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
@@ -22,6 +27,18 @@ import { TenantsPage } from "./pages/TenantsPage.tsx";
 export const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
   { path: "/privacy", element: <PrivacyPage /> },
+  { path: "/legal", element: <LegalNoticePage /> },
+  { path: "/terms", element: <TermsPage /> },
+  { path: "/help", element: <HelpPage /> },
+  { path: "/accessibility", element: <AccessibilityPage /> },
+  {
+    path: "/invite/:token",
+    element: (
+      <CloudAuthRoute>
+        <InvitePage />
+      </CloudAuthRoute>
+    ),
+  },
   {
     path: "/login",
     element: (

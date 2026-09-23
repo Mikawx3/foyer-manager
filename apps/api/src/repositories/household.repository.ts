@@ -13,11 +13,21 @@ export class HouseholdRepository {
     return prisma.household.findMany({ orderBy: { createdAt: "desc" } });
   }
 
-  async create(data: {
-    name: string;
-    type: string;
-    settlementPeriod: string;
-  }): Promise<Household> {
+  async findByIds(ids: string[]): Promise<Household[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    return prisma.household.findMany({ where: { id: { in: ids } } });
+  }
+
+  async create(
+    data: {
+      name: string;
+      type: string;
+      settlementPeriod: string;
+    },
+    ownerUserId?: string,
+  ): Promise<Household> {
     return prisma.$transaction(async (tx) => {
       const household = await tx.household.create({ data });
       await categoryRepository.createManyForHousehold(
@@ -25,18 +35,30 @@ export class HouseholdRepository {
         DEFAULT_CATEGORIES,
         tx,
       );
+      if (ownerUserId) {
+        await tx.householdMember.create({
+          data: {
+            userId: ownerUserId,
+            householdId: household.id,
+            role: "admin",
+          },
+        });
+      }
       return household;
     });
   }
 
-  async createWithSoloTenant(data: {
-    name: string;
-    type: string;
-    settlementPeriod: string;
-    tenantName: string;
-    tenantEmail: string;
-    tenantColor: string;
-  }): Promise<Household> {
+  async createWithSoloTenant(
+    data: {
+      name: string;
+      type: string;
+      settlementPeriod: string;
+      tenantName: string;
+      tenantEmail: string;
+      tenantColor: string;
+    },
+    ownerUserId?: string,
+  ): Promise<Household> {
     return prisma.$transaction(async (tx) => {
       const household = await tx.household.create({
         data: {
@@ -52,8 +74,19 @@ export class HouseholdRepository {
           email: data.tenantEmail,
           color: data.tenantColor,
           householdId: household.id,
+          ...(ownerUserId ? { userId: ownerUserId } : {}),
         },
       });
+
+      if (ownerUserId) {
+        await tx.householdMember.create({
+          data: {
+            userId: ownerUserId,
+            householdId: household.id,
+            role: "admin",
+          },
+        });
+      }
 
       await categoryRepository.createManyForHousehold(
         household.id,

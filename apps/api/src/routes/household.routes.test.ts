@@ -4,9 +4,16 @@ import { app } from "../app.js";
 vi.mock("../lib/jwt.js", () => ({
   verifyToken: vi.fn(async () => ({
     userId: "user-1",
-    householdId: "clh12345678901234567890123",
   })),
   signToken: vi.fn(async () => "token"),
+}));
+
+vi.mock("../lib/user-access.js", () => ({
+  loadUserAccess: vi.fn(async () => ({
+    userId: "user-1",
+    isGuest: false,
+    memberships: [{ householdId: "clh12345678901234567890123", role: "admin" }],
+  })),
 }));
 
 vi.mock("../repositories/household.repository.js", () => ({

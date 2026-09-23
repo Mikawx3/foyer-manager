@@ -1,11 +1,12 @@
 import type { Context } from "hono";
-import { ConflictError } from "../errors/app.errors.js";
-import { assertHouseholdAccess } from "../lib/household-access.js";
+import { ForbiddenError } from "../errors/app.errors.js";
+import { assertHouseholdAccess, assertHouseholdAdmin } from "../lib/household-access.js";
 import { isLocalDeployment } from "../lib/deployment.js";
 import { getAuth } from "../middleware/auth.middleware.js";
 import { parseOrThrow } from "../lib/validation.js";
 import { expenseService } from "../services/expense.service.js";
 import { householdService, type HouseholdService } from "../services/household.service.js";
+import { inviteService, type InviteService } from "../services/invite.service.js";
 import { tenantService, type TenantService } from "../services/tenant.service.js";
 import { balancesQuerySchema } from "../validators/household-balances.validator.js";
 import {
@@ -24,6 +25,7 @@ export class HouseholdController {
   constructor(
     private readonly service: HouseholdService = householdService,
     private readonly tenants: TenantService = tenantService,
+    private readonly invites: InviteService = inviteService,
   ) {}
 
   list = async (c: Context) => {
@@ -33,8 +35,8 @@ export class HouseholdController {
     }
 
     const auth = getAuth(c);
-    const household = await this.service.getById(auth.householdId);
-    return c.json([household], 200);
+    const households = await this.service.listForUser(auth.userId);
+    return c.json(households, 200);
   };
 
   get = async (c: Context) => {
@@ -53,8 +55,11 @@ export class HouseholdController {
     }
 
     const auth = getAuth(c);
-    await this.service.getById(auth.householdId);
-    throw new ConflictError("User already has a household");
+    if (auth.isGuest) {
+      throw new ForbiddenError("Guests cannot create a household");
+    }
+    const household = await this.service.createForUser(auth.userId, body);
+    return c.json(household, 201);
   };
 
   update = async (c: Context) => {
@@ -67,9 +72,24 @@ export class HouseholdController {
 
   remove = async (c: Context) => {
     const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
-    assertHouseholdAccess(c, id);
+    assertHouseholdAdmin(c, id);
     const household = await this.service.delete(id);
     return c.json(household, 200);
+  };
+
+  createInvite = async (c: Context) => {
+    const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
+    assertHouseholdAdmin(c, id);
+    const auth = getAuth(c);
+    const invite = await this.invites.create(id, auth.userId);
+    return c.json(invite, 201);
+  };
+
+  listAccess = async (c: Context) => {
+    const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
+    assertHouseholdAccess(c, id);
+    const access = await this.invites.listAccess(id);
+    return c.json(access, 200);
   };
 
   getDeletionPreview = async (c: Context) => {

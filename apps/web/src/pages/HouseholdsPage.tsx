@@ -6,9 +6,9 @@ import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { useFormat } from "../hooks/useFormat.ts";
-import { getApiErrorMessage, getHouseholds } from "../lib/api.ts";
+import { getApiErrorMessage, getHouseholds, getMe } from "../lib/api.ts";
 import { queryKeys } from "../lib/query-keys.ts";
-import { card, cardInteractive, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
+import { btnPrimary, card, cardInteractive, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
 export function HouseholdsPage() {
   const { t } = useTranslation("households");
@@ -20,6 +20,12 @@ export function HouseholdsPage() {
     queryKey: queryKeys.households,
     queryFn: getHouseholds,
     enabled: !isConfigLoading,
+  });
+
+  const meQuery = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: getMe,
+    enabled: !isConfigLoading && !isLocalMode,
   });
 
   if (isConfigLoading || householdsQuery.isLoading) {
@@ -50,6 +56,7 @@ export function HouseholdsPage() {
   }
 
   const households = householdsQuery.data ?? [];
+  const isGuest = meQuery.data?.isGuest === true;
 
   if (!isConfigLoading && householdsQuery.isSuccess && isLocalMode) {
     if (households.length === 0) {
@@ -73,17 +80,29 @@ export function HouseholdsPage() {
           {t("setupTitle")}
         </h1>
         <p className="mt-3 max-w-md text-sm text-stone-600">
-          {t("setupDescription")}
+          {isGuest ? t("guestEmptyDescription") : t("setupDescription")}
         </p>
+        {!isGuest && (
+          <Link to="/households/new" className={`${btnPrimary} mt-8`}>
+            {tCommon("newHousehold")}
+          </Link>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className={pageTitle}>{t("title")}</h1>
-        <p className={pageSubtitle}>{t("subtitleSelect")}</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className={pageTitle}>{t("title")}</h1>
+          <p className={pageSubtitle}>{t("subtitleSelect")}</p>
+        </div>
+        {!isGuest && (
+          <Link to="/households/new" className={`${btnPrimary} w-full sm:w-auto`}>
+            {tCommon("newHousehold")}
+          </Link>
+        )}
       </div>
 
       <ul className="space-y-3">

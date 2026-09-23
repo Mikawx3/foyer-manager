@@ -1,9 +1,10 @@
 import type { Context, Next } from "hono";
 import { UnauthorizedError } from "../errors/app.errors.js";
 import { isLocalDeployment } from "../lib/deployment.js";
-import { verifyToken, type JwtPayload } from "../lib/jwt.js";
+import { verifyToken } from "../lib/jwt.js";
+import { loadUserAccess, type AuthContext } from "../lib/user-access.js";
 
-export type AuthContext = JwtPayload;
+export type { AuthContext };
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -23,13 +24,17 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
   }
 
   const token = header.slice("Bearer ".length);
+  let userId: string;
   try {
     const payload = await verifyToken(token);
-    c.set("auth", payload);
-    await next();
+    userId = payload.userId;
   } catch {
     throw new UnauthorizedError("Invalid or expired token");
   }
+
+  const access = await loadUserAccess(userId);
+  c.set("auth", access);
+  await next();
 }
 
 export function getAuth(c: Context): AuthContext {

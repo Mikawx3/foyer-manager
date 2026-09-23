@@ -12,8 +12,8 @@ import {
   deleteHousehold,
   getApiErrorMessage,
   getHouseholdDeletionPreview,
+  getHouseholds,
 } from "../../lib/api.ts";
-import { clearAuth } from "../../lib/auth-storage.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { showMutationError, showMutationSuccess } from "../../lib/toast.ts";
 import { btnSecondary } from "../../lib/ui-classes.ts";
@@ -53,12 +53,13 @@ export function DeleteHouseholdModal({
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteHousehold(householdId),
-    onSuccess: () => {
+    onSuccess: async () => {
       showMutationSuccess(tToast("householdDeleted"));
-      clearAuth();
-      void queryClient.clear();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.households });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      const households = await getHouseholds();
       handleClose();
-      navigate("/households", { replace: true });
+      navigate(households.length === 0 ? "/households/new" : "/households", { replace: true });
     },
     onError: showMutationError,
   });
@@ -132,7 +133,8 @@ export function DeleteHouseholdModal({
             </p>
           )}
 
-          <p className="mt-4 text-base text-stone-600 md:text-sm">{tCommon("cannotBeUndone")}</p>
+          <p className="mt-4 text-base text-stone-600 md:text-sm">{t("deleteKeepsAccount")}</p>
+          <p className="mt-2 text-base text-stone-600 md:text-sm">{tCommon("cannotBeUndone")}</p>
 
           <div className="mt-6 flex flex-col-reverse gap-3 md:flex-row md:flex-wrap md:justify-end">
             <button

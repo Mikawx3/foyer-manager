@@ -31,11 +31,19 @@ export class TenantRepository {
     });
   }
 
+  async findByHouseholdAndUser(
+    householdId: string,
+    userId: string,
+  ): Promise<Tenant | null> {
+    return prisma.tenant.findFirst({ where: { householdId, userId } });
+  }
+
   async create(data: {
     name: string;
     email: string;
     color?: string;
     householdId: string;
+    userId?: string;
   }): Promise<Tenant> {
     try {
       return await prisma.tenant.create({ data });

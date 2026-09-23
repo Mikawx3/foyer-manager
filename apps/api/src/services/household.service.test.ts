@@ -21,6 +21,7 @@ function buildRepository(overrides: Partial<HouseholdRepository> = {}): Househol
   return {
     findById: vi.fn().mockResolvedValue(prismaHousehold),
     findAll: vi.fn(),
+    findByIds: vi.fn(),
     create: vi.fn(),
     createWithSoloTenant: vi.fn(),
     updateById: vi.fn(),
@@ -205,5 +206,27 @@ describe("HouseholdService", () => {
 
     expect(preview.membersWithUnresolvedBalance).toBe(0);
     expect(preview.outstandingBalanceTotal).toBe(0);
+  });
+
+  it("createForUser passes the owner id so they become admin", async () => {
+    const repository = buildRepository({
+      create: vi.fn().mockResolvedValue(prismaHousehold),
+    });
+    const service = new HouseholdService(repository);
+
+    await service.createForUser("user-1", {
+      name: "Home",
+      type: "shared",
+      settlementPeriod: "monthly",
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      {
+        name: "Home",
+        type: "shared",
+        settlementPeriod: "monthly",
+      },
+      "user-1",
+    );
   });
 });

@@ -1,5 +1,16 @@
 import type { AuthResponse } from "@foyer/types";
-import { getMe, getTenants } from "./api.ts";
+import { getHouseholds, getTenants } from "./api.ts";
+
+export function readInviteReturnPath(state: unknown): string | null {
+  if (typeof state !== "object" || state === null || !("from" in state)) {
+    return null;
+  }
+  const from = state.from;
+  if (typeof from !== "string" || !from.startsWith("/invite/")) {
+    return null;
+  }
+  return from;
+}
 
 export async function resolveAuthDestination(householdId: string): Promise<string> {
   const tenants = await getTenants(householdId);
@@ -13,12 +24,21 @@ export async function resolveAuthDestination(householdId: string): Promise<strin
 }
 
 export async function resolvePostLoginPath(): Promise<string> {
-  const me = await getMe();
-  return resolveAuthDestination(me.householdId);
+  const households = await getHouseholds();
+  if (households.length === 0) {
+    return "/households/new";
+  }
+  if (households.length === 1) {
+    const only = households[0];
+    if (only) {
+      return resolveAuthDestination(only.id);
+    }
+  }
+  return "/households";
 }
 
 export async function resolveGoogleAuthPath(response: AuthResponse): Promise<string> {
-  if (response.isNewAccount) {
+  if (response.isNewAccount && response.householdId) {
     return `/households/${response.householdId}/onboarding`;
   }
   return resolvePostLoginPath();

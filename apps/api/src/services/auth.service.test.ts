@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import bcrypt from "bcryptjs";
 import { AuthService } from "./auth.service.js";
+import type { HouseholdMemberRepository } from "../repositories/household-member.repository.js";
 import type { UserRepository } from "../repositories/user.repository.js";
 import { ConflictError, UnauthorizedError } from "../errors/app.errors.js";
 
@@ -13,7 +14,7 @@ const userFixture = {
   email: "alice@example.com",
   password: "hashed",
   googleSub: null,
-  householdId: "hh-1",
+  isGuest: false,
   createdAt: new Date(),
 };
 
@@ -24,13 +25,39 @@ describe("AuthService", () => {
     findById: vi.fn(),
     linkGoogleSub: vi.fn(),
     createWithHousehold: vi.fn(),
+    createAccount: vi.fn(),
+    createGuest: vi.fn(),
+  };
+
+  const mockMembers: HouseholdMemberRepository = {
+    listByUser: vi.fn().mockResolvedValue([
+      {
+        id: "mem-1",
+        role: "admin",
+        userId: "user-1",
+        householdId: "hh-1",
+        createdAt: new Date(),
+      },
+    ]),
+    listByHousehold: vi.fn(),
+    findByUserAndHousehold: vi.fn(),
+    create: vi.fn(),
   };
 
   let service: AuthService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new AuthService(mockUsers);
+    vi.mocked(mockMembers.listByUser).mockResolvedValue([
+      {
+        id: "mem-1",
+        role: "admin",
+        userId: "user-1",
+        householdId: "hh-1",
+        createdAt: new Date(),
+      },
+    ]);
+    service = new AuthService(mockUsers, undefined, mockMembers);
   });
 
   it("register hashes password and returns token", async () => {
@@ -122,7 +149,7 @@ describe("AuthService", () => {
       emailVerified: true,
       name: "Alice",
     }));
-    service = new AuthService(mockUsers, verifyGoogleToken);
+    service = new AuthService(mockUsers, verifyGoogleToken, mockMembers);
     vi.mocked(mockUsers.findByGoogleSub).mockResolvedValue({
       ...userFixture,
       password: null,
@@ -146,7 +173,7 @@ describe("AuthService", () => {
       emailVerified: true,
       name: "Alice",
     }));
-    service = new AuthService(mockUsers, verifyGoogleToken);
+    service = new AuthService(mockUsers, verifyGoogleToken, mockMembers);
     vi.mocked(mockUsers.findByGoogleSub).mockResolvedValue(null);
     vi.mocked(mockUsers.findByEmail).mockResolvedValue(userFixture);
     vi.mocked(mockUsers.linkGoogleSub).mockResolvedValue({
@@ -168,7 +195,7 @@ describe("AuthService", () => {
       emailVerified: true,
       name: "Alice Martin",
     }));
-    service = new AuthService(mockUsers, verifyGoogleToken);
+    service = new AuthService(mockUsers, verifyGoogleToken, mockMembers);
     vi.mocked(mockUsers.findByGoogleSub).mockResolvedValue(null);
     vi.mocked(mockUsers.findByEmail).mockResolvedValue(null);
     vi.mocked(mockUsers.createWithHousehold).mockResolvedValue({
@@ -197,7 +224,7 @@ describe("AuthService", () => {
       emailVerified: true,
       name: "Alice Martin",
     }));
-    service = new AuthService(mockUsers, verifyGoogleToken);
+    service = new AuthService(mockUsers, verifyGoogleToken, mockMembers);
     vi.mocked(mockUsers.findByGoogleSub).mockResolvedValue(null);
     vi.mocked(mockUsers.findByEmail).mockResolvedValue(null);
     vi.mocked(mockUsers.createWithHousehold).mockResolvedValue({
@@ -219,7 +246,7 @@ describe("AuthService", () => {
       emailVerified: false,
       name: null,
     }));
-    service = new AuthService(mockUsers, verifyGoogleToken);
+    service = new AuthService(mockUsers, verifyGoogleToken, mockMembers);
 
     await expect(service.loginWithGoogle({ idToken: "token" })).rejects.toBeInstanceOf(
       UnauthorizedError,

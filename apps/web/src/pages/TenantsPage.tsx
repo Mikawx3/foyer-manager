@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { Tenant } from "@foyer/types";
+import { HouseholdAccessSection } from "../components/tenants/HouseholdAccessSection.tsx";
 import { ArchivedMembersSection } from "../components/tenants/ArchivedMembersSection.tsx";
 import { DeleteMemberModal } from "../components/tenants/DeleteMemberModal.tsx";
 import { EditMemberModal } from "../components/tenants/EditMemberModal.tsx";
@@ -114,6 +115,8 @@ export function TenantsPage() {
           {tCommon("soloModeBanner")}
         </div>
       )}
+
+      <HouseholdAccessSection householdId={householdId} />
 
       <div className="flex flex-col gap-8 md:grid md:grid-cols-[1fr_320px]">
         <section>

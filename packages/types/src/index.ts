@@ -2,6 +2,8 @@ export type SettlementPeriod = "none" | "monthly" | "quarterly" | "yearly";
 
 export type HouseholdType = "solo" | "shared";
 
+export type HouseholdRole = "admin" | "member" | "guest";
+
 export interface Household {
   id: string;
   name: string;
@@ -70,7 +72,7 @@ export interface Tenant {
 
 export interface AuthResponse {
   token: string;
-  householdId: string;
+  householdId: string | null;
   isNewAccount?: boolean;
 }
 
@@ -90,11 +92,40 @@ export interface GoogleAuthPayload {
   householdName?: string;
 }
 
+export interface HouseholdMembershipSummary {
+  householdId: string;
+  role: HouseholdRole;
+}
+
 export interface AuthUser {
   userId: string;
   email: string;
+  isGuest: boolean;
+  householdId: string | null;
+  household: Household | null;
+  memberships: HouseholdMembershipSummary[];
+}
+
+export interface HouseholdInviteCreated {
+  token: string;
+  expiresAt: string;
+}
+
+export interface HouseholdInvitePreview {
+  householdName: string;
+}
+
+export interface AcceptInviteResponse {
   householdId: string;
-  household: Household;
+  token: string | null;
+}
+
+export interface HouseholdAccessMember {
+  userId: string;
+  name: string;
+  role: HouseholdRole;
+  isGuest: boolean;
+  email: string | null;
 }
 
 export type DeploymentMode = "local" | "cloud";

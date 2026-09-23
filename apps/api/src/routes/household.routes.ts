@@ -10,6 +10,8 @@ export const householdRoutes = new Hono();
 
 householdRoutes.get("/", householdController.list);
 householdRoutes.post("/", householdController.create);
+householdRoutes.get("/:id/access", householdController.listAccess);
+householdRoutes.post("/:id/invites", householdController.createInvite);
 householdRoutes.post("/:id/tenants", householdController.createTenant);
 householdRoutes.get("/:id/tenants", householdController.listTenants);
 householdRoutes.patch("/:id/tenants/:tenantId", householdController.updateTenant);

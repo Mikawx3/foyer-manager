@@ -1,14 +1,14 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthOrDivider, GoogleAuthButton } from "../components/auth/GoogleAuthButton.tsx";
 import { FormField, inputClassName } from "../components/forms/FormField.tsx";
 import { AppHeader } from "../components/layout/AppHeader.tsx";
 import { PublicFooter } from "../components/layout/PublicChrome.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { getApiErrorMessage, login, loginWithGoogle } from "../lib/api.ts";
-import { resolveGoogleAuthPath, resolvePostLoginPath } from "../lib/auth-navigation.ts";
+import { readInviteReturnPath, resolveGoogleAuthPath, resolvePostLoginPath } from "../lib/auth-navigation.ts";
 import { setToken } from "../lib/auth-storage.ts";
 import { btnPrimary, formCard, inlineError } from "../lib/ui-classes.ts";
 
@@ -17,6 +17,7 @@ export function LoginPage() {
   const { t: tCommon } = useTranslation("common");
   const { googleClientId } = useDeploymentMode();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -24,6 +25,11 @@ export function LoginPage() {
     mutationFn: login,
     onSuccess: async (response) => {
       setToken(response.token);
+      const invitePath = readInviteReturnPath(location.state);
+      if (invitePath) {
+        navigate(invitePath, { replace: true });
+        return;
+      }
       const path = await resolvePostLoginPath();
       navigate(path, { replace: true });
     },
@@ -33,6 +39,11 @@ export function LoginPage() {
     mutationFn: loginWithGoogle,
     onSuccess: async (response) => {
       setToken(response.token);
+      const invitePath = readInviteReturnPath(location.state);
+      if (invitePath && !response.isNewAccount) {
+        navigate(invitePath, { replace: true });
+        return;
+      }
       const path = await resolveGoogleAuthPath(response);
       navigate(path, { replace: true });
     },

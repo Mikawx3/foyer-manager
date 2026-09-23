@@ -25,7 +25,11 @@ export function RegisterPage() {
     mutationFn: register,
     onSuccess: (response) => {
       setToken(response.token);
-      navigate(`/households/${response.householdId}/onboarding`, { replace: true });
+      if (response.householdId) {
+        navigate(`/households/${response.householdId}/onboarding`, { replace: true });
+        return;
+      }
+      navigate("/households/new", { replace: true });
     },
   });
 

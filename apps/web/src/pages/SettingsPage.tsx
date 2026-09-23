@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { SettlementPeriod } from "@foyer/types";
+import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { DeleteHouseholdModal } from "../components/settings/DeleteHouseholdModal.tsx";
 import { selectClassName } from "../components/forms/FormField.tsx";
 import {
@@ -20,6 +21,7 @@ import {
   getCategories,
   getDefaultSplits,
   getHousehold,
+  getMe,
   getTenants,
   putDefaultSplits,
   updateHousehold,
@@ -32,6 +34,7 @@ import { btnPrimary, btnSecondary, card, formCard, inlineError, pageSubtitle } f
 
 export function SettingsPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
+  const { isCloudMode } = useDeploymentMode();
   const queryClient = useQueryClient();
   const { t } = useTranslation("settings");
   const { t: tCommon } = useTranslation("common");
@@ -51,6 +54,16 @@ export function SettingsPage() {
     queryFn: () => getHousehold(householdId),
     enabled: Boolean(householdId),
   });
+
+  const meQuery = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: getMe,
+    enabled: isCloudMode,
+  });
+  const householdRole = meQuery.data?.memberships.find(
+    (membership) => membership.householdId === householdId,
+  )?.role;
+  const canDeleteHousehold = !isCloudMode || householdRole === "admin";
 
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
@@ -404,7 +417,7 @@ export function SettingsPage() {
         isLoading={deleteCategoryMutation.isPending}
       />
 
-      {householdQuery.isSuccess && (
+      {householdQuery.isSuccess && canDeleteHousehold && (
         <section className={`${formCard} border-2 border-red-200`}>
           <h2 className="text-base font-semibold tracking-tight text-stone-900">{t("dangerZone")}</h2>
           <p className="mt-1 text-sm text-stone-600">{t("dangerZoneDescription")}</p>
@@ -418,7 +431,7 @@ export function SettingsPage() {
         </section>
       )}
 
-      {householdQuery.isSuccess && (
+      {householdQuery.isSuccess && canDeleteHousehold && (
         <DeleteHouseholdModal
           isOpen={deleteModalOpen}
           householdId={householdId}

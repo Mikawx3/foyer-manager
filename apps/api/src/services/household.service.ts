@@ -9,6 +9,10 @@ import {
   type ExpenseRepository,
 } from "../repositories/expense.repository.js";
 import {
+  householdMemberRepository,
+  type HouseholdMemberRepository,
+} from "../repositories/household-member.repository.js";
+import {
   householdRepository,
   type HouseholdRepository,
 } from "../repositories/household.repository.js";
@@ -48,11 +52,24 @@ export class HouseholdService {
     private readonly expenses: ExpenseRepository = expenseRepository,
     private readonly recurring: RecurringExpenseRepository = recurringExpenseRepository,
     private readonly expenseBalances: ExpenseService = expenseService,
+    private readonly members: HouseholdMemberRepository = householdMemberRepository,
   ) {}
 
   async list(): Promise<Household[]> {
     const households = await this.repository.findAll();
     return households.map(toHouseholdDto);
+  }
+
+  async listForUser(userId: string): Promise<Household[]> {
+    const memberships = await this.members.listByUser(userId);
+    const households = await this.repository.findByIds(
+      memberships.map((membership) => membership.householdId),
+    );
+    const byId = new Map(households.map((household) => [household.id, household]));
+    return memberships.flatMap((membership) => {
+      const household = byId.get(membership.householdId);
+      return household ? [toHouseholdDto(household)] : [];
+    });
   }
 
   async getById(id: string): Promise<Household> {
@@ -105,6 +122,33 @@ export class HouseholdService {
       type: input.type,
       settlementPeriod: input.settlementPeriod,
     });
+    return toHouseholdDto(household);
+  }
+
+  async createForUser(userId: string, input: CreateHouseholdInput): Promise<Household> {
+    if (input.type === "solo") {
+      const household = await this.repository.createWithSoloTenant(
+        {
+          name: input.name,
+          type: input.type,
+          settlementPeriod: input.settlementPeriod,
+          tenantName: "Me",
+          tenantEmail: generateMemberEmail(),
+          tenantColor: DEFAULT_TENANT_COLOR,
+        },
+        userId,
+      );
+      return toHouseholdDto(household);
+    }
+
+    const household = await this.repository.create(
+      {
+        name: input.name,
+        type: input.type,
+        settlementPeriod: input.settlementPeriod,
+      },
+      userId,
+    );
     return toHouseholdDto(household);
   }
 

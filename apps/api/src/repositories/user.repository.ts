@@ -1,4 +1,5 @@
 import type { User } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { handlePrismaError } from "../lib/prisma-errors.js";
 import { DEFAULT_CATEGORIES } from "../lib/default-categories.js";
@@ -17,6 +18,37 @@ export class UserRepository {
 
   async findById(id: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { id } });
+  }
+
+  async createAccount(data: {
+    email: string;
+    passwordHash: string;
+  }): Promise<User> {
+    try {
+      return await prisma.user.create({
+        data: {
+          email: data.email,
+          password: data.passwordHash,
+          isGuest: false,
+        },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
+  async createGuest(): Promise<User> {
+    try {
+      return await prisma.user.create({
+        data: {
+          email: `guest+${randomUUID()}@guests.foyer.invalid`,
+          password: null,
+          isGuest: true,
+        },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
   }
 
   async linkGoogleSub(id: string, googleSub: string): Promise<User> {
@@ -57,7 +89,15 @@ export class UserRepository {
             email: data.email,
             password: data.passwordHash,
             googleSub: data.googleSub ?? null,
+            isGuest: false,
+          },
+        });
+
+        await tx.householdMember.create({
+          data: {
+            userId: user.id,
             householdId: household.id,
+            role: "admin",
           },
         });
 

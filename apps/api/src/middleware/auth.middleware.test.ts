@@ -9,6 +9,11 @@ vi.mock("../lib/jwt.js", () => ({
 }));
 
 import { verifyToken } from "../lib/jwt.js";
+import { loadUserAccess } from "../lib/user-access.js";
+
+vi.mock("../lib/user-access.js", () => ({
+  loadUserAccess: vi.fn(),
+}));
 
 describe("authMiddleware", () => {
   beforeEach(() => {
@@ -48,9 +53,11 @@ describe("authMiddleware", () => {
   it("sets auth context for valid Bearer token", async () => {
     process.env.DEPLOYMENT_MODE = "cloud";
 
-    vi.mocked(verifyToken).mockResolvedValue({
+    vi.mocked(verifyToken).mockResolvedValue({ userId: "user-1" });
+    vi.mocked(loadUserAccess).mockResolvedValue({
       userId: "user-1",
-      householdId: "hh-1",
+      isGuest: false,
+      memberships: [{ householdId: "hh-1", role: "admin" }],
     });
 
     const app = new Hono();
@@ -63,8 +70,14 @@ describe("authMiddleware", () => {
     });
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { auth: { userId: string; householdId: string } };
-    expect(body.auth).toEqual({ userId: "user-1", householdId: "hh-1" });
+    const body = (await response.json()) as {
+      auth: { userId: string; isGuest: boolean; memberships: { householdId: string; role: string }[] };
+    };
+    expect(body.auth).toEqual({
+      userId: "user-1",
+      isGuest: false,
+      memberships: [{ householdId: "hh-1", role: "admin" }],
+    });
   });
 
   it("returns 401 for invalid token", async () => {

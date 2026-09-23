@@ -2,7 +2,6 @@ import { SignJWT, jwtVerify } from "jose";
 
 export interface JwtPayload {
   userId: string;
-  householdId: string;
 }
 
 function getSecret(): Uint8Array {
@@ -18,7 +17,7 @@ function getExpiresIn(): string {
 }
 
 export async function signToken(payload: JwtPayload): Promise<string> {
-  return new SignJWT({ userId: payload.userId, householdId: payload.householdId })
+  return new SignJWT({ userId: payload.userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(getExpiresIn())
@@ -28,9 +27,8 @@ export async function signToken(payload: JwtPayload): Promise<string> {
 export async function verifyToken(token: string): Promise<JwtPayload> {
   const { payload } = await jwtVerify(token, getSecret());
   const userId = payload.userId;
-  const householdId = payload.householdId;
-  if (typeof userId !== "string" || typeof householdId !== "string") {
+  if (typeof userId !== "string" || userId.length === 0) {
     throw new Error("Invalid token payload");
   }
-  return { userId, householdId };
+  return { userId };
 }
