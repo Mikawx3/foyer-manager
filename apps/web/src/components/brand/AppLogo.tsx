@@ -12,10 +12,8 @@ export function AppLogo({ className = "h-8 w-8" }: AppLogoProps) {
       aria-hidden="true"
     >
       <rect width="32" height="32" rx="8" className="fill-primary" />
-      <path
-        d="M8 14.5 16 8l8 6.5V24a1 1 0 0 1-1 1h-4.5v-6h-5v6H9a1 1 0 0 1-1-1v-9.5Z"
-        className="fill-white"
-      />
+      <rect x="7" y="9" width="7" height="14" rx="2" className="fill-white" />
+      <rect x="18" y="9" width="7" height="14" rx="2" className="fill-white" />
     </svg>
   );
 }

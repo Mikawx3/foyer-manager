@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { PublicDocument } from "../components/layout/PublicChrome.tsx";
+import { useDocumentTitle } from "../hooks/useDocumentTitle.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
 
 const SECTIONS = ["publisher", "hosting", "privacy"] as const;
@@ -12,9 +12,7 @@ export function LegalNoticePage() {
   const { t } = useTranslation("legal");
   const contactEmail = getPrivacyContactEmail();
 
-  useEffect(() => {
-    document.title = t("metaTitle");
-  }, [t]);
+  useDocumentTitle(t("metaTitle"));
 
   return (
     <PublicDocument title={t("title")} updated={t("updated")} intro={t("intro")}>

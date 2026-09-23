@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, Outlet, ScrollRestoration } from "react-router-dom";
 import { AuthGate } from "./components/auth/AuthGate.tsx";
 import { CloudAuthRoute } from "./components/deployment/CloudAuthRoute.tsx";
 import { AppLayout } from "./components/layout/AppLayout.tsx";
@@ -14,6 +14,7 @@ import { LegalNoticePage } from "./pages/LegalNoticePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
 import { PrivacyPage } from "./pages/PrivacyPage.tsx";
 import { TermsPage } from "./pages/TermsPage.tsx";
+import { UseCasePage } from "./pages/UseCasePage.tsx";
 import { RegisterPage } from "./pages/RegisterPage.tsx";
 import { BalancesPage } from "./pages/BalancesPage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
@@ -24,13 +25,26 @@ import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { TenantsPage } from "./pages/TenantsPage.tsx";
 
+function RootLayout() {
+  return (
+    <>
+      <Outlet />
+      <ScrollRestoration />
+    </>
+  );
+}
+
 export const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
   { path: "/", element: <HomePage /> },
   { path: "/privacy", element: <PrivacyPage /> },
   { path: "/legal", element: <LegalNoticePage /> },
   { path: "/terms", element: <TermsPage /> },
   { path: "/help", element: <HelpPage /> },
   { path: "/accessibility", element: <AccessibilityPage /> },
+  { path: "/use/:useCaseId", element: <UseCasePage /> },
   {
     path: "/invite/:token",
     element: (
@@ -93,4 +107,6 @@ export const router = createBrowserRouter([
     ],
   },
   { path: "*", element: <NotFoundPage /> },
+    ],
+  },
 ]);

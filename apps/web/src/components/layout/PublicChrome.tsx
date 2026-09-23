@@ -10,6 +10,13 @@ import { LanguageSwitcher } from "../ui/LanguageSwitcher.tsx";
 
 const footerLinkClass = "text-sm text-stone-600 transition hover:text-primary";
 
+const PRODUCT_LINKS = [
+  { to: "/use/couple", label: "footerUseCouple" },
+  { to: "/use/roommates", label: "footerUseRoommates" },
+  { to: "/use/solo", label: "footerUseSolo" },
+  { to: "/use/bills", label: "footerUseBills" },
+] as const;
+
 export function PublicHeader() {
   const { t } = useTranslation("common");
   const { t: tLanding } = useTranslation("landing");
@@ -61,16 +68,13 @@ export function PublicFooter() {
         <nav aria-label={t("footerProduct")}>
           <h2 className="text-sm font-semibold text-stone-900">{t("footerProduct")}</h2>
           <ul className="mt-3 space-y-2">
-            <li>
-              <Link to="/#how" className={footerLinkClass}>
-                {t("footerHow")}
-              </Link>
-            </li>
-            <li>
-              <Link to="/#features" className={footerLinkClass}>
-                {t("footerFeatures")}
-              </Link>
-            </li>
+            {PRODUCT_LINKS.map((item) => (
+              <li key={item.to}>
+                <Link to={item.to} className={footerLinkClass}>
+                  {t(item.label)}
+                </Link>
+              </li>
+            ))}
             {showAuth && !hasSession && (
               <>
                 <li>

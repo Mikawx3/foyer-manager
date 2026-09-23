@@ -3,6 +3,7 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 import en from "../messages/en.json";
 import fr from "../messages/fr.json";
+import { getAppName } from "./lib/app-name.ts";
 
 const namespaces = Object.keys(en) as Array<keyof typeof en>;
 
@@ -25,6 +26,9 @@ i18n
     },
     interpolation: {
       escapeValue: false,
+      defaultVariables: {
+        appName: getAppName(),
+      },
     },
   });
 

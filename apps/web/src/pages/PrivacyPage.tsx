@@ -1,6 +1,6 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.tsx";
+import { useDocumentTitle } from "../hooks/useDocumentTitle.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
 
 const SECTIONS = [
@@ -22,9 +22,7 @@ export function PrivacyPage() {
   const { t } = useTranslation("privacy");
   const contactEmail = getPrivacyContactEmail();
 
-  useEffect(() => {
-    document.title = t("metaTitle");
-  }, [t]);
+  useDocumentTitle(t("metaTitle"));
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">

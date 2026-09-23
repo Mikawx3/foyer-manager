@@ -1,9 +1,13 @@
 import { Outlet } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle.ts";
+import { getAppName } from "../../lib/app-name.ts";
 import { AppHeader } from "./AppHeader.tsx";
 import { UserMenu } from "./UserMenu.tsx";
 
 export function AppLayout() {
+  useDocumentTitle(getAppName());
+
   return (
     <div className="min-h-screen bg-bg">
       <AppHeader

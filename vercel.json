@@ -3,6 +3,26 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build -w @foyer/types && npm run build -w @foyer/web",
   "outputDirectory": "apps/web/dist",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "foyer-manager.vercel.app" }],
+      "destination": "https://allotwe.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "foyer-manager-mikawxs-projects.vercel.app" }],
+      "destination": "https://allotwe.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "foyer-manager-git-main-mikawxs-projects.vercel.app" }],
+      "destination": "https://allotwe.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api?__route=:path*" },
     { "source": "/((?!api).*)", "destination": "/index.html" }

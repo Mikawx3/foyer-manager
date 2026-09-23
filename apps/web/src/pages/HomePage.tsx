@@ -1,9 +1,9 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
 import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
+import { useDocumentTitle } from "../hooks/useDocumentTitle.ts";
 import { getToken } from "../lib/auth-storage.ts";
 import { resolvePublicHome } from "../lib/public-entry.ts";
 import { amountLg, btnPrimary, btnSecondary, card } from "../lib/ui-classes.ts";
@@ -16,9 +16,7 @@ export function HomePage() {
   const { isLocalMode, isLoading } = useDeploymentMode();
   const hasSession = Boolean(getToken());
 
-  useEffect(() => {
-    document.title = t("metaTitle");
-  }, [t]);
+  useDocumentTitle(t("metaTitle"));
 
   if (isLoading) {
     return (
