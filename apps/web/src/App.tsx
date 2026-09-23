@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { AppToaster } from "./components/ui/AppToaster.tsx";
 import { DocumentLang } from "./components/ui/DocumentLang.tsx";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary.tsx";
@@ -25,6 +26,7 @@ export default function App() {
         </DeploymentModeProvider>
         <AppToaster />
       </QueryClientProvider>
+      <Analytics />
     </ErrorBoundary>
   );
 }
