@@ -4,6 +4,9 @@ export type HouseholdType = "solo" | "shared";
 
 export type HouseholdRole = "admin" | "member" | "guest";
 
+/** Placeholder member created for a solo household. Replaced when the admin invites someone. */
+export const SOLO_SELF_NAME = "Me";
+
 export interface Household {
   id: string;
   name: string;

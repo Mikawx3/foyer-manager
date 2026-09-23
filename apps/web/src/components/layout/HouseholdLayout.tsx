@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Home, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
 import { getApiErrorMessage, getHousehold, getMe, getTenants } from "../../lib/api.ts";
@@ -23,7 +23,6 @@ const navItems = [
 export function HouseholdLayout() {
   const { t } = useTranslation("nav");
   const { t: tCommon } = useTranslation("common");
-  const { t: tMembers } = useTranslation("members");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isCloudMode } = useDeploymentMode();
@@ -40,14 +39,14 @@ export function HouseholdLayout() {
     enabled: isCloudMode,
   });
   const guestSession = meQuery.data?.isGuest === true ? readGuestMemberSession(id) : null;
-  const guestTenantsQuery = useQuery({
+  const identityQuery = useQuery({
     queryKey: queryKeys.tenants(id),
     queryFn: () => getTenants(id),
-    enabled: guestSession !== null,
+    enabled: isCloudMode && Boolean(id),
   });
-  const viewingName = guestTenantsQuery.data?.find(
-    (tenant) => tenant.id === guestSession?.tenantId,
-  )?.name;
+  const viewingName = guestSession
+    ? identityQuery.data?.find((tenant) => tenant.id === guestSession.tenantId)?.name
+    : identityQuery.data?.find((tenant) => tenant.isCurrentUser)?.name;
 
   const handleSignOut = () => {
     clearAuth();
@@ -67,7 +66,14 @@ export function HouseholdLayout() {
           )}
           {householdQuery.data && (
             <div className="mb-5 border-b border-border pb-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+              {viewingName && (
+                <p className="text-sm font-semibold tracking-tight text-stone-900">{viewingName}</p>
+              )}
+              <p
+                className={`text-xs font-medium uppercase tracking-wide text-stone-500 ${
+                  viewingName ? "mt-2" : ""
+                }`}
+              >
                 {tCommon("household")}
               </p>
               <h2 className="mt-1 text-lg font-semibold tracking-tight text-stone-900">
@@ -123,18 +129,13 @@ export function HouseholdLayout() {
           </nav>
         </aside>
         <main className={`min-w-0 flex-1 overflow-y-auto ${mobileMainPadding}`}>
-          {viewingName && guestSession && (
-            <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-stone-700">
-              <p>{tMembers("guestViewingBanner", { name: viewingName })}</p>
-              <Link to={guestSession.invitePath} className="mt-1 inline-block font-medium text-primary">
-                {tMembers("guestChooseAgain")}
-              </Link>
-            </div>
-          )}
           {householdQuery.data && (
-            <p className="mb-4 text-sm font-medium text-stone-500 lg:hidden">
-              {householdQuery.data.name}
-            </p>
+            <div className="mb-4 lg:hidden">
+              {viewingName && (
+                <p className="text-sm font-semibold text-stone-900">{viewingName}</p>
+              )}
+              <p className="text-sm font-medium text-stone-500">{householdQuery.data.name}</p>
+            </div>
           )}
           <Outlet />
         </main>

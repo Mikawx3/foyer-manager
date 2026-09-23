@@ -1,4 +1,4 @@
-import type { CreateRecurringExpensePayload } from "@foyer/types";
+import { SOLO_SELF_NAME, type CreateRecurringExpensePayload } from "@foyer/types";
 import {
   createHousehold,
   claimHouseholdTenant,
@@ -102,9 +102,10 @@ export async function submitHouseholdWizard(
     if (options.claimSelf) {
       const self = filledMembers.find((member) => member.isSelf);
       const selfTenantId = self ? tenantIdByTempId.get(self.tempId) : undefined;
-      if (selfTenantId) {
-        await claimHouseholdTenant(householdId, selfTenantId);
+      if (!selfTenantId) {
+        throw new Error("Choose which member you are");
       }
+      await claimHouseholdTenant(householdId, selfTenantId);
     }
 
     if (filledMembers.length > 0) {
@@ -128,7 +129,7 @@ export async function submitHouseholdWizard(
     let tenants = await getTenants(householdId);
     if (tenants.length === 0) {
       const me = await createHouseholdTenant(householdId, {
-        name: "Me",
+        name: SOLO_SELF_NAME,
         color: DEFAULT_TENANT_COLOR,
       });
       tenants = [me];

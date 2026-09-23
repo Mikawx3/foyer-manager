@@ -1,4 +1,10 @@
-import type { AcceptInviteResponse, HouseholdAccessMember, HouseholdInviteCreated, HouseholdInvitePreview } from "@foyer/types";
+import {
+  SOLO_SELF_NAME,
+  type AcceptInviteResponse,
+  type HouseholdAccessMember,
+  type HouseholdInviteCreated,
+  type HouseholdInvitePreview,
+} from "@foyer/types";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { ConflictError, NotFoundError, ValidationError } from "../errors/app.errors.js";
@@ -20,6 +26,7 @@ import {
   type TenantRepository,
 } from "../repositories/tenant.repository.js";
 import { userRepository, type UserRepository } from "../repositories/user.repository.js";
+import { generateMemberEmail } from "../lib/member-email.js";
 import { parseHouseholdRole } from "../lib/household-role.js";
 import { signToken } from "../lib/jwt.js";
 
@@ -47,6 +54,15 @@ export class InviteService {
     const household = await this.households.findById(householdId);
     if (!household) {
       throw new NotFoundError("Household not found");
+    }
+
+    const adminTenant = await this.tenants.findByHouseholdAndUser(householdId, createdById);
+    if (
+      !adminTenant ||
+      !adminTenant.active ||
+      adminTenant.name.trim() === SOLO_SELF_NAME
+    ) {
+      throw new ConflictError("Choose your name before inviting someone");
     }
 
     const invite = await this.invites.create({
@@ -92,17 +108,16 @@ export class InviteService {
     const memberships = await this.members.listByHousehold(householdId);
     const access: HouseholdAccessMember[] = [];
     for (const membership of memberships) {
-      const tenant = await this.tenants.findByHouseholdAndUser(householdId, membership.userId);
-      const isGuest = membership.user.isGuest;
-      if (isGuest && !tenant) {
+      if (membership.user.isGuest) {
         continue;
       }
+      const tenant = await this.tenants.findByHouseholdAndUser(householdId, membership.userId);
       access.push({
         userId: membership.userId,
-        name: tenant?.name ?? (isGuest ? "Guest" : displayNameFromEmail(membership.user.email)),
+        name: tenant?.name ?? displayNameFromEmail(membership.user.email),
         role: parseHouseholdRole(membership.role),
-        isGuest,
-        email: isGuest ? null : membership.user.email,
+        isGuest: false,
+        email: membership.user.email,
       });
     }
     return access;
@@ -115,6 +130,9 @@ export class InviteService {
   ): Promise<AcceptInviteResponse> {
     const invite = await this.requireOpenInvite(token);
     const tenant = await this.requireActiveMember(invite.householdId, tenantId);
+    if (tenant.userId !== null) {
+      throw new ConflictError("This member is already linked to an account");
+    }
     const userId = await this.resolveGuestUser(invite.householdId, existingUserId);
     await this.ensureMembership(invite.householdId, userId, "guest");
     const sessionToken = await signToken({ userId });
@@ -141,16 +159,17 @@ export class InviteService {
 
   async registerAndJoin(
     token: string,
-    input: { email: string; password: string; tenantId: string },
+    input: { email: string; password: string; tenantId?: string; name?: string },
   ): Promise<AcceptInviteResponse> {
     const invite = await this.requireOpenInvite(token);
-    const tenant = await this.requireActiveMember(invite.householdId, input.tenantId);
-    if (tenant.userId !== null) {
-      throw new ConflictError("This member is already linked to an account");
-    }
     const existing = await this.users.findByEmail(input.email);
     if (existing) {
       throw new ConflictError("Email already registered");
+    }
+    const tenantId = await this.resolveJoinTenant(invite.householdId, input);
+    const tenant = await this.requireActiveMember(invite.householdId, tenantId);
+    if (tenant.userId !== null) {
+      throw new ConflictError("This member is already linked to an account");
     }
 
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
@@ -158,10 +177,46 @@ export class InviteService {
       email: input.email.trim().toLowerCase(),
       passwordHash,
     });
-    await claimTenantForUser(this.tenants, invite.householdId, input.tenantId, user.id);
+    await claimTenantForUser(this.tenants, invite.householdId, tenant.id, user.id);
     await this.ensureMembership(invite.householdId, user.id, "member");
     const sessionToken = await signToken({ userId: user.id });
-    return { householdId: invite.householdId, token: sessionToken, tenantId: input.tenantId };
+    return { householdId: invite.householdId, token: sessionToken, tenantId: tenant.id };
+  }
+
+  private async resolveJoinTenant(
+    householdId: string,
+    input: { tenantId?: string; name?: string },
+  ): Promise<string> {
+    if (Boolean(input.tenantId) === Boolean(input.name)) {
+      throw new ValidationError("Choose an existing member or add a new name");
+    }
+    if (input.tenantId) {
+      return input.tenantId;
+    }
+
+    const name = input.name?.trim() ?? "";
+    if (name.length === 0) {
+      throw new ValidationError("Choose an existing member or add a new name");
+    }
+    if (name === SOLO_SELF_NAME) {
+      throw new ValidationError("Choose a name other people will recognize");
+    }
+
+    const household = await this.households.findById(householdId);
+    if (!household) {
+      throw new NotFoundError("Household not found");
+    }
+
+    const tenant = await this.tenants.create({
+      name,
+      email: generateMemberEmail(),
+      householdId,
+    });
+    const activeCount = await this.tenants.countActiveByHousehold(householdId);
+    if (household.type === "solo" && activeCount >= 2) {
+      await this.households.updateById(householdId, { type: "shared" });
+    }
+    return tenant.id;
   }
 
   private async resolveGuestUser(householdId: string, existingUserId?: string): Promise<string> {

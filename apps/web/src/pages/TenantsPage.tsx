@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { SOLO_SELF_NAME, type Tenant } from "@foyer/types";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import type { Tenant } from "@foyer/types";
 import { HouseholdAccessSection } from "../components/tenants/HouseholdAccessSection.tsx";
 import { ArchivedMembersSection } from "../components/tenants/ArchivedMembersSection.tsx";
 import { DeleteMemberModal } from "../components/tenants/DeleteMemberModal.tsx";
 import { EditMemberModal } from "../components/tenants/EditMemberModal.tsx";
+import { FormField, inputClassName } from "../components/forms/FormField.tsx";
 import { TenantForm } from "../components/forms/TenantForm.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
@@ -15,9 +16,11 @@ import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import {
   claimHouseholdTenant,
+  createHouseholdTenant,
   createTenant,
   deleteHouseholdTenant,
   getApiErrorMessage,
+  getHousehold,
   getMe,
   getTenantRemovalPreview,
   getTenants,
@@ -26,9 +29,9 @@ import {
 } from "../lib/api.ts";
 import { formatMemberEmail } from "../lib/member-email.ts";
 import { queryKeys } from "../lib/query-keys.ts";
-import { DEFAULT_TENANT_COLOR } from "../lib/tenant-colors.ts";
+import { DEFAULT_TENANT_COLOR, nextAvailableColor } from "../lib/tenant-colors.ts";
 import { showMutationError, showMutationSuccess, mutationToastHandlers } from "../lib/toast.ts";
-import { card, iconBtn, inlineError, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
+import { btnPrimary, card, iconBtn, inlineError, pageSubtitle, pageTitle } from "../lib/ui-classes.ts";
 
 type PendingTenantDelete = {
   id: string;
@@ -55,6 +58,8 @@ export function TenantsPage() {
   const [pendingDelete, setPendingDelete] = useState<PendingTenantDelete | null>(null);
   const [soloBanner, setSoloBanner] = useState(false);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+  const [linkName, setLinkName] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   const meQuery = useQuery({
     queryKey: queryKeys.me,
@@ -65,6 +70,12 @@ export function TenantsPage() {
     (membership) => membership.householdId === householdId,
   )?.role;
   const canManageMembers = !isCloudMode || householdRole === "admin";
+
+  const householdQuery = useQuery({
+    queryKey: queryKeys.household(householdId),
+    queryFn: () => getHousehold(householdId),
+    enabled: Boolean(householdId),
+  });
 
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
@@ -83,11 +94,39 @@ export function TenantsPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: createTenant,
+    mutationFn: async (data: {
+      name: string;
+      householdId: string;
+      adminName?: string;
+      selfTenantId?: string;
+    }) => {
+      if (data.adminName && data.selfTenantId) {
+        await updateHouseholdTenant(householdId, data.selfTenantId, { name: data.adminName });
+      }
+      return createTenant({ name: data.name, householdId: data.householdId });
+    },
     ...mutationToastHandlers({
       successMessage: tToast("memberAdded"),
       onSuccess: () => invalidateMemberQueries(queryClient, householdId),
     }),
+  });
+
+  const createAndLinkMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const usedColors = (tenantsQuery.data ?? []).map((tenant) => tenant.color ?? "");
+      const tenant = await createHouseholdTenant(householdId, {
+        name,
+        color: nextAvailableColor(usedColors),
+      });
+      return claimHouseholdTenant(householdId, tenant.id);
+    },
+    onSuccess: () => {
+      setLinkName("");
+      showMutationSuccess(tToast("memberLinked"));
+      invalidateMemberQueries(queryClient, householdId);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    },
+    onError: showMutationError,
   });
 
   const removeMutation = useMutation({
@@ -124,10 +163,12 @@ export function TenantsPage() {
 
   const activeTenants = tenantsQuery.data?.filter((tenant) => tenant.active) ?? [];
   const archivedTenants = tenantsQuery.data?.filter((tenant) => !tenant.active) ?? [];
-  const canClaimName =
+  const selfTenant = activeTenants.find((tenant) => tenant.isCurrentUser);
+  const canClaimName = isCloudMode && meQuery.data?.isGuest !== true && selfTenant === undefined;
+  const requireAdminName =
     isCloudMode &&
-    meQuery.data?.isGuest !== true &&
-    !activeTenants.some((tenant) => tenant.isCurrentUser);
+    householdQuery.data?.type === "solo" &&
+    selfTenant?.name === SOLO_SELF_NAME;
 
   return (
     <div className="space-y-8">
@@ -154,6 +195,50 @@ export function TenantsPage() {
         }
       >
         <section>
+          {canClaimName && (
+            <form
+              className={`${card} mb-4 space-y-3`}
+              onSubmit={(event) => {
+                event.preventDefault();
+                const name = linkName.trim();
+                if (name.length === 0 || name === SOLO_SELF_NAME) {
+                  setLinkError(t("chooseRealName"));
+                  return;
+                }
+                setLinkError(null);
+                createAndLinkMutation.mutate(name);
+              }}
+            >
+              <h3 className="text-sm font-semibold tracking-tight text-stone-900">
+                {t("createAndLinkTitle")}
+              </h3>
+              <p className="text-sm text-stone-600">{t("createAndLinkHint")}</p>
+              <FormField label={t("yourName")}>
+                <input
+                  className={inputClassName}
+                  value={linkName}
+                  onChange={(event) => {
+                    setLinkName(event.target.value);
+                    setLinkError(null);
+                  }}
+                />
+              </FormField>
+              <button
+                type="submit"
+                className={btnPrimary}
+                disabled={createAndLinkMutation.isPending || linkName.trim().length === 0}
+              >
+                {t("createAndLink")}
+              </button>
+              {(linkError ?? (createAndLinkMutation.isError
+                ? getApiErrorMessage(createAndLinkMutation.error)
+                : null)) && (
+                <p className={inlineError}>
+                  {linkError ?? getApiErrorMessage(createAndLinkMutation.error)}
+                </p>
+              )}
+            </form>
+          )}
           {tenantsQuery.isLoading && <ListSkeleton />}
           {tenantsQuery.isError && (
             <ErrorMessage
@@ -193,7 +278,7 @@ export function TenantsPage() {
                         {isCloudMode && (
                           <p className="mt-1 text-xs text-stone-500">
                             {tenant.isCurrentUser
-                              ? t("thisIsYou")
+                              ? t("youLabel")
                               : tenant.claimed
                                 ? t("linkedAccount")
                                 : t("waitingForAccount")}
@@ -255,7 +340,13 @@ export function TenantsPage() {
           <aside>
             <TenantForm
               householdId={householdId}
-              onSubmit={(data) => createMutation.mutate(data)}
+              requireAdminName={requireAdminName}
+              onSubmit={(data) =>
+                createMutation.mutate({
+                  ...data,
+                  selfTenantId: selfTenant?.id,
+                })
+              }
               isPending={createMutation.isPending}
             />
             {createMutation.isError && (

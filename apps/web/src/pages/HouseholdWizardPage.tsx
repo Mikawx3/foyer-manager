@@ -116,6 +116,10 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
             setStepError(t("errorAddMember"));
             return false;
           }
+          if (!isLocalMode && !filled.some((member) => member.isSelf)) {
+            setStepError(t("errorChooseYourName"));
+            return false;
+          }
         }
         return true;
       }

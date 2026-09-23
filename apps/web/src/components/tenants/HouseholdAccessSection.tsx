@@ -1,19 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
 import {
+  claimHouseholdTenant,
   createHouseholdInvite,
+  createHouseholdTenant,
   getApiErrorMessage,
   getHouseholdAccess,
   getMe,
+  getTenants,
+  updateHouseholdTenant,
 } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
+import { nextAvailableColor } from "../../lib/tenant-colors.ts";
 import { showMutationError } from "../../lib/toast.ts";
 import { btnPrimary, btnSecondary, card, inlineError } from "../../lib/ui-classes.ts";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../ui/Skeleton.tsx";
+import { AdminNameGate, adminNameGateMode } from "./AdminNameGate.tsx";
 
 interface HouseholdAccessSectionProps {
   householdId: string;
@@ -25,6 +32,7 @@ export function HouseholdAccessSection({ householdId }: HouseholdAccessSectionPr
   const queryClient = useQueryClient();
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showNameGate, setShowNameGate] = useState(false);
 
   const meQuery = useQuery({
     queryKey: queryKeys.me,
@@ -38,19 +46,65 @@ export function HouseholdAccessSection({ householdId }: HouseholdAccessSectionPr
     enabled: isCloudMode && Boolean(householdId),
   });
 
+  const tenantsQuery = useQuery({
+    queryKey: queryKeys.tenants(householdId),
+    queryFn: () => getTenants(householdId),
+    enabled: isCloudMode && Boolean(householdId),
+  });
+
+  const publishInvite = async (invite: { token: string }) => {
+    const url = `${window.location.origin}/invite/${invite.token}`;
+    setInviteUrl(url);
+    setCopied(false);
+    setShowNameGate(false);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+    void queryClient.invalidateQueries({ queryKey: queryKeys.householdAccess(householdId) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.tenants(householdId) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.me });
+  };
+
   const inviteMutation = useMutation({
     mutationFn: () => createHouseholdInvite(householdId),
-    onSuccess: async (invite) => {
-      const url = `${window.location.origin}/invite/${invite.token}`;
-      setInviteUrl(url);
-      setCopied(false);
-      try {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-      } catch {
-        setCopied(false);
+    onSuccess: (invite) => {
+      void publishInvite(invite);
+    },
+    onError: (error) => {
+      if (isAxiosError(error) && error.response?.status === 409) {
+        setShowNameGate(true);
+        return;
       }
-      void queryClient.invalidateQueries({ queryKey: queryKeys.householdAccess(householdId) });
+      showMutationError(error);
+    },
+  });
+
+  const nameThenInviteMutation = useMutation({
+    mutationFn: async (
+      action:
+        | { type: "rename"; tenantId: string; name: string }
+        | { type: "claim"; tenantId: string }
+        | { type: "create"; name: string },
+    ) => {
+      if (action.type === "rename") {
+        await updateHouseholdTenant(householdId, action.tenantId, { name: action.name });
+      } else if (action.type === "claim") {
+        await claimHouseholdTenant(householdId, action.tenantId);
+      } else {
+        const usedColors = (tenantsQuery.data ?? []).map((tenant) => tenant.color ?? "");
+        const tenant = await createHouseholdTenant(householdId, {
+          name: action.name,
+          color: nextAvailableColor(usedColors),
+        });
+        await claimHouseholdTenant(householdId, tenant.id);
+      }
+      return createHouseholdInvite(householdId);
+    },
+    onSuccess: (invite) => {
+      void publishInvite(invite);
     },
     onError: showMutationError,
   });
@@ -59,6 +113,13 @@ export function HouseholdAccessSection({ householdId }: HouseholdAccessSectionPr
     (membership) => membership.householdId === householdId,
   )?.role;
   const isAdmin = role === "admin";
+  const selfTenant = tenantsQuery.data?.find((tenant) => tenant.isCurrentUser);
+  const nameGate = tenantsQuery.isSuccess ? adminNameGateMode(selfTenant) : null;
+  const openMembers =
+    tenantsQuery.data
+      ?.filter((tenant) => tenant.active && !tenant.claimed)
+      .map((tenant) => ({ id: tenant.id, name: tenant.name })) ?? [];
+  const namePending = inviteMutation.isPending || nameThenInviteMutation.isPending;
 
   return (
     <CloudOnly>
@@ -102,12 +163,42 @@ export function HouseholdAccessSection({ householdId }: HouseholdAccessSectionPr
             <button
               type="button"
               className={btnPrimary}
-              disabled={inviteMutation.isPending}
-              onClick={() => inviteMutation.mutate()}
+              disabled={namePending || tenantsQuery.isLoading}
+              onClick={() => {
+                if (nameGate) {
+                  setShowNameGate(true);
+                  return;
+                }
+                inviteMutation.mutate();
+              }}
             >
               {t("createInvite")}
             </button>
-            {inviteMutation.isError && (
+            {showNameGate && nameGate && (
+              <AdminNameGate
+                mode={nameGate}
+                openMembers={openMembers}
+                isPending={namePending}
+                error={
+                  nameThenInviteMutation.isError
+                    ? getApiErrorMessage(nameThenInviteMutation.error)
+                    : undefined
+                }
+                onRename={(name) => {
+                  if (!selfTenant) {
+                    return;
+                  }
+                  nameThenInviteMutation.mutate({ type: "rename", tenantId: selfTenant.id, name });
+                }}
+                onClaim={(tenantId) => {
+                  nameThenInviteMutation.mutate({ type: "claim", tenantId });
+                }}
+                onCreate={(name) => {
+                  nameThenInviteMutation.mutate({ type: "create", name });
+                }}
+              />
+            )}
+            {inviteMutation.isError && !(showNameGate && nameGate) && (
               <p className={inlineError}>{getApiErrorMessage(inviteMutation.error)}</p>
             )}
             {inviteUrl && (

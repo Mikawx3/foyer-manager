@@ -162,7 +162,7 @@ export async function acceptInvite(
 
 export async function registerWithInvite(
   token: string,
-  input: { email: string; password: string; tenantId: string },
+  input: { email: string; password: string; tenantId?: string; name?: string },
 ): Promise<AcceptInviteResponse> {
   const { data } = await api.post<AcceptInviteResponse>(
     `/invites/${encodeURIComponent(token)}/register`,

@@ -80,7 +80,6 @@ export function createHouseholdSchema(t: TFunction<"validation">) {
 export function createTenantSchema(t: TFunction<"validation">) {
   return z.object({
     name: z.string().trim().min(1, t("nameRequired")).max(255),
-    email: z.union([z.literal(""), z.string().trim().email(t("invalidEmail")).max(255)]),
     householdId: z.string().cuid(),
   });
 }

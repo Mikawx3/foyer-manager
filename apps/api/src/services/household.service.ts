@@ -1,4 +1,4 @@
-import type { Household, HouseholdDeletionPreview } from "@foyer/types";
+import { SOLO_SELF_NAME, type Household, type HouseholdDeletionPreview } from "@foyer/types";
 import { NotFoundError } from "../errors/app.errors.js";
 import { generateMemberEmail } from "../lib/member-email.js";
 import { round2 } from "../lib/decimal.js";
@@ -110,7 +110,7 @@ export class HouseholdService {
         name: input.name,
         type: input.type,
         settlementPeriod: input.settlementPeriod,
-        tenantName: "Me",
+        tenantName: SOLO_SELF_NAME,
         tenantEmail: generateMemberEmail(),
         tenantColor: DEFAULT_TENANT_COLOR,
       });
@@ -132,7 +132,7 @@ export class HouseholdService {
           name: input.name,
           type: input.type,
           settlementPeriod: input.settlementPeriod,
-          tenantName: "Me",
+          tenantName: SOLO_SELF_NAME,
           tenantEmail: generateMemberEmail(),
           tenantColor: DEFAULT_TENANT_COLOR,
         },
