@@ -83,8 +83,12 @@ export function GoogleAuthButton({
   const onCredentialRef = useRef(onCredential);
   onCredentialRef.current = onCredential;
   const [loadError, setLoadError] = useState(false);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
+    if (!started) {
+      return;
+    }
     const container = containerRef.current;
     if (!container) {
       return;
@@ -130,11 +134,22 @@ export function GoogleAuthButton({
     return () => {
       cancelled = true;
     };
-  }, [clientId, context, i18n.resolvedLanguage]);
+  }, [clientId, context, i18n.resolvedLanguage, started]);
 
   return (
     <div className={disabled ? "pointer-events-none opacity-60" : undefined}>
-      <div ref={containerRef} className="flex min-h-11 w-full justify-center" />
+      {started ? (
+        <div ref={containerRef} className="flex min-h-11 w-full justify-center" />
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setStarted(true)}
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-200 bg-white px-4 py-2 text-base font-medium text-stone-900 hover:bg-stone-50 disabled:opacity-50 md:text-sm"
+        >
+          {t("continueWithGoogle")}
+        </button>
+      )}
       {loadError && <p className={inlineError}>{t("googleUnavailable")}</p>}
     </div>
   );

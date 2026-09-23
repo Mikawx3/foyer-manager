@@ -6,7 +6,9 @@ import { SettingsLayout } from "./components/settings/SettingsLayout.tsx";
 import { HouseholdDetailPage } from "./pages/HouseholdDetailPage.tsx";
 import { HouseholdWizardPage } from "./pages/HouseholdWizardPage.tsx";
 import { HouseholdsPage } from "./pages/HouseholdsPage.tsx";
+import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
+import { PrivacyPage } from "./pages/PrivacyPage.tsx";
 import { RegisterPage } from "./pages/RegisterPage.tsx";
 import { BalancesPage } from "./pages/BalancesPage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
@@ -18,6 +20,8 @@ import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { TenantsPage } from "./pages/TenantsPage.tsx";
 
 export const router = createBrowserRouter([
+  { path: "/", element: <HomePage /> },
+  { path: "/privacy", element: <PrivacyPage /> },
   {
     path: "/login",
     element: (
@@ -35,13 +39,11 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/",
     element: <AuthGate />,
     children: [
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to="/households" replace /> },
           { path: "households", element: <HouseholdsPage /> },
           { path: "households/new", element: <HouseholdWizardPage mode="create" /> },
           {

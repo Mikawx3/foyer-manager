@@ -9,7 +9,7 @@ export async function resolveAuthDestination(householdId: string): Promise<strin
     return `/households/${householdId}/onboarding`;
   }
 
-  return `/households/${householdId}/dashboard`;
+  return "/households";
 }
 
 export async function resolvePostLoginPath(): Promise<string> {

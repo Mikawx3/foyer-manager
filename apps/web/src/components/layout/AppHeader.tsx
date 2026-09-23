@@ -5,17 +5,18 @@ import { AppLogo } from "../brand/AppLogo.tsx";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher.tsx";
 
 interface AppHeaderProps {
+  homeTo?: string;
   trailing?: ReactNode;
 }
 
-export function AppHeader({ trailing }: AppHeaderProps) {
+export function AppHeader({ homeTo = "/households", trailing }: AppHeaderProps) {
   const { t } = useTranslation("common");
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-surface">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link
-          to="/households"
+          to={homeTo}
           className="flex items-center gap-3 rounded-lg transition hover:opacity-90"
         >
           <AppLogo />

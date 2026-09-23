@@ -20,7 +20,7 @@ export function NotFoundPage() {
         className={`${btnPrimary} mt-8`}
         onClick={() => navigate("/")}
       >
-        {t("goToHouseholds")}
+        {t("backToHome")}
       </button>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Home, LogOut, User } from "lucide-react";
+import { Home, LogOut, Shield, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
@@ -30,7 +30,7 @@ export function UserMenu() {
     clearAuth();
     void queryClient.clear();
     setOpen(false);
-    navigate("/login", { replace: true });
+    navigate("/", { replace: true });
   };
 
   return (
@@ -61,6 +61,15 @@ export function UserMenu() {
               {t("allHouseholds")}
             </Link>
           </CloudOnly>
+          <Link
+            to="/privacy"
+            role="menuitem"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
+            onClick={() => setOpen(false)}
+          >
+            <Shield className="h-4 w-4 shrink-0" strokeWidth={2} />
+            {t("privacy")}
+          </Link>
           <CloudOnly>
             <button
               type="button"
