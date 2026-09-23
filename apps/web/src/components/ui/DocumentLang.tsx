@@ -6,6 +6,7 @@ export function DocumentLang() {
 
   useEffect(() => {
     document.documentElement.lang = i18n.language.startsWith("fr") ? "fr" : "en";
+    document.documentElement.setAttribute("translate", "no");
   }, [i18n.language]);
 
   return null;

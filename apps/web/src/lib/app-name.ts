@@ -11,3 +11,12 @@ export function resolveAppName(configured: string | undefined): string {
 export function getAppName(): string {
   return resolveAppName(import.meta.env.VITE_APP_NAME);
 }
+
+export function formatDocumentTitle(pageTitle: string): string {
+  const appName = getAppName();
+  const trimmed = pageTitle.trim();
+  if (trimmed.length === 0 || trimmed === appName) {
+    return appName;
+  }
+  return `${trimmed} — ${appName}`;
+}

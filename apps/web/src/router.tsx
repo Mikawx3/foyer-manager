@@ -24,6 +24,7 @@ import { CategoriesSettingsPage } from "./pages/CategoriesSettingsPage.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { TenantsPage } from "./pages/TenantsPage.tsx";
+import { routeTitle } from "./lib/document-title.ts";
 
 function RootLayout() {
   return (
@@ -75,29 +76,40 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: "households", element: <HouseholdsPage /> },
-          { path: "households/new", element: <HouseholdWizardPage mode="create" /> },
+          { path: "households", element: <HouseholdsPage />, handle: routeTitle("households", "title") },
+          {
+            path: "households/new",
+            element: <HouseholdWizardPage mode="create" />,
+            handle: routeTitle("common", "newHousehold"),
+          },
           {
             path: "households/:id/onboarding",
             element: <HouseholdWizardPage mode="setup" />,
+            handle: routeTitle("households", "setupTitle"),
           },
           {
             path: "households/:id",
             element: <HouseholdDetailPage />,
+            handle: routeTitle("dashboard", "title"),
             children: [
               { index: true, element: <Navigate to="dashboard" replace /> },
-              { path: "dashboard", element: <DashboardPage /> },
+              { path: "dashboard", element: <DashboardPage />, handle: routeTitle("dashboard", "title") },
               { path: "tenants", element: <Navigate to="settings/members" replace /> },
-              { path: "expenses", element: <ExpensesPage /> },
-              { path: "income", element: <IncomePage /> },
-              { path: "balances", element: <BalancesPage /> },
+              { path: "expenses", element: <ExpensesPage />, handle: routeTitle("expenses", "title") },
+              { path: "income", element: <IncomePage />, handle: routeTitle("income", "title") },
+              { path: "balances", element: <BalancesPage />, handle: routeTitle("balances", "title") },
               {
                 path: "settings",
                 element: <SettingsLayout />,
+                handle: routeTitle("settings", "title"),
                 children: [
-                  { index: true, element: <SettingsPage /> },
-                  { path: "members", element: <TenantsPage /> },
-                  { path: "categories", element: <CategoriesSettingsPage /> },
+                  { index: true, element: <SettingsPage />, handle: routeTitle("settings", "title") },
+                  { path: "members", element: <TenantsPage />, handle: routeTitle("nav", "manageMembers") },
+                  {
+                    path: "categories",
+                    element: <CategoriesSettingsPage />,
+                    handle: routeTitle("nav", "categories"),
+                  },
                 ],
               },
             ],
