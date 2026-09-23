@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
-import { HouseholdHub } from "../components/hub/HouseholdHub.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
@@ -73,45 +72,38 @@ export function HouseholdsPage() {
         <h1 className="mt-8 text-2xl font-semibold tracking-tight text-stone-900">
           {t("setupTitle")}
         </h1>
-        <p className="mt-3 max-w-md text-sm text-stone-600">{t("setupDescription")}</p>
+        <p className="mt-3 max-w-md text-sm text-stone-600">
+          {t("setupDescription")}
+        </p>
       </div>
     );
   }
 
-  if (isLocalMode) {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className={pageTitle}>{t("title")}</h1>
-          <p className={pageSubtitle}>{t("subtitleSelect")}</p>
-        </div>
-
-        <ul className="space-y-3">
-          {households.map((household) => (
-            <li key={household.id} className={card}>
-              <Link
-                to={`/households/${household.id}/dashboard`}
-                className={`${cardInteractive} block -m-1 p-1`}
-              >
-                <p className="font-semibold tracking-tight text-stone-900">{household.name}</p>
-                <p className="mt-1 text-sm capitalize text-stone-600">
-                  {tCommon("householdType", { type: tCommon(household.type) })}
-                </p>
-                <p className="mt-1 text-sm text-stone-500">
-                  {tCommon("created", { date: formatDate(household.createdAt) })}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className={pageTitle}>{t("title")}</h1>
+        <p className={pageSubtitle}>{t("subtitleSelect")}</p>
       </div>
-    );
-  }
 
-  const household = households[0];
-  if (!household) {
-    return null;
-  }
-
-  return <HouseholdHub householdId={household.id} />;
+      <ul className="space-y-3">
+        {households.map((household) => (
+          <li key={household.id} className={card}>
+            <Link
+              to={`/households/${household.id}/dashboard`}
+              className={`${cardInteractive} block -m-1 p-1`}
+            >
+              <p className="font-semibold tracking-tight text-stone-900">{household.name}</p>
+              <p className="mt-1 text-sm capitalize text-stone-600">
+                {tCommon("householdType", { type: tCommon(household.type) })}
+              </p>
+              <p className="mt-1 text-sm text-stone-500">
+                {tCommon("created", { date: formatDate(household.createdAt) })}
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }

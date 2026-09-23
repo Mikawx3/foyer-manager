@@ -590,17 +590,7 @@
     "subtitleList": "Your homes and shared expenses.",
     "subtitleSelect": "Select a household or manage your home.",
     "setupTitle": "Set up your household",
-    "setupDescription": "Complete onboarding to add members and start tracking expenses.",
-    "allSettled": "Everything is settled",
-    "owes": "{{fromName}} owes {{amount}} to {{toName}}",
-    "soloMonthEmpty": "Nothing recorded this month.",
-    "soloMonthCount_one": "{{count}} expense this month.",
-    "soloMonthCount_other": "{{count}} expenses this month.",
-    "monthTotal": "This month",
-    "recentExpenses": "Recent expenses",
-    "recentEmptyTitle": "No expenses yet",
-    "recentEmptyDescription": "Add the first expense to start tracking this household.",
-    "viewBalances": "See balances"
+    "setupDescription": "Complete onboarding to add members and start tracking expenses."
   },
   "landing": {
     "metaTitle": "Foyer Manager",

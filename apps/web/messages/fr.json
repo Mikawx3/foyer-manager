@@ -590,17 +590,7 @@
     "subtitleList": "Vos foyers et dépenses partagées.",
     "subtitleSelect": "Sélectionnez un foyer ou gérez votre domicile.",
     "setupTitle": "Configurez votre foyer",
-    "setupDescription": "Terminez l'accueil pour ajouter des membres et suivre les dépenses.",
-    "allSettled": "Tout est réglé",
-    "owes": "{{fromName}} doit {{amount}} à {{toName}}",
-    "soloMonthEmpty": "Rien d'enregistré ce mois-ci.",
-    "soloMonthCount_one": "{{count}} dépense ce mois-ci.",
-    "soloMonthCount_other": "{{count}} dépenses ce mois-ci.",
-    "monthTotal": "Ce mois-ci",
-    "recentExpenses": "Dernières dépenses",
-    "recentEmptyTitle": "Aucune dépense",
-    "recentEmptyDescription": "Ajoutez la première dépense pour suivre ce foyer.",
-    "viewBalances": "Voir les soldes"
+    "setupDescription": "Terminez l'accueil pour ajouter des membres et suivre les dépenses."
   },
   "landing": {
     "metaTitle": "Foyer Manager",
