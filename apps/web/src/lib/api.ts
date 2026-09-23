@@ -151,7 +151,7 @@ export async function getInvitePreview(token: string): Promise<HouseholdInvitePr
 
 export async function acceptInvite(
   token: string,
-  input: { mode: "guest"; name: string } | { mode: "member" },
+  input: { mode: "guest"; tenantId: string } | { mode: "member"; tenantId: string },
 ): Promise<AcceptInviteResponse> {
   const { data } = await api.post<AcceptInviteResponse>(
     `/invites/${encodeURIComponent(token)}/accept`,
@@ -162,11 +162,21 @@ export async function acceptInvite(
 
 export async function registerWithInvite(
   token: string,
-  input: { email: string; password: string },
+  input: { email: string; password: string; tenantId: string },
 ): Promise<AcceptInviteResponse> {
   const { data } = await api.post<AcceptInviteResponse>(
     `/invites/${encodeURIComponent(token)}/register`,
     input,
+  );
+  return data;
+}
+
+export async function claimHouseholdTenant(
+  householdId: string,
+  tenantId: string,
+): Promise<Tenant> {
+  const { data } = await api.post<Tenant>(
+    `/households/${householdId}/tenants/${tenantId}/claim`,
   );
   return data;
 }

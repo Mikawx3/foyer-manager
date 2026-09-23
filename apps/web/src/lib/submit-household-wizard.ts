@@ -1,6 +1,7 @@
 import type { CreateRecurringExpensePayload } from "@foyer/types";
 import {
   createHousehold,
+  claimHouseholdTenant,
   createHouseholdTenant,
   createRecurringExpense,
   getCategories,
@@ -18,6 +19,7 @@ export type WizardSubmitMode = "create" | "setup";
 export interface SubmitWizardOptions {
   mode: WizardSubmitMode;
   householdId?: string;
+  claimSelf?: boolean;
 }
 
 function buildRecurringSplits(
@@ -95,6 +97,14 @@ export async function submitHouseholdWizard(
       });
       tenantIdByTempId.set(member.tempId, tenant.id);
       tenantIds.push(tenant.id);
+    }
+
+    if (options.claimSelf) {
+      const self = filledMembers.find((member) => member.isSelf);
+      const selfTenantId = self ? tenantIdByTempId.get(self.tempId) : undefined;
+      if (selfTenantId) {
+        await claimHouseholdTenant(householdId, selfTenantId);
+      }
     }
 
     if (filledMembers.length > 0) {

@@ -58,13 +58,19 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
       submitHouseholdWizard(wizardState, {
         mode,
         householdId: mode === "setup" ? householdId : undefined,
+        claimSelf: !isLocalMode,
       }),
-    onSuccess: async (resultHouseholdId) => {
+    onSuccess: async (resultHouseholdId, wizardState) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants(resultHouseholdId) });
       await queryClient.refetchQueries({ queryKey: queryKeys.tenants(resultHouseholdId) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.households });
       await queryClient.invalidateQueries({ queryKey: queryKeys.household(resultHouseholdId) });
-      navigate(`/households/${resultHouseholdId}/dashboard`, { replace: true });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      const destination =
+        wizardState.type === "shared"
+          ? `/households/${resultHouseholdId}/settings/members`
+          : `/households/${resultHouseholdId}/dashboard`;
+      navigate(destination, { replace: true });
     },
   });
 
@@ -200,6 +206,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
             type={state.type}
             name={state.name}
             members={state.members}
+            showSelf={!isLocalMode}
             nameError={stepError}
             membersError={stepError}
             onNameChange={(name) => patchState({ name })}
@@ -239,6 +246,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
         {state.step === 6 && (
           <WizardStepSummary
             state={state}
+            showSelf={!isLocalMode}
             isPending={createMutation.isPending}
             error={submitError ?? stepError}
             onCreate={() => {

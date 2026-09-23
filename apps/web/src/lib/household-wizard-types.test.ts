@@ -48,8 +48,8 @@ describe("isValidRecurringDraft", () => {
 describe("reconcileCustomSplits", () => {
   it("preserves existing percentages for surviving members", () => {
     const members = [
-      { tempId: "m1", name: "Alice", color: "#000" },
-      { tempId: "m2", name: "Bob", color: "#111" },
+      { tempId: "m1", name: "Alice", color: "#000", isSelf: true },
+      { tempId: "m2", name: "Bob", color: "#111", isSelf: false },
     ];
     const customSplits = { m1: 70, m2: 30, m3: 50 };
 
@@ -58,9 +58,9 @@ describe("reconcileCustomSplits", () => {
 
   it("assigns equal split when a new member is added and removes orphan keys", () => {
     const members = [
-      { tempId: "m1", name: "Alice", color: "#000" },
-      { tempId: "m2", name: "Bob", color: "#111" },
-      { tempId: "m3", name: "Charlie", color: "#222" },
+      { tempId: "m1", name: "Alice", color: "#000", isSelf: true },
+      { tempId: "m2", name: "Bob", color: "#111", isSelf: false },
+      { tempId: "m3", name: "Charlie", color: "#222", isSelf: false },
     ];
     const customSplits = { m1: 70, m2: 30 };
 

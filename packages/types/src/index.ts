@@ -68,6 +68,10 @@ export interface Tenant {
   archivedAt?: string | null;
   householdId: string;
   createdAt: string;
+  /** True when an account is linked to this name in this household. */
+  claimed: boolean;
+  /** True when the signed-in account is the one linked to this name. */
+  isCurrentUser: boolean;
 }
 
 export interface AuthResponse {
@@ -111,13 +115,23 @@ export interface HouseholdInviteCreated {
   expiresAt: string;
 }
 
+export interface InviteMemberOption {
+  id: string;
+  name: string;
+  color: string | null;
+  claimed: boolean;
+}
+
 export interface HouseholdInvitePreview {
+  householdId: string;
   householdName: string;
+  members: InviteMemberOption[];
 }
 
 export interface AcceptInviteResponse {
   householdId: string;
   token: string | null;
+  tenantId: string;
 }
 
 export interface HouseholdAccessMember {

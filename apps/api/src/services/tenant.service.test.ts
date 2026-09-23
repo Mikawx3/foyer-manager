@@ -16,6 +16,7 @@ const prismaTenant = {
   active: true,
   archivedAt: null,
   householdId,
+  userId: null,
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
 };
 
@@ -27,6 +28,8 @@ function createMocks(overrides?: {
   const repository: TenantRepository = {
     findById: vi.fn(),
     findAllByHousehold: vi.fn(),
+    findByHouseholdAndUser: vi.fn(),
+    claimIfUnclaimed: vi.fn(),
     countActiveByHousehold: vi.fn(),
     create: vi.fn(),
     updateById: vi.fn(),

@@ -13,6 +13,7 @@ householdRoutes.post("/", householdController.create);
 householdRoutes.get("/:id/access", householdController.listAccess);
 householdRoutes.post("/:id/invites", householdController.createInvite);
 householdRoutes.post("/:id/tenants", householdController.createTenant);
+householdRoutes.post("/:id/tenants/:tenantId/claim", householdController.claimTenant);
 householdRoutes.get("/:id/tenants", householdController.listTenants);
 householdRoutes.patch("/:id/tenants/:tenantId", householdController.updateTenant);
 householdRoutes.get("/:id/tenants/:tenantId/removal-preview", householdController.previewRemoveTenant);

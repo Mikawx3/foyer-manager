@@ -11,6 +11,7 @@ export interface WizardMember {
   tempId: string;
   name: string;
   color: string;
+  isSelf: boolean;
 }
 
 export interface RecurringQuickAddChip {
@@ -137,7 +138,7 @@ export function initialWizardState(): WizardState {
     step: 1,
     type: null,
     name: "",
-    members: [{ tempId: createMemberId(), name: "", color: DEFAULT_TENANT_COLOR }],
+    members: [{ tempId: createMemberId(), name: "", color: DEFAULT_TENANT_COLOR, isSelf: true }],
     splitMode: "equal",
     customSplits: {},
     recurring: [],

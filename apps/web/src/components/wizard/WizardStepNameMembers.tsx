@@ -12,6 +12,7 @@ interface WizardStepNameMembersProps {
   type: HouseholdType;
   name: string;
   members: WizardMember[];
+  showSelf?: boolean;
   nameError?: string;
   membersError?: string;
   onNameChange: (name: string) => void;
@@ -22,6 +23,7 @@ export function WizardStepNameMembers({
   type,
   name,
   members,
+  showSelf = false,
   nameError,
   membersError,
   onNameChange,
@@ -40,7 +42,7 @@ export function WizardStepNameMembers({
     const usedColors = members.map((member) => member.color);
     onMembersChange([
       ...members,
-      { tempId: createMemberId(), name: "", color: nextAvailableColor(usedColors) },
+      { tempId: createMemberId(), name: "", color: nextAvailableColor(usedColors), isSelf: false },
     ]);
   };
 
@@ -48,7 +50,16 @@ export function WizardStepNameMembers({
     if (members.length <= 1) {
       return;
     }
-    onMembersChange(members.filter((member) => member.tempId !== tempId));
+    const remaining = members.filter((member) => member.tempId !== tempId);
+    const removed = members.find((member) => member.tempId === tempId);
+    if (removed?.isSelf && remaining[0]) {
+      remaining[0] = { ...remaining[0], isSelf: true };
+    }
+    onMembersChange(remaining);
+  };
+
+  const markSelf = (tempId: string) => {
+    onMembersChange(members.map((member) => ({ ...member, isSelf: member.tempId === tempId })));
   };
 
   return (
@@ -90,6 +101,17 @@ export function WizardStepNameMembers({
                   value={member.color}
                   onChange={(color) => updateMember(member.tempId, { color })}
                 />
+                {showSelf && (
+                  <label className="flex min-h-11 items-center gap-2 text-sm text-stone-700">
+                    <input
+                      type="radio"
+                      name="wizard-self"
+                      checked={member.isSelf}
+                      onChange={() => markSelf(member.tempId)}
+                    />
+                    {t("thisIsMe")}
+                  </label>
+                )}
                 <button
                   type="button"
                   aria-label={tCommon("removeMember")}

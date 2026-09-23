@@ -1,5 +1,6 @@
 import type { Tenant } from "@foyer/types";
 import { ForbiddenError, NotFoundError } from "../errors/app.errors.js";
+import { claimTenantForUser } from "./tenant-claim.js";
 import { generateMemberEmail } from "../lib/member-email.js";
 import { toTenantDto } from "../lib/mappers.js";
 import {
@@ -54,21 +55,27 @@ export class TenantService {
   async listByHousehold(
     householdId: string,
     options?: { includeArchived?: boolean },
+    viewerUserId?: string,
   ): Promise<Tenant[]> {
     const household = await this.households.findById(householdId);
     if (!household) {
       throw new NotFoundError("Household not found");
     }
     const tenants = await this.repository.findAllByHousehold(householdId, options);
-    return tenants.map(toTenantDto);
+    return tenants.map((tenant) => toTenantDto(tenant, viewerUserId));
   }
 
-  async getById(id: string): Promise<Tenant> {
+  async getById(id: string, viewerUserId?: string): Promise<Tenant> {
     const tenant = await this.repository.findById(id);
     if (!tenant) {
       throw new NotFoundError("Tenant not found");
     }
-    return toTenantDto(tenant);
+    return toTenantDto(tenant, viewerUserId);
+  }
+
+  async claimForUser(householdId: string, tenantId: string, userId: string): Promise<Tenant> {
+    const tenant = await claimTenantForUser(this.repository, householdId, tenantId, userId);
+    return toTenantDto(tenant, userId);
   }
 
   async create(data: CreateTenantInput): Promise<Tenant> {

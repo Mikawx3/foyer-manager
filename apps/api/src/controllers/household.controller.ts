@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { ForbiddenError } from "../errors/app.errors.js";
-import { assertHouseholdAccess, assertHouseholdAdmin } from "../lib/household-access.js";
+import { assertHouseholdAccess, assertHouseholdAdmin, currentUserId } from "../lib/household-access.js";
 import { isLocalDeployment } from "../lib/deployment.js";
 import { getAuth } from "../middleware/auth.middleware.js";
 import { parseOrThrow } from "../lib/validation.js";
@@ -109,7 +109,7 @@ export class HouseholdController {
 
   createTenant = async (c: Context) => {
     const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
-    assertHouseholdAccess(c, id);
+    assertHouseholdAdmin(c, id);
     const body = parseOrThrow(createNestedTenantSchema, await c.req.json());
     const tenant = await this.tenants.createForHousehold(id, body);
     return c.json(tenant, 201);
@@ -119,15 +119,28 @@ export class HouseholdController {
     const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
     assertHouseholdAccess(c, id);
     const query = parseOrThrow(householdListTenantsQuerySchema, c.req.query());
-    const tenants = await this.tenants.listByHousehold(id, {
-      includeArchived: query.includeArchived,
-    });
+    const tenants = await this.tenants.listByHousehold(
+      id,
+      { includeArchived: query.includeArchived },
+      currentUserId(c),
+    );
     return c.json(tenants, 200);
+  };
+
+  claimTenant = async (c: Context) => {
+    const { id, tenantId } = parseOrThrow(householdTenantParamsSchema, c.req.param());
+    assertHouseholdAccess(c, id);
+    const auth = getAuth(c);
+    if (auth.isGuest) {
+      throw new ForbiddenError("Guests cannot link a member");
+    }
+    const tenant = await this.tenants.claimForUser(id, tenantId, auth.userId);
+    return c.json(tenant, 200);
   };
 
   updateTenant = async (c: Context) => {
     const { id, tenantId } = parseOrThrow(householdTenantParamsSchema, c.req.param());
-    assertHouseholdAccess(c, id);
+    assertHouseholdAdmin(c, id);
     const body = parseOrThrow(updateTenantSchema, await c.req.json());
     const result = await this.tenants.updateFromHousehold(id, tenantId, body);
     return c.json(result, 200);
@@ -135,14 +148,14 @@ export class HouseholdController {
 
   removeTenant = async (c: Context) => {
     const { id, tenantId } = parseOrThrow(householdTenantParamsSchema, c.req.param());
-    assertHouseholdAccess(c, id);
+    assertHouseholdAdmin(c, id);
     const result = await this.tenants.removeFromHousehold(id, tenantId);
     return c.json(result, 200);
   };
 
   previewRemoveTenant = async (c: Context) => {
     const { id, tenantId } = parseOrThrow(householdTenantParamsSchema, c.req.param());
-    assertHouseholdAccess(c, id);
+    assertHouseholdAdmin(c, id);
     const preview = await this.tenants.getRemovalPreview(id, tenantId);
     return c.json(preview, 200);
   };

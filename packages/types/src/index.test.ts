@@ -21,6 +21,8 @@ describe("@foyer/types", () => {
       active: true,
       householdId: "h1",
       createdAt: "2026-01-01T00:00:00.000Z",
+      claimed: false,
+      isCurrentUser: false,
     };
     expect(tenant.name).toBe("Alice");
   });

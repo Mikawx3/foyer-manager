@@ -70,7 +70,7 @@ export function toCategoryDto(category: PrismaCategory): Category {
   };
 }
 
-export function toTenantDto(tenant: PrismaTenant): Tenant {
+export function toTenantDto(tenant: PrismaTenant, viewerUserId?: string): Tenant {
   return {
     id: tenant.id,
     name: tenant.name,
@@ -82,6 +82,8 @@ export function toTenantDto(tenant: PrismaTenant): Tenant {
     }),
     householdId: tenant.householdId,
     createdAt: tenant.createdAt.toISOString(),
+    claimed: tenant.userId != null,
+    isCurrentUser: viewerUserId !== undefined && tenant.userId === viewerUserId,
   };
 }
 

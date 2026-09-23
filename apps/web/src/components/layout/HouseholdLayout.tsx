@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Home, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
-import { getApiErrorMessage, getHousehold } from "../../lib/api.ts";
+import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
+import { getApiErrorMessage, getHousehold, getMe, getTenants } from "../../lib/api.ts";
 import { clearAuth } from "../../lib/auth-storage.ts";
+import { readGuestMemberSession } from "../../lib/guest-member.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { householdNavLinkClass, mobileMainPadding } from "../../lib/ui-classes.ts";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
@@ -21,14 +23,31 @@ const navItems = [
 export function HouseholdLayout() {
   const { t } = useTranslation("nav");
   const { t: tCommon } = useTranslation("common");
+  const { t: tMembers } = useTranslation("members");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isCloudMode } = useDeploymentMode();
 
   const householdQuery = useQuery({
     queryKey: queryKeys.household(id),
     queryFn: () => getHousehold(id),
     enabled: Boolean(id),
   });
+
+  const meQuery = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: getMe,
+    enabled: isCloudMode,
+  });
+  const guestSession = meQuery.data?.isGuest === true ? readGuestMemberSession(id) : null;
+  const guestTenantsQuery = useQuery({
+    queryKey: queryKeys.tenants(id),
+    queryFn: () => getTenants(id),
+    enabled: guestSession !== null,
+  });
+  const viewingName = guestTenantsQuery.data?.find(
+    (tenant) => tenant.id === guestSession?.tenantId,
+  )?.name;
 
   const handleSignOut = () => {
     clearAuth();
@@ -104,6 +123,14 @@ export function HouseholdLayout() {
           </nav>
         </aside>
         <main className={`min-w-0 flex-1 overflow-y-auto ${mobileMainPadding}`}>
+          {viewingName && guestSession && (
+            <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-stone-700">
+              <p>{tMembers("guestViewingBanner", { name: viewingName })}</p>
+              <Link to={guestSession.invitePath} className="mt-1 inline-block font-medium text-primary">
+                {tMembers("guestChooseAgain")}
+              </Link>
+            </div>
+          )}
           {householdQuery.data && (
             <p className="mb-4 text-sm font-medium text-stone-500 lg:hidden">
               {householdQuery.data.name}

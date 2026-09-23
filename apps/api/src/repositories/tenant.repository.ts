@@ -38,6 +38,18 @@ export class TenantRepository {
     return prisma.tenant.findFirst({ where: { householdId, userId } });
   }
 
+  async claimIfUnclaimed(id: string, householdId: string, userId: string): Promise<boolean> {
+    try {
+      const result = await prisma.tenant.updateMany({
+        where: { id, householdId, userId: null, active: true },
+        data: { userId },
+      });
+      return result.count === 1;
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
   async create(data: {
     name: string;
     email: string;

@@ -11,6 +11,7 @@ import { amount, btnPrimary, btnSecondary, card } from "../../lib/ui-classes.ts"
 
 interface WizardStepSummaryProps {
   state: WizardState;
+  showSelf?: boolean;
   isPending: boolean;
   error?: string;
   onCreate: () => void;
@@ -19,6 +20,7 @@ interface WizardStepSummaryProps {
 
 export function WizardStepSummary({
   state,
+  showSelf = false,
   isPending,
   error,
   onCreate,
@@ -70,6 +72,7 @@ export function WizardStepSummary({
                     style={{ backgroundColor: member.color }}
                   />
                   {member.name}
+                  {showSelf && member.isSelf ? ` · ${t("thisIsMe")}` : ""}
                 </li>
               ))}
             </ul>

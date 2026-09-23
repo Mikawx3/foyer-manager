@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../app.js";
+import { loadUserAccess } from "../lib/user-access.js";
 
 vi.mock("../lib/jwt.js", () => ({
   verifyToken: vi.fn(async () => ({
@@ -30,6 +31,11 @@ vi.mock("../repositories/household.repository.js", () => ({
 describe("household routes", () => {
   afterEach(() => {
     delete process.env.DEPLOYMENT_MODE;
+    vi.mocked(loadUserAccess).mockResolvedValue({
+      userId: "user-1",
+      isGuest: false,
+      memberships: [{ householdId: "clh12345678901234567890123", role: "admin" }],
+    });
   });
 
   const authHeaders = {
@@ -69,6 +75,44 @@ describe("household routes", () => {
     process.env.DEPLOYMENT_MODE = "local";
     const response = await app.request("/api/households");
     expect(response.status).toBe(200);
+  });
+
+  it("rejects member management from a non-admin in cloud mode", async () => {
+    process.env.DEPLOYMENT_MODE = "cloud";
+    const householdId = "clh12345678901234567890123";
+    const tenantId = "clh22345678901234567890123";
+
+    vi.mocked(loadUserAccess).mockResolvedValue({
+      userId: "user-1",
+      isGuest: true,
+      memberships: [{ householdId, role: "guest" }],
+    });
+
+    const removeResponse = await app.request(`/api/households/${householdId}/tenants/${tenantId}`, {
+      method: "DELETE",
+      headers: authHeaders,
+    });
+    expect(removeResponse.status).toBe(403);
+
+    const updateResponse = await app.request(`/api/households/${householdId}/tenants/${tenantId}`, {
+      method: "PATCH",
+      headers: authHeaders,
+      body: JSON.stringify({ name: "Marie" }),
+    });
+    expect(updateResponse.status).toBe(403);
+
+    const createResponse = await app.request("/api/tenants", {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ name: "Marie", householdId }),
+    });
+    expect(createResponse.status).toBe(403);
+
+    const previewResponse = await app.request(
+      `/api/households/${householdId}/tenants/${tenantId}/removal-preview`,
+      { headers: authHeaders },
+    );
+    expect(previewResponse.status).toBe(403);
   });
 
   it("GET /api/config returns deployment mode", async () => {

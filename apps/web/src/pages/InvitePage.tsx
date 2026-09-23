@@ -1,3 +1,4 @@
+import type { InviteMemberOption } from "@foyer/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,12 +10,18 @@ import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import {
   acceptInvite,
+  claimHouseholdTenant,
   getApiErrorMessage,
   getInvitePreview,
+  getMe,
+  getTenants,
   registerWithInvite,
 } from "../lib/api.ts";
 import { resolveAuthDestination } from "../lib/auth-navigation.ts";
 import { getToken, setToken } from "../lib/auth-storage.ts";
+import { clearGuestMemberSession, saveGuestMemberSession } from "../lib/guest-member.ts";
+import { queryKeys } from "../lib/query-keys.ts";
+import { DEFAULT_TENANT_COLOR } from "../lib/tenant-colors.ts";
 import { btnPrimary, btnSecondary, formCard, inlineError } from "../lib/ui-classes.ts";
 
 export function InvitePage() {
@@ -23,7 +30,7 @@ export function InvitePage() {
   const { t: tCommon } = useTranslation("common");
   const navigate = useNavigate();
   const signedIn = Boolean(getToken());
-  const [guestName, setGuestName] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -34,35 +41,95 @@ export function InvitePage() {
     retry: false,
   });
 
-  const goToHousehold = async (householdId: string, sessionToken: string | null) => {
+  const meQuery = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: getMe,
+    enabled: signedIn,
+    retry: false,
+  });
+
+  const householdId = previewQuery.data?.householdId ?? "";
+  const isGuest = meQuery.data?.isGuest === true;
+  const alreadyMember =
+    Boolean(householdId) &&
+    meQuery.data?.memberships.some((membership) => membership.householdId === householdId) === true;
+
+  const linkedQuery = useQuery({
+    queryKey: queryKeys.tenants(householdId),
+    queryFn: () => getTenants(householdId),
+    enabled: signedIn && !isGuest && alreadyMember && householdId.length > 0,
+  });
+
+  const members = previewQuery.data?.members ?? [];
+  const selected = members.find((member) => member.id === selectedId) ?? null;
+  const activeSelection = selected ?? members.find((member) => !member.claimed) ?? members[0] ?? null;
+  const canLinkAccount = activeSelection !== null && !activeSelection.claimed;
+  const alreadyLinked = linkedQuery.data?.some((tenant) => tenant.isCurrentUser) === true;
+
+  const goToHousehold = async (nextHouseholdId: string, sessionToken: string | null) => {
     if (sessionToken) {
       setToken(sessionToken);
     }
-    const path = await resolveAuthDestination(householdId);
+    const path = await resolveAuthDestination(nextHouseholdId);
     navigate(path, { replace: true });
   };
 
   const guestMutation = useMutation({
-    mutationFn: () => acceptInvite(token, { mode: "guest", name: guestName.trim() }),
+    mutationFn: () => {
+      if (!activeSelection) {
+        throw new Error("Member is required");
+      }
+      return acceptInvite(token, { mode: "guest", tenantId: activeSelection.id });
+    },
     onSuccess: (response) => {
+      saveGuestMemberSession({
+        householdId: response.householdId,
+        tenantId: response.tenantId,
+        invitePath: `/invite/${token}`,
+      });
       void goToHousehold(response.householdId, response.token);
     },
   });
 
   const memberMutation = useMutation({
-    mutationFn: () => acceptInvite(token, { mode: "member" }),
+    mutationFn: () => {
+      if (!activeSelection) {
+        throw new Error("Member is required");
+      }
+      if (alreadyMember) {
+        return claimHouseholdTenant(householdId, activeSelection.id).then(() => ({
+          householdId,
+          token: null,
+          tenantId: activeSelection.id,
+        }));
+      }
+      return acceptInvite(token, { mode: "member", tenantId: activeSelection.id });
+    },
     onSuccess: (response) => {
+      clearGuestMemberSession();
       void goToHousehold(response.householdId, response.token);
     },
   });
 
   const registerMutation = useMutation({
-    mutationFn: () =>
-      registerWithInvite(token, { email: email.trim(), password }),
+    mutationFn: () => {
+      if (!activeSelection) {
+        throw new Error("Member is required");
+      }
+      return registerWithInvite(token, {
+        email: email.trim(),
+        password,
+        tenantId: activeSelection.id,
+      });
+    },
     onSuccess: (response) => {
+      clearGuestMemberSession();
       void goToHousehold(response.householdId, response.token);
     },
   });
+
+  const showGuest = !signedIn || isGuest;
+  const showAccount = !isGuest && !alreadyLinked;
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">
@@ -80,101 +147,135 @@ export function InvitePage() {
               </h1>
               <p className="mt-2 text-sm text-stone-600">{t("inviteBody")}</p>
 
-              {signedIn ? (
+              {signedIn && meQuery.isLoading && (
+                <div className="mt-6">
+                  <ListSkeleton rows={2} />
+                </div>
+              )}
+
+              {(!signedIn || meQuery.isSuccess) && members.length === 0 && (
+                <p className="mt-6 text-sm text-stone-600">{t("noMembersToJoin")}</p>
+              )}
+
+              {(!signedIn || meQuery.isSuccess) && members.length > 0 && alreadyLinked && (
                 <div className="mt-6">
                   <button
                     type="button"
                     className={`${btnPrimary} w-full`}
-                    disabled={memberMutation.isPending}
-                    onClick={() => memberMutation.mutate()}
+                    onClick={() => {
+                      void goToHousehold(householdId, null);
+                    }}
                   >
-                    {t("joinWithAccount")}
+                    {t("openHousehold")}
                   </button>
-                  {memberMutation.isError && (
-                    <p className={inlineError}>{getApiErrorMessage(memberMutation.error)}</p>
-                  )}
                 </div>
-              ) : (
+              )}
+
+              {(!signedIn || meQuery.isSuccess) && members.length > 0 && !alreadyLinked && (
                 <div className="mt-6 space-y-8">
-                  <form
-                    className="space-y-4"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      guestMutation.mutate();
-                    }}
-                  >
-                    <FormField label={t("guestName")}>
-                      <input
-                        className={inputClassName}
-                        value={guestName}
-                        onChange={(event) => setGuestName(event.target.value)}
-                        required
-                        maxLength={80}
-                      />
-                    </FormField>
-                    <button
-                      type="submit"
-                      className={`${btnSecondary} w-full`}
-                      disabled={guestMutation.isPending}
-                    >
-                      {t("continueAsGuest")}
-                    </button>
-                    {guestMutation.isError && (
-                      <p className={inlineError}>{getApiErrorMessage(guestMutation.error)}</p>
-                    )}
-                  </form>
+                  <MemberChoice
+                    members={members}
+                    selectedId={activeSelection?.id ?? ""}
+                    accountMode={!showGuest}
+                    onSelect={setSelectedId}
+                  />
 
-                  <form
-                    className="space-y-4"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      registerMutation.mutate();
-                    }}
-                  >
-                    <p className="text-sm font-medium text-stone-900">{t("joinByCreatingAccount")}</p>
-                    <FormField label={tCommon("email")}>
-                      <input
-                        className={inputClassName}
-                        type="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        required
-                      />
-                    </FormField>
-                    <FormField label={tCommon("password")}>
-                      <input
-                        className={inputClassName}
-                        type="password"
-                        autoComplete="new-password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        required
-                        minLength={8}
-                      />
-                    </FormField>
-                    <button
-                      type="submit"
-                      className={`${btnPrimary} w-full`}
-                      disabled={registerMutation.isPending}
-                    >
-                      {t("createAccountAndJoin")}
-                    </button>
-                    {registerMutation.isError && (
-                      <p className={inlineError}>{getApiErrorMessage(registerMutation.error)}</p>
-                    )}
-                  </form>
+                  {showGuest && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-stone-600">{t("guestHint")}</p>
+                      <button
+                        type="button"
+                        className={`${btnSecondary} w-full`}
+                        disabled={guestMutation.isPending || activeSelection === null}
+                        onClick={() => guestMutation.mutate()}
+                      >
+                        {activeSelection
+                          ? t("continueAsName", { name: activeSelection.name })
+                          : t("continueAsGuest")}
+                      </button>
+                      {guestMutation.isError && (
+                        <p className={inlineError}>{getApiErrorMessage(guestMutation.error)}</p>
+                      )}
+                    </div>
+                  )}
 
-                  <p className="text-sm text-stone-600">
-                    {tCommon("alreadyHaveAccount")}{" "}
-                    <Link
-                      to="/login"
-                      state={{ from: `/invite/${token}` }}
-                      className="font-medium text-primary"
+                  {showAccount && !members.some((member) => !member.claimed) && (
+                    <p className="text-sm text-stone-600">{t("allNamesLinked")}</p>
+                  )}
+
+                  {showAccount && signedIn && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-stone-600">{t("accountHint")}</p>
+                      <button
+                        type="button"
+                        className={`${btnPrimary} w-full`}
+                        disabled={memberMutation.isPending || !canLinkAccount}
+                        onClick={() => memberMutation.mutate()}
+                      >
+                        {t("joinWithAccount")}
+                      </button>
+                      {memberMutation.isError && (
+                        <p className={inlineError}>{getApiErrorMessage(memberMutation.error)}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {showAccount && !signedIn && (
+                    <form
+                      className="space-y-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        registerMutation.mutate();
+                      }}
                     >
-                      {tCommon("signInLink")}
-                    </Link>
-                  </p>
+                      <p className="text-sm font-medium text-stone-900">{t("joinByCreatingAccount")}</p>
+                      <p className="text-sm text-stone-600">{t("accountHint")}</p>
+                      <FormField label={tCommon("email")}>
+                        <input
+                          className={inputClassName}
+                          type="email"
+                          autoComplete="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          required
+                        />
+                      </FormField>
+                      <FormField label={tCommon("password")}>
+                        <input
+                          className={inputClassName}
+                          type="password"
+                          autoComplete="new-password"
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          required
+                          minLength={8}
+                        />
+                      </FormField>
+                      <button
+                        type="submit"
+                        className={`${btnPrimary} w-full`}
+                        disabled={registerMutation.isPending || !canLinkAccount}
+                      >
+                        {t("createAccountAndJoin")}
+                      </button>
+                      {registerMutation.isError && (
+                        <p className={inlineError}>{getApiErrorMessage(registerMutation.error)}</p>
+                      )}
+                    </form>
+                  )}
+
+                  {!signedIn && (
+                    <p className="text-sm text-stone-600">
+                      {tCommon("alreadyHaveAccount")}{" "}
+                      <Link
+                        to="/login"
+                        state={{ from: `/invite/${token}` }}
+                        className="font-medium text-primary"
+                      >
+                        {tCommon("signInLink")}
+                      </Link>
+                    </p>
+                  )}
                 </div>
               )}
             </>
@@ -183,5 +284,51 @@ export function InvitePage() {
       </div>
       <PublicFooter />
     </div>
+  );
+}
+
+interface MemberChoiceProps {
+  members: InviteMemberOption[];
+  selectedId: string;
+  accountMode: boolean;
+  onSelect: (tenantId: string) => void;
+}
+
+function MemberChoice({ members, selectedId, accountMode, onSelect }: MemberChoiceProps) {
+  const { t } = useTranslation("auth");
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-stone-900">{t("chooseMember")}</legend>
+      {members.map((member) => {
+        const locked = accountMode && member.claimed;
+        return (
+          <label
+            key={member.id}
+            className={`flex min-h-11 items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
+              locked ? "border-stone-200 text-stone-400" : "border-border text-stone-800"
+            }`}
+          >
+            <input
+              type="radio"
+              name="invite-member"
+              value={member.id}
+              checked={selectedId === member.id}
+              disabled={locked}
+              onChange={() => onSelect(member.id)}
+            />
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: member.color ?? DEFAULT_TENANT_COLOR }}
+              aria-hidden
+            />
+            <span className="min-w-0 flex-1 font-medium">{member.name}</span>
+            {member.claimed && (
+              <span className="shrink-0 text-xs text-stone-500">{t("memberAlreadyLinked")}</span>
+            )}
+          </label>
+        );
+      })}
+    </fieldset>
   );
 }

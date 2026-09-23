@@ -4,6 +4,13 @@ import { ForbiddenError } from "../errors/app.errors.js";
 import { isLocalDeployment } from "./deployment.js";
 import { getAuth } from "../middleware/auth.middleware.js";
 
+export function currentUserId(c: Context): string | undefined {
+  if (isLocalDeployment()) {
+    return undefined;
+  }
+  return getAuth(c).userId;
+}
+
 export function assertHouseholdAccess(c: Context, householdId: string): HouseholdRole {
   if (isLocalDeployment()) {
     return "admin";

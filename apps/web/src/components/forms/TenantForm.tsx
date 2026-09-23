@@ -39,6 +39,7 @@ export function TenantForm({ householdId, onSubmit, isPending }: TenantFormProps
   return (
     <form onSubmit={submit} className={formCard}>
       <h3 className="text-sm font-semibold tracking-tight text-stone-900">{t("addMemberHeading")}</h3>
+      <p className="text-sm text-stone-600">{t("addMemberHint")}</p>
       <input type="hidden" {...register("householdId")} />
       <FormField label={tCommon("name")} error={errors.name?.message}>
         <input className={inputClassName} {...register("name")} />

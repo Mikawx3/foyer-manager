@@ -12,12 +12,14 @@ import { card, btnSecondary } from "../../lib/ui-classes.ts";
 interface ArchivedMembersSectionProps {
   householdId: string;
   tenants: Tenant[];
+  canRestore: boolean;
   onRestored: () => void;
 }
 
 export function ArchivedMembersSection({
   householdId,
   tenants,
+  canRestore,
   onRestored,
 }: ArchivedMembersSectionProps) {
   const { t } = useTranslation("members");
@@ -75,17 +77,19 @@ export function ArchivedMembersSection({
                       : tCommon("dash")}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className={btnSecondary}
-                  disabled={restoreMutation.isPending && restoringId === tenant.id}
-                  onClick={() => {
-                    setRestoringId(tenant.id);
-                    restoreMutation.mutate(tenant.id);
-                  }}
-                >
-                  {tCommon("restore")}
-                </button>
+                {canRestore && (
+                  <button
+                    type="button"
+                    className={btnSecondary}
+                    disabled={restoreMutation.isPending && restoringId === tenant.id}
+                    onClick={() => {
+                      setRestoringId(tenant.id);
+                      restoreMutation.mutate(tenant.id);
+                    }}
+                  >
+                    {tCommon("restore")}
+                  </button>
+                )}
               </div>
             </li>
           ))}

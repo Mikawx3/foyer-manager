@@ -22,7 +22,11 @@ export class InviteController {
     const { token } = parseOrThrow(inviteTokenParamSchema, c.req.param());
     const body = parseOrThrow(acceptInviteSchema, await c.req.json());
     if (body.mode === "guest") {
-      const result = await this.service.acceptAsGuest(token, body.name);
+      const result = await this.service.acceptAsGuest(
+        token,
+        body.tenantId,
+        await optionalUserId(c),
+      );
       return c.json(result, 201);
     }
 
@@ -37,7 +41,7 @@ export class InviteController {
     } catch {
       throw new UnauthorizedError("Invalid or expired token");
     }
-    const result = await this.service.acceptAsMember(token, userId);
+    const result = await this.service.acceptAsMember(token, userId, body.tenantId);
     return c.json(result, 200);
   };
 
@@ -47,6 +51,19 @@ export class InviteController {
     const result = await this.service.registerAndJoin(token, body);
     return c.json(result, 201);
   };
+}
+
+async function optionalUserId(c: Context): Promise<string | undefined> {
+  const header = c.req.header("Authorization");
+  if (!header?.startsWith("Bearer ")) {
+    return undefined;
+  }
+  try {
+    const payload = await verifyToken(header.slice("Bearer ".length));
+    return payload.userId;
+  } catch {
+    return undefined;
+  }
 }
 
 export const inviteController = new InviteController();

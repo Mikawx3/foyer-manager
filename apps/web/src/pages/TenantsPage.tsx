@@ -12,11 +12,13 @@ import { TenantForm } from "../components/forms/TenantForm.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { ErrorMessage } from "../components/ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
-import { useFormat } from "../hooks/useFormat.ts";
+import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import {
+  claimHouseholdTenant,
   createTenant,
   deleteHouseholdTenant,
   getApiErrorMessage,
+  getMe,
   getTenantRemovalPreview,
   getTenants,
   updateHouseholdTenant,
@@ -43,21 +45,41 @@ function invalidateMemberQueries(queryClient: ReturnType<typeof useQueryClient>,
 
 export function TenantsPage() {
   const { id: householdId = "" } = useParams<{ id: string }>();
+  const { isCloudMode } = useDeploymentMode();
   const queryClient = useQueryClient();
   const { t } = useTranslation("members");
   const { t: tCommon } = useTranslation("common");
   const { t: tToast } = useTranslation("toast");
-  const { formatDate } = useFormat();
 
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingTenantDelete | null>(null);
   const [soloBanner, setSoloBanner] = useState(false);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
+  const meQuery = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: getMe,
+    enabled: isCloudMode,
+  });
+  const householdRole = meQuery.data?.memberships.find(
+    (membership) => membership.householdId === householdId,
+  )?.role;
+  const canManageMembers = !isCloudMode || householdRole === "admin";
+
   const tenantsQuery = useQuery({
     queryKey: queryKeys.tenants(householdId),
     queryFn: () => getTenants(householdId, { includeArchived: true }),
     enabled: Boolean(householdId),
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: (tenantId: string) => claimHouseholdTenant(householdId, tenantId),
+    onSuccess: () => {
+      showMutationSuccess(tToast("memberLinked"));
+      invalidateMemberQueries(queryClient, householdId);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    },
+    onError: showMutationError,
   });
 
   const createMutation = useMutation({
@@ -102,12 +124,18 @@ export function TenantsPage() {
 
   const activeTenants = tenantsQuery.data?.filter((tenant) => tenant.active) ?? [];
   const archivedTenants = tenantsQuery.data?.filter((tenant) => !tenant.active) ?? [];
+  const canClaimName =
+    isCloudMode &&
+    meQuery.data?.isGuest !== true &&
+    !activeTenants.some((tenant) => tenant.isCurrentUser);
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className={pageTitle}>{t("manageTitle")}</h2>
-        <p className={pageSubtitle}>{t("manageSubtitle")}</p>
+        <h2 className={pageTitle}>{canManageMembers ? t("manageTitle") : t("membersTitle")}</h2>
+        <p className={pageSubtitle}>
+          {canManageMembers ? t("manageSubtitle") : t("membersSubtitle")}
+        </p>
       </div>
 
       {soloBanner && (
@@ -118,7 +146,13 @@ export function TenantsPage() {
 
       <HouseholdAccessSection householdId={householdId} />
 
-      <div className="flex flex-col gap-8 md:grid md:grid-cols-[1fr_320px]">
+      <div
+        className={
+          canManageMembers
+            ? "flex flex-col gap-8 md:grid md:grid-cols-[1fr_320px]"
+            : "flex flex-col gap-8"
+        }
+      >
         <section>
           {tenantsQuery.isLoading && <ListSkeleton />}
           {tenantsQuery.isError && (
@@ -132,7 +166,9 @@ export function TenantsPage() {
               title={t("noMembersTitle")}
               description={t("noMembersDescriptionExpenses")}
               action={
-                <p className="text-sm text-stone-500">{tCommon("useFormOnRight")}</p>
+                canManageMembers ? (
+                  <p className="text-sm text-stone-500">{tCommon("useFormOnRight")}</p>
+                ) : undefined
               }
             />
           )}
@@ -154,30 +190,48 @@ export function TenantsPage() {
                         {displayEmail !== null && (
                           <p className="text-sm text-stone-600">{displayEmail}</p>
                         )}
-                        <p className="mt-1 text-xs text-stone-500">
-                          {tCommon("joined", { date: formatDate(tenant.createdAt) })}
-                        </p>
+                        {isCloudMode && (
+                          <p className="mt-1 text-xs text-stone-500">
+                            {tenant.isCurrentUser
+                              ? t("thisIsYou")
+                              : tenant.claimed
+                                ? t("linkedAccount")
+                                : t("waitingForAccount")}
+                          </p>
+                        )}
+                        {canClaimName && !tenant.claimed && (
+                          <button
+                            type="button"
+                            className="mt-2 text-sm font-medium text-primary"
+                            disabled={claimMutation.isPending}
+                            onClick={() => claimMutation.mutate(tenant.id)}
+                          >
+                            {t("thisIsMyName")}
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-0">
-                      <button
-                        type="button"
-                        onClick={() => setEditingTenant(tenant)}
-                        className={iconBtn}
-                        aria-label={tCommon("editItem", { name: tenant.name })}
-                      >
-                        <Pencil className="h-4 w-4" strokeWidth={2} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(tenant)}
-                        disabled={removeMutation.isPending || previewLoadingId === tenant.id}
-                        className={`${iconBtn} hover:text-negative active:text-negative disabled:opacity-50`}
-                        aria-label={tCommon("removeItem", { name: tenant.name })}
-                      >
-                        <Trash2 className="h-4 w-4" strokeWidth={2} />
-                      </button>
-                    </div>
+                    {canManageMembers && (
+                      <div className="flex shrink-0 gap-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditingTenant(tenant)}
+                          className={iconBtn}
+                          aria-label={tCommon("editItem", { name: tenant.name })}
+                        >
+                          <Pencil className="h-4 w-4" strokeWidth={2} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(tenant)}
+                          disabled={removeMutation.isPending || previewLoadingId === tenant.id}
+                          className={`${iconBtn} hover:text-negative active:text-negative disabled:opacity-50`}
+                          aria-label={tCommon("removeItem", { name: tenant.name })}
+                        >
+                          <Trash2 className="h-4 w-4" strokeWidth={2} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </li>
               );
@@ -188,6 +242,7 @@ export function TenantsPage() {
             <ArchivedMembersSection
               householdId={householdId}
               tenants={archivedTenants}
+              canRestore={canManageMembers}
               onRestored={() => invalidateMemberQueries(queryClient, householdId)}
             />
           )}
@@ -196,16 +251,18 @@ export function TenantsPage() {
           )}
         </section>
 
-        <aside>
-          <TenantForm
-            householdId={householdId}
-            onSubmit={(data) => createMutation.mutate(data)}
-            isPending={createMutation.isPending}
-          />
-          {createMutation.isError && (
-            <p className={`mt-2 ${inlineError}`}>{getApiErrorMessage(createMutation.error)}</p>
-          )}
-        </aside>
+        {canManageMembers && (
+          <aside>
+            <TenantForm
+              householdId={householdId}
+              onSubmit={(data) => createMutation.mutate(data)}
+              isPending={createMutation.isPending}
+            />
+            {createMutation.isError && (
+              <p className={`mt-2 ${inlineError}`}>{getApiErrorMessage(createMutation.error)}</p>
+            )}
+          </aside>
+        )}
       </div>
 
       <EditMemberModal

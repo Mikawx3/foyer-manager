@@ -1,3 +1,5 @@
+import { clearGuestMemberSession } from "./guest-member.ts";
+
 const TOKEN_KEY = "fm_token";
 
 export function getToken(): string | null {
@@ -14,4 +16,5 @@ export function clearToken(): void {
 
 export function clearAuth(): void {
   clearToken();
+  clearGuestMemberSession();
 }
