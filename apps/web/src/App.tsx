@@ -5,6 +5,7 @@ import { AppToaster } from "./components/ui/AppToaster.tsx";
 import { DocumentLang } from "./components/ui/DocumentLang.tsx";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary.tsx";
 import { DeploymentModeProvider } from "./contexts/DeploymentModeContext.tsx";
+import { redactAnalyticsEvent } from "./lib/analytics-event.ts";
 import { router } from "./router.tsx";
 
 const queryClient = new QueryClient({
@@ -26,7 +27,7 @@ export default function App() {
         </DeploymentModeProvider>
         <AppToaster />
       </QueryClientProvider>
-      <Analytics />
+      <Analytics beforeSend={redactAnalyticsEvent} />
     </ErrorBoundary>
   );
 }
