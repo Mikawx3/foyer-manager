@@ -5,9 +5,11 @@ import type {
 } from "@foyer/types";
 import { NotFoundError } from "../errors/app.errors.js";
 import { toDefaultSplitDto } from "../lib/mappers.js";
+import { redistributeSplitsToItems } from "../lib/redistribute-splits.js";
 import {
   assertPercentagesSumTo100,
   buildEqualDefaultSplits,
+  memberJoinedBy,
 } from "../lib/split-calculator.js";
 import {
   categoryRepository,
@@ -86,6 +88,7 @@ export class DefaultSplitService {
   async resolveForExpense(
     householdId: string,
     categoryId: string,
+    asOf?: Date,
   ): Promise<ResolvedDefaultSplit[]> {
     await this.assertHouseholdExists(householdId);
     await this.assertCategoryInHousehold(categoryId, householdId);
@@ -102,16 +105,45 @@ export class DefaultSplitService {
 
     if (rules.length === 0) {
       const activeTenants = await this.tenants.findAllByHousehold(householdId);
-      if (activeTenants.length > 0) {
-        return buildEqualDefaultSplits(activeTenants);
+      const presentTenants = asOf
+        ? activeTenants.filter((tenant) => memberJoinedBy(tenant.createdAt, asOf))
+        : activeTenants;
+      if (presentTenants.length > 0) {
+        return buildEqualDefaultSplits(presentTenants);
       }
       return [];
     }
 
-    return rules.map((rule) => ({
+    const resolved = rules.map((rule) => ({
       tenantId: rule.tenantId,
       percentage: rule.percentage,
     }));
+
+    if (!asOf) {
+      return resolved;
+    }
+
+    const tenants = await this.tenants.findAllByHousehold(householdId, {
+      includeArchived: true,
+    });
+    const presentIds = new Set(
+      tenants
+        .filter((tenant) => memberJoinedBy(tenant.createdAt, asOf))
+        .map((tenant) => tenant.id),
+    );
+    const eligibleIds = resolved
+      .map((rule) => rule.tenantId)
+      .filter((tenantId) => presentIds.has(tenantId));
+
+    if (eligibleIds.length === resolved.length) {
+      return resolved;
+    }
+
+    if (eligibleIds.length === 0) {
+      return [];
+    }
+
+    return redistributeSplitsToItems(eligibleIds, resolved);
   }
 
   async deleteCategoryRules(householdId: string, categoryId: string): Promise<void> {

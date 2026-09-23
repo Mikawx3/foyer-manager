@@ -471,7 +471,11 @@ describe("ExpenseService", () => {
     const result = await service.getSplits(expenseId);
 
     expect(findByExpenseId).not.toHaveBeenCalled();
-    expect(defaultSplits.resolveForExpense).toHaveBeenCalledWith(householdId, categoryId);
+    expect(defaultSplits.resolveForExpense).toHaveBeenCalledWith(
+      householdId,
+      categoryId,
+      prismaExpense.createdAt,
+    );
     expect(result).toHaveLength(2);
     expect(result[0]?.percentage).toBe(70);
     expect(result[0]?.amount).toBe(70);

@@ -5,6 +5,7 @@ import {
   buildEqualDefaultSplits,
   calculateSplitAmounts,
   computeTenantBalances,
+  memberJoinedBy,
 } from "./split-calculator.js";
 
 describe("split-calculator", () => {
@@ -103,6 +104,26 @@ describe("split-calculator", () => {
       owedToOthers: 100,
       balance: -100,
     });
+  });
+});
+
+describe("memberJoinedBy", () => {
+  it("includes a member who joined before the expense was recorded the same day", () => {
+    expect(
+      memberJoinedBy(
+        new Date("2026-03-01T16:00:00.000Z"),
+        new Date("2026-03-01T17:00:00.000Z"),
+      ),
+    ).toBe(true);
+  });
+
+  it("excludes a member who joined later the same day", () => {
+    expect(
+      memberJoinedBy(
+        new Date("2026-03-23T17:00:00.000Z"),
+        new Date("2026-03-23T16:00:00.000Z"),
+      ),
+    ).toBe(false);
   });
 });
 

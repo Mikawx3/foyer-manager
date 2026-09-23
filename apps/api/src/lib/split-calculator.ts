@@ -12,6 +12,11 @@ export function assertPercentagesSumTo100(percentages: number[]): void {
   }
 }
 
+/** True when the member joined at or before `at`. */
+export function memberJoinedBy(memberSince: Date, at: Date): boolean {
+  return memberSince.getTime() <= at.getTime();
+}
+
 export function buildEqualDefaultSplits(
   tenants: { id: string }[],
 ): { tenantId: string; percentage: number }[] {

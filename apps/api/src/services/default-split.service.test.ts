@@ -136,6 +136,160 @@ describe("DefaultSplitService", () => {
     expect(tenants.findAllByHousehold).toHaveBeenCalledWith(householdId);
   });
 
+  it("resolveForExpense asOf omits members who joined after the expense was recorded", async () => {
+    const { service } = createMocks({
+      repository: {
+        findByHouseholdAndCategory: vi.fn().mockResolvedValue([]),
+      },
+      tenants: {
+        findAllByHousehold: vi.fn().mockResolvedValue([
+          {
+            id: tenantId,
+            householdId,
+            name: "A",
+            email: "a@test.com",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          },
+          {
+            id: tenantIdB,
+            householdId,
+            name: "B",
+            email: "b@test.com",
+            createdAt: new Date("2026-03-01T00:00:00.000Z"),
+          },
+        ]),
+      },
+    });
+
+    const resolved = await service.resolveForExpense(
+      householdId,
+      categoryId,
+      new Date("2026-02-01T12:00:00.000Z"),
+    );
+
+    expect(resolved).toEqual([{ tenantId, percentage: 100 }]);
+  });
+
+  it("resolveForExpense asOf omits a member who joined later the same day", async () => {
+    const { service } = createMocks({
+      repository: {
+        findByHouseholdAndCategory: vi.fn().mockResolvedValue([]),
+      },
+      tenants: {
+        findAllByHousehold: vi.fn().mockResolvedValue([
+          {
+            id: tenantId,
+            householdId,
+            name: "A",
+            email: "a@test.com",
+            createdAt: new Date("2026-03-23T10:00:00.000Z"),
+          },
+          {
+            id: tenantIdB,
+            householdId,
+            name: "B",
+            email: "b@test.com",
+            createdAt: new Date("2026-03-23T17:00:00.000Z"),
+          },
+        ]),
+      },
+    });
+
+    const resolved = await service.resolveForExpense(
+      householdId,
+      categoryId,
+      new Date("2026-03-23T16:00:00.000Z"),
+    );
+
+    expect(resolved).toEqual([{ tenantId, percentage: 100 }]);
+  });
+
+  it("resolveForExpense asOf keeps a member who joined earlier the same day", async () => {
+    const { service } = createMocks({
+      repository: {
+        findByHouseholdAndCategory: vi.fn().mockResolvedValue([]),
+      },
+      tenants: {
+        findAllByHousehold: vi.fn().mockResolvedValue([
+          {
+            id: tenantId,
+            householdId,
+            name: "A",
+            email: "a@test.com",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          },
+          {
+            id: tenantIdB,
+            householdId,
+            name: "B",
+            email: "b@test.com",
+            createdAt: new Date("2026-02-01T08:00:00.000Z"),
+          },
+        ]),
+      },
+    });
+
+    const resolved = await service.resolveForExpense(
+      householdId,
+      categoryId,
+      new Date("2026-02-01T18:00:00.000Z"),
+    );
+
+    expect(resolved).toEqual([
+      { tenantId, percentage: 50 },
+      { tenantId: tenantIdB, percentage: 50 },
+    ]);
+  });
+
+  it("resolveForExpense asOf rescales explicit rules without members who joined later", async () => {
+    const tenantIdC = "clt32345678901234567890123";
+    const { service } = createMocks({
+      repository: {
+        findByHouseholdAndCategory: vi.fn().mockResolvedValue([
+          { ...prismaGlobalRule, tenantId, percentage: 50 },
+          { ...prismaGlobalRule, id: "cld32345678901234567890123", tenantId: tenantIdB, percentage: 30 },
+          { ...prismaGlobalRule, id: "cld42345678901234567890123", tenantId: tenantIdC, percentage: 20 },
+        ]),
+      },
+      tenants: {
+        findAllByHousehold: vi.fn().mockResolvedValue([
+          {
+            id: tenantId,
+            householdId,
+            name: "A",
+            email: "a@test.com",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          },
+          {
+            id: tenantIdB,
+            householdId,
+            name: "B",
+            email: "b@test.com",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          },
+          {
+            id: tenantIdC,
+            householdId,
+            name: "C",
+            email: "c@test.com",
+            createdAt: new Date("2026-03-01T00:00:00.000Z"),
+          },
+        ]),
+      },
+    });
+
+    const resolved = await service.resolveForExpense(
+      householdId,
+      categoryId,
+      new Date("2026-02-01T12:00:00.000Z"),
+    );
+
+    expect(resolved).toEqual([
+      { tenantId, percentage: 62.5 },
+      { tenantId: tenantIdB, percentage: 37.5 },
+    ]);
+  });
+
   it("resolveForExpense falls back to global when no category override", async () => {
     const { repository, service } = createMocks({
       repository: {

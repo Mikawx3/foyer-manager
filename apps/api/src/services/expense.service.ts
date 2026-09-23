@@ -207,6 +207,7 @@ export class ExpenseService {
     const resolved = await this.defaultSplits.resolveForExpense(
       expense.householdId,
       expense.categoryId,
+      expense.createdAt,
     );
 
     if (resolved.length === 0) {
@@ -399,6 +400,7 @@ export class ExpenseService {
     const resolved = await this.defaultSplits.resolveForExpense(
       expense.householdId,
       expense.categoryId,
+      expense.createdAt,
     );
 
     return this.buildDynamicSplits(expense, resolved);
