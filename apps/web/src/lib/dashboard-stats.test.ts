@@ -47,8 +47,8 @@ const expenses: Expense[] = [
 ];
 
 const categories: Category[] = [
-  { id: "c-rent", name: "Rent", householdId: "h1" },
-  { id: "c-groc", name: "Groceries", householdId: "h1" },
+  { id: "c-rent", name: "Rent", color: "other", householdId: "h1" },
+  { id: "c-groc", name: "Groceries", color: "other", householdId: "h1" },
 ];
 
 const tenants: Tenant[] = [

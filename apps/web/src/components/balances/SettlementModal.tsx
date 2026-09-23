@@ -87,7 +87,11 @@ export function SettlementModal({
         onSubmit={(event) => {
           event.preventDefault();
           const committedAmount = amountInputRef.current?.commit();
-          if (!Number.isFinite(committedAmount) || committedAmount <= 0) {
+          if (
+            committedAmount === undefined ||
+            !Number.isFinite(committedAmount) ||
+            committedAmount <= 0
+          ) {
             return;
           }
           onConfirm(committedAmount);

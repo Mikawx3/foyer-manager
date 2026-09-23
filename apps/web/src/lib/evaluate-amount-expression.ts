@@ -115,8 +115,12 @@ function parseNumber(src: string, index: number): ParseResult {
   let cursor = index;
   let dotCount = 0;
 
-  while (cursor < src.length && /[\d.]/.test(src[cursor])) {
-    if (src[cursor] === ".") {
+  while (cursor < src.length) {
+    const char = src[cursor];
+    if (char === undefined || !/[\d.]/.test(char)) {
+      break;
+    }
+    if (char === ".") {
       dotCount += 1;
       if (dotCount > 1) {
         throw new Error("invalid number");

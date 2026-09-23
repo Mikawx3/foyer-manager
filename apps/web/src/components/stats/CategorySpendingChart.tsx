@@ -32,8 +32,8 @@ interface CategorySpendingChartProps {
 }
 
 interface CategoryAxisTickProps {
-  x?: number;
-  y?: number;
+  x?: number | string;
+  y?: number | string;
   payload?: { value: string };
   slices: CategoryChartSlice[];
   onCategoryClick?: (categoryId: string) => void;
