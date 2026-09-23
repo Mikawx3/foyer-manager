@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { PublicDocument } from "../components/layout/PublicChrome.tsx";
-import { useDocumentTitle } from "../hooks/useDocumentTitle.ts";
+import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
 
 const SECTIONS = [
@@ -23,7 +23,7 @@ export function TermsPage() {
   const { t } = useTranslation("terms");
   const contactEmail = getPrivacyContactEmail();
 
-  useDocumentTitle(t("metaTitle"));
+  usePageMeta(t("metaTitle"), t("metaDescription"));
 
   return (
     <PublicDocument

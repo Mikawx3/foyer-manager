@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { PublicDocument } from "../components/layout/PublicChrome.tsx";
-import { useDocumentTitle } from "../hooks/useDocumentTitle.ts";
+import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
 
 const SECTIONS = ["effort", "contact"] as const;
@@ -11,7 +11,7 @@ export function AccessibilityPage() {
   const { t } = useTranslation("accessibility");
   const contactEmail = getPrivacyContactEmail();
 
-  useDocumentTitle(t("metaTitle"));
+  usePageMeta(t("metaTitle"), t("metaDescription"));
 
   return (
     <PublicDocument title={t("title")} updated={t("updated")} intro={t("intro")}>

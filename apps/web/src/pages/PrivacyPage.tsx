@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.tsx";
-import { useDocumentTitle } from "../hooks/useDocumentTitle.ts";
+import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
 
 const SECTIONS = [
@@ -22,7 +22,7 @@ export function PrivacyPage() {
   const { t } = useTranslation("privacy");
   const contactEmail = getPrivacyContactEmail();
 
-  useDocumentTitle(t("metaTitle"));
+  usePageMeta(t("metaTitle"), t("metaDescription"));
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">

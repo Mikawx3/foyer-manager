@@ -43,7 +43,7 @@ export function PublicHeader() {
               <Link to="/login" className={`${btnSecondary} px-2`}>
                 {tLanding("signIn")}
               </Link>
-              <Link to="/register" className={`${btnPrimary} hidden sm:inline-flex`}>
+              <Link to="/register" className={`${btnPrimary} !hidden sm:!inline-flex`}>
                 {tLanding("createHousehold")}
               </Link>
             </>

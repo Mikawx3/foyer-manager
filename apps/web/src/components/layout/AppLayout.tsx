@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Outlet, useMatches } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle.ts";
+import { useNoIndex } from "../../hooks/usePageMeta.ts";
 import { formatDocumentTitle, getAppName } from "../../lib/app-name.ts";
 import { readRouteTitle } from "../../lib/document-title.ts";
 import { AppHeader } from "./AppHeader.tsx";
@@ -15,6 +16,7 @@ export function AppLayout() {
     .find((title) => title !== null);
   const { t } = useTranslation(routeTitle?.titleNs ?? "common");
   useDocumentTitle(routeTitle ? formatDocumentTitle(t(routeTitle.titleKey)) : getAppName());
+  useNoIndex();
 
   return (
     <div className="min-h-screen bg-bg">

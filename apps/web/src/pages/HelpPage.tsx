@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { PublicDocument } from "../components/layout/PublicChrome.tsx";
-import { useDocumentTitle } from "../hooks/useDocumentTitle.ts";
+import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
 
 const QUESTIONS = ["who", "invite", "delete", "google", "ads"] as const;
@@ -12,7 +12,7 @@ export function HelpPage() {
   const { t } = useTranslation("help");
   const contactEmail = getPrivacyContactEmail();
 
-  useDocumentTitle(t("metaTitle"));
+  usePageMeta(t("metaTitle"), t("metaDescription"));
 
   return (
     <PublicDocument title={t("title")} intro={t("intro")}>

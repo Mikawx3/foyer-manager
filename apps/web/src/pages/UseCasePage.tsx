@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
-import { useDocumentTitle } from "../hooks/useDocumentTitle.ts";
+import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getAppName } from "../lib/app-name.ts";
 import { btnPrimary, btnSecondary, card } from "../lib/ui-classes.ts";
 
@@ -24,7 +24,10 @@ export function UseCasePage() {
   const showAuth = !isLoading && !isLocalMode;
   const valid = isUseCaseId(useCaseId);
 
-  useDocumentTitle(valid ? t(`${useCaseId}.metaTitle`) : getAppName());
+  usePageMeta(
+    valid ? t(`${useCaseId}.metaTitle`) : getAppName(),
+    valid ? t(`${useCaseId}.metaDescription`) : undefined,
+  );
 
   useLayoutEffect(() => {
     if (!valid) {
