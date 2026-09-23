@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { app } from "../apps/api/src/app.js";
+import type { Hono } from "hono";
 
 export const config = {
   maxDuration: 30,
@@ -49,7 +49,29 @@ export default async function handler(
     body: method === "GET" || method === "HEAD" || body.length === 0 ? undefined : body,
   });
 
-  const response = await app.fetch(request);
+  let app: Hono;
+  try {
+    const loaded = await import("../apps/api/src/app.js");
+    app = loaded.app;
+  } catch (error) {
+    const message = error instanceof Error ? (error.stack ?? error.message) : "unknown error";
+    res.statusCode = 500;
+    res.setHeader("content-type", "text/plain; charset=utf-8");
+    res.end(message);
+    return;
+  }
+
+  let response: Response;
+  try {
+    response = await app.fetch(request);
+  } catch (error) {
+    const message = error instanceof Error ? (error.stack ?? error.message) : "unknown error";
+    res.statusCode = 500;
+    res.setHeader("content-type", "text/plain; charset=utf-8");
+    res.end(message);
+    return;
+  }
+
   res.statusCode = response.status;
   response.headers.forEach((value, key) => {
     res.setHeader(key, value);
