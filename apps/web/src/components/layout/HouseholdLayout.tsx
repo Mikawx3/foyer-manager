@@ -101,7 +101,7 @@ export function HouseholdLayout() {
                 <NavLink
                   to="/households"
                   className={householdNavLinkClass}
-                  end={false}
+                  end
                 >
                   <Home className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
                   {t("allHouseholds")}
