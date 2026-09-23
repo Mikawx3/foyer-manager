@@ -196,7 +196,7 @@
     "addNameLabel": "Ajouter mon nom",
     "guestNamesTaken": "Tous les noms ont déjà un compte. Créez un compte pour ajouter le vôtre.",
     "keepNameTitle": "Garder {{name}}",
-    "keepNameHint": "Cette visite ne dure pas. Créez un compte pour lier {{name}} à vous dans ce foyer.",
+    "keepNameHint": "Cette visite reste ouverte 30 jours après votre dernière ouverture du foyer. Créez un compte pour lier {{name}} à vous.",
     "keepNameButton": "Créer un compte",
     "memberAlreadyLinked": "Compte lié",
     "noMembersToJoin": "Aucun nom pour le moment. Demandez à la personne qui a créé le foyer d'ajouter le vôtre, puis rouvrez ce lien.",

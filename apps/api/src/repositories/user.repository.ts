@@ -65,11 +65,18 @@ export class UserRepository {
     });
   }
 
+  async touchLastSeen(id: string, seenAt = new Date()): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: { lastSeenAt: seenAt },
+    });
+  }
+
   async deleteExpiredGuests(olderThan: Date): Promise<void> {
     await prisma.user.deleteMany({
       where: {
         isGuest: true,
-        createdAt: { lt: olderThan },
+        lastSeenAt: { lt: olderThan },
       },
     });
   }

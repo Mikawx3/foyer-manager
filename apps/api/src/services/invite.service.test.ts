@@ -102,6 +102,7 @@ describe("InviteService", () => {
     promoteGuest: vi.fn(),
     deleteGuestsWithoutMembership: vi.fn(),
     deleteExpiredGuests: vi.fn(),
+    touchLastSeen: vi.fn(),
   };
     const tenants: TenantRepository = {
       findById: vi.fn().mockResolvedValue(openMember),
@@ -181,6 +182,7 @@ describe("InviteService", () => {
       promoteGuest: vi.fn(),
       deleteGuestsWithoutMembership: vi.fn(),
       deleteExpiredGuests: vi.fn(),
+    touchLastSeen: vi.fn(),
     };
     const tenants: TenantRepository = {
       findById: vi.fn()
@@ -256,6 +258,7 @@ describe("InviteService", () => {
       promoteGuest: vi.fn(),
       deleteGuestsWithoutMembership: vi.fn(),
       deleteExpiredGuests: vi.fn(),
+    touchLastSeen: vi.fn(),
     };
     const tenants: TenantRepository = {
       findById: vi.fn().mockResolvedValue({ ...openMember, userId: "user-1" }),
@@ -396,6 +399,7 @@ describe("InviteService", () => {
           googleSub: null,
           isGuest: true,
           createdAt: new Date(),
+          lastSeenAt: new Date(),
         }),
         findByEmail: vi.fn().mockResolvedValue(null),
       },
@@ -496,6 +500,7 @@ function buildInviteService(overrides?: {
     promoteGuest: vi.fn(),
     deleteGuestsWithoutMembership: vi.fn(),
     deleteExpiredGuests: vi.fn(),
+    touchLastSeen: vi.fn(),
     ...overrides?.users,
   };
   const tenants: TenantRepository = {

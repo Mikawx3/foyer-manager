@@ -230,7 +230,7 @@ export class InviteService {
     if (!user || !user.isGuest) {
       throw new ValidationError("Only a guest visit can become an account");
     }
-    if (isGuestExpired(user.createdAt)) {
+    if (isGuestExpired(user.lastSeenAt)) {
       throw new ValidationError("Guest visit expired");
     }
     const membership = await this.members.findByUserAndHousehold(userId, householdId);
@@ -256,7 +256,7 @@ export class InviteService {
   private async resolveGuestUser(householdId: string, existingUserId?: string): Promise<string> {
     if (existingUserId) {
       const user = await this.users.findById(existingUserId);
-      if (user?.isGuest && !isGuestExpired(user.createdAt)) {
+      if (user?.isGuest && !isGuestExpired(user.lastSeenAt)) {
         const membership = await this.members.findByUserAndHousehold(user.id, householdId);
         if (membership) {
           return user.id;

@@ -33,6 +33,7 @@ model User {
   googleSub   String?            @unique
   isGuest     Boolean            @default(false)
   createdAt   DateTime           @default(now())
+  lastSeenAt  DateTime           @default(now())
   memberships HouseholdMember[]
   invites     HouseholdInvite[]
   tenants     Tenant[]

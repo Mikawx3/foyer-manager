@@ -196,7 +196,7 @@
     "addNameLabel": "Add my name",
     "guestNamesTaken": "Every name already has an account. Create an account to add yours.",
     "keepNameTitle": "Keep {{name}}",
-    "keepNameHint": "This visit does not last. Create an account to link {{name}} to you in this household.",
+    "keepNameHint": "This visit stays open for 30 days after you last open the household. Create an account to link {{name}} to you.",
     "keepNameButton": "Create an account",
     "memberAlreadyLinked": "Account linked",
     "noMembersToJoin": "No names yet. Ask the person who created the household to add yours, then open this link again.",

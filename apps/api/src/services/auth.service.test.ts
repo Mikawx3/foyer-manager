@@ -30,6 +30,7 @@ describe("AuthService", () => {
     promoteGuest: vi.fn(),
     deleteGuestsWithoutMembership: vi.fn(),
     deleteExpiredGuests: vi.fn(),
+    touchLastSeen: vi.fn(),
   };
 
   const mockMembers: HouseholdMemberRepository = {
