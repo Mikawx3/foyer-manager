@@ -22,16 +22,19 @@
   "dependencies": {
     "@foyer/types": "*",
     "@hono/node-server": "^1.14.4",
+    "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.9.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "hono": "^4.7.11",
     "jose": "^6.2.3",
+    "pg": "^8.16.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.15.30",
+    "@types/pg": "^8.15.5",
     "dotenv-cli": "^8.0.0",
     "prisma": "^6.9.0",
     "tsx": "^4.19.4",
