@@ -14,6 +14,8 @@ const tenants: Tenant[] = [
     householdId: "h1",
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
+    claimed: false,
+    isCurrentUser: false,
   },
   {
     id: "t2",
@@ -22,6 +24,8 @@ const tenants: Tenant[] = [
     householdId: "h1",
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
+    claimed: false,
+    isCurrentUser: false,
   },
 ];
 
