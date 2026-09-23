@@ -6,4 +6,5 @@ export const authRoutes = new Hono();
 
 authRoutes.post("/register", authController.register);
 authRoutes.post("/login", authController.login);
+authRoutes.post("/google", authController.google);
 authRoutes.get("/me", authMiddleware, authController.me);

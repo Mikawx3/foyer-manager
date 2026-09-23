@@ -11,10 +11,14 @@ export const createHouseholdSchema = z.object({
 });
 
 export const updateHouseholdSchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
   settlementPeriod: settlementPeriodSchema.optional(),
   type: householdTypeSchema.optional(),
 }).refine(
-  (data) => data.settlementPeriod !== undefined || data.type !== undefined,
+  (data) =>
+    data.name !== undefined ||
+    data.settlementPeriod !== undefined ||
+    data.type !== undefined,
   { message: "At least one field must be provided" },
 );
 

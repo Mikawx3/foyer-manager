@@ -22,6 +22,7 @@ import type {
   UpdateIncomeTemplatePayload,
   ResolvedIncome,
   CreateRecurringExpensePayload,
+  GoogleAuthPayload,
   LoginPayload,
   PaginatedExpenses,
   RecurringExpense,
@@ -110,6 +111,11 @@ export async function login(input: LoginPayload): Promise<AuthResponse> {
 
 export async function register(input: RegisterPayload): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>("/auth/register", input);
+  return data;
+}
+
+export async function loginWithGoogle(input: GoogleAuthPayload): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/google", input);
   return data;
 }
 

@@ -7,6 +7,7 @@ import { queryKeys } from "../lib/query-keys.ts";
 
 interface DeploymentModeContextValue {
   deploymentMode: DeploymentMode;
+  googleClientId: string | null;
   isLocalMode: boolean;
   isCloudMode: boolean;
   isLoading: boolean;
@@ -31,6 +32,7 @@ export function DeploymentModeProvider({ children }: { children: ReactNode }) {
 
   const value: DeploymentModeContextValue = {
     deploymentMode,
+    googleClientId: configQuery.data?.googleClientId ?? null,
     isLocalMode: deploymentMode === "local",
     isCloudMode: deploymentMode === "cloud",
     isLoading: configQuery.isLoading,

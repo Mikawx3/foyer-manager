@@ -176,7 +176,9 @@
     "createAccountSubtitle": "Configurez votre foyer en quelques étapes.",
     "householdName": "Nom du foyer",
     "householdNamePlaceholder": "ex. Notre appartement",
-    "createAccountButton": "Créer un compte"
+    "createAccountButton": "Créer un compte",
+    "or": "ou",
+    "googleUnavailable": "La connexion Google n'a pas pu se charger. Réessayez."
   },
   "dashboard": {
     "title": "Tableau de bord",

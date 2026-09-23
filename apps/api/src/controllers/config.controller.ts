@@ -1,9 +1,16 @@
 import type { Context } from "hono";
 import { getDeploymentMode } from "../lib/deployment.js";
+import { getGoogleClientId } from "../lib/google-identity.js";
 
 export class ConfigController {
   get = (c: Context) => {
-    return c.json({ deploymentMode: getDeploymentMode() }, 200);
+    return c.json(
+      {
+        deploymentMode: getDeploymentMode(),
+        googleClientId: getGoogleClientId(),
+      },
+      200,
+    );
   };
 }
 

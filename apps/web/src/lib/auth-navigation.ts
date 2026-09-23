@@ -1,3 +1,4 @@
+import type { AuthResponse } from "@foyer/types";
 import { getMe, getTenants } from "./api.ts";
 
 export async function resolveAuthDestination(householdId: string): Promise<string> {
@@ -14,4 +15,11 @@ export async function resolveAuthDestination(householdId: string): Promise<strin
 export async function resolvePostLoginPath(): Promise<string> {
   const me = await getMe();
   return resolveAuthDestination(me.householdId);
+}
+
+export async function resolveGoogleAuthPath(response: AuthResponse): Promise<string> {
+  if (response.isNewAccount) {
+    return `/households/${response.householdId}/onboarding`;
+  }
+  return resolvePostLoginPath();
 }

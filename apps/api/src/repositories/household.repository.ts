@@ -67,12 +67,13 @@ export class HouseholdRepository {
 
   async updateById(
     id: string,
-    data: { settlementPeriod?: string; type?: string },
+    data: { name?: string; settlementPeriod?: string; type?: string },
   ): Promise<Household> {
     try {
       return await prisma.household.update({
         where: { id },
         data: {
+          ...(data.name !== undefined && { name: data.name }),
           ...(data.settlementPeriod !== undefined && {
             settlementPeriod: data.settlementPeriod,
           }),

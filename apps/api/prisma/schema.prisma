@@ -28,7 +28,8 @@ model Household {
 model User {
   id          String    @id @default(cuid())
   email       String    @unique
-  password    String
+  password    String?
+  googleSub   String?   @unique
   householdId String    @unique
   household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())

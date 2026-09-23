@@ -65,9 +65,10 @@ describe("household routes", () => {
   });
 
   it("GET /api/config returns deployment mode", async () => {
+    delete process.env.GOOGLE_CLIENT_ID;
     const response = await app.request("/api/config");
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { deploymentMode: string };
-    expect(body.deploymentMode).toBe("local");
+    const body = (await response.json()) as { deploymentMode: string; googleClientId: string | null };
+    expect(body).toEqual({ deploymentMode: "local", googleClientId: null });
   });
 });

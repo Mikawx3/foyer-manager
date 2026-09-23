@@ -69,6 +69,7 @@ export async function submitHouseholdWizard(
     }
     householdId = options.householdId;
     await updateHousehold(householdId, {
+      name: state.name.trim(),
       type: state.type,
       settlementPeriod: state.settlementPeriod,
     });

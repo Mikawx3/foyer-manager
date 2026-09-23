@@ -176,7 +176,9 @@
     "createAccountSubtitle": "Set up your household in a few steps.",
     "householdName": "Household name",
     "householdNamePlaceholder": "e.g. Our apartment",
-    "createAccountButton": "Create account"
+    "createAccountButton": "Create account",
+    "or": "or",
+    "googleUnavailable": "Google sign-in could not load. Try again."
   },
   "dashboard": {
     "title": "Dashboard",

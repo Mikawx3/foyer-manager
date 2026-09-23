@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { parseOrThrow } from "../lib/validation.js";
 import { authService } from "../services/auth.service.js";
 import { getAuth } from "../middleware/auth.middleware.js";
-import { loginSchema, registerSchema } from "../validators/auth.validator.js";
+import { googleAuthSchema, loginSchema, registerSchema } from "../validators/auth.validator.js";
 
 export class AuthController {
   register = async (c: Context) => {
@@ -15,6 +15,12 @@ export class AuthController {
     const body = parseOrThrow(loginSchema, await c.req.json());
     const result = await authService.login(body);
     return c.json(result, 200);
+  };
+
+  google = async (c: Context) => {
+    const body = parseOrThrow(googleAuthSchema, await c.req.json());
+    const result = await authService.loginWithGoogle(body);
+    return c.json(result, result.isNewAccount ? 201 : 200);
   };
 
   me = async (c: Context) => {

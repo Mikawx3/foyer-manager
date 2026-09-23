@@ -111,6 +111,7 @@ export class HouseholdService {
   async update(id: string, input: UpdateHouseholdInput): Promise<Household> {
     await this.getById(id);
     const household = await this.repository.updateById(id, {
+      ...(input.name !== undefined && { name: input.name }),
       ...(input.settlementPeriod !== undefined && {
         settlementPeriod: input.settlementPeriod,
       }),

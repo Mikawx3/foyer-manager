@@ -2,16 +2,19 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthOrDivider, GoogleAuthButton } from "../components/auth/GoogleAuthButton.tsx";
 import { FormField, inputClassName } from "../components/forms/FormField.tsx";
 import { AppHeader } from "../components/layout/AppHeader.tsx";
-import { getApiErrorMessage, login } from "../lib/api.ts";
-import { resolvePostLoginPath } from "../lib/auth-navigation.ts";
+import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
+import { getApiErrorMessage, login, loginWithGoogle } from "../lib/api.ts";
+import { resolveGoogleAuthPath, resolvePostLoginPath } from "../lib/auth-navigation.ts";
 import { setToken } from "../lib/auth-storage.ts";
 import { btnPrimary, formCard, inlineError } from "../lib/ui-classes.ts";
 
 export function LoginPage() {
   const { t } = useTranslation("auth");
   const { t: tCommon } = useTranslation("common");
+  const { googleClientId } = useDeploymentMode();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +28,15 @@ export function LoginPage() {
     },
   });
 
+  const googleMutation = useMutation({
+    mutationFn: loginWithGoogle,
+    onSuccess: async (response) => {
+      setToken(response.token);
+      const path = await resolveGoogleAuthPath(response);
+      navigate(path, { replace: true });
+    },
+  });
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     mutation.mutate({ email: email.trim(), password });
@@ -34,9 +46,24 @@ export function LoginPage() {
     <div className="min-h-screen bg-bg">
       <AppHeader />
       <div className="flex flex-col items-center justify-center px-4 py-12">
-        <form onSubmit={handleSubmit} className={`${formCard} w-full max-w-md`}>
+        <div className={`${formCard} w-full max-w-md`}>
           <h1 className="text-xl font-semibold tracking-tight text-stone-900">{t("signIn")}</h1>
           <p className="text-sm text-stone-600">{t("signInSubtitle")}</p>
+          {googleClientId && (
+            <>
+              <GoogleAuthButton
+                clientId={googleClientId}
+                context="signin"
+                disabled={googleMutation.isPending || mutation.isPending}
+                onCredential={(idToken) => googleMutation.mutate({ idToken })}
+              />
+              {googleMutation.isError && (
+                <p className={inlineError}>{getApiErrorMessage(googleMutation.error)}</p>
+              )}
+              <AuthOrDivider />
+            </>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
           <FormField label={tCommon("email")}>
             <input
               className={inputClassName}
@@ -61,7 +88,11 @@ export function LoginPage() {
           {mutation.isError && (
             <p className={inlineError}>{getApiErrorMessage(mutation.error)}</p>
           )}
-          <button type="submit" disabled={mutation.isPending} className={`${btnPrimary} w-full`}>
+          <button
+            type="submit"
+            disabled={mutation.isPending || googleMutation.isPending}
+            className={`${btnPrimary} w-full`}
+          >
             {mutation.isPending ? tCommon("signingIn") : t("signIn")}
           </button>
           <p className="text-center text-sm text-stone-600">
@@ -70,7 +101,8 @@ export function LoginPage() {
               {tCommon("createOne")}
             </Link>
           </p>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

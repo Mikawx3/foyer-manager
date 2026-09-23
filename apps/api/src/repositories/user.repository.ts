@@ -6,16 +6,34 @@ import { categoryRepository } from "./category.repository.js";
 
 export class UserRepository {
   async findByEmail(email: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { email } });
+    return prisma.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+    });
+  }
+
+  async findByGoogleSub(googleSub: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { googleSub } });
   }
 
   async findById(id: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { id } });
   }
 
+  async linkGoogleSub(id: string, googleSub: string): Promise<User> {
+    try {
+      return await prisma.user.update({
+        where: { id },
+        data: { googleSub },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
   async createWithHousehold(data: {
     email: string;
-    passwordHash: string;
+    passwordHash: string | null;
+    googleSub?: string | null;
     householdName: string;
   }): Promise<{ user: User; householdId: string }> {
     try {
@@ -38,6 +56,7 @@ export class UserRepository {
           data: {
             email: data.email,
             password: data.passwordHash,
+            googleSub: data.googleSub ?? null,
             householdId: household.id,
           },
         });

@@ -45,6 +45,7 @@ export interface CreateSettlementPayload {
 }
 
 export interface UpdateHouseholdPayload {
+  name?: string;
   settlementPeriod?: SettlementPeriod;
   type?: HouseholdType;
 }
@@ -70,6 +71,7 @@ export interface Tenant {
 export interface AuthResponse {
   token: string;
   householdId: string;
+  isNewAccount?: boolean;
 }
 
 export interface RegisterPayload {
@@ -83,6 +85,11 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface GoogleAuthPayload {
+  idToken: string;
+  householdName?: string;
+}
+
 export interface AuthUser {
   userId: string;
   email: string;
@@ -94,6 +101,7 @@ export type DeploymentMode = "local" | "cloud";
 
 export interface AppConfig {
   deploymentMode: DeploymentMode;
+  googleClientId: string | null;
 }
 
 export interface CreateTenantPayload {
