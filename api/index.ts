@@ -12,6 +12,12 @@ function headerValue(value: string | string[] | undefined): string | undefined {
   return value?.[0];
 }
 
+function sendInternalError(res: ServerResponse): void {
+  res.statusCode = 500;
+  res.setHeader("content-type", "application/json; charset=utf-8");
+  res.end(JSON.stringify({ error: "Internal server error" }));
+}
+
 export default async function handler(
   req: IncomingMessage,
   res: ServerResponse,
@@ -53,22 +59,16 @@ export default async function handler(
   try {
     const loaded = await import("../apps/api/src/app.js");
     app = loaded.app;
-  } catch (error) {
-    const message = error instanceof Error ? (error.stack ?? error.message) : "unknown error";
-    res.statusCode = 500;
-    res.setHeader("content-type", "text/plain; charset=utf-8");
-    res.end(message);
+  } catch {
+    sendInternalError(res);
     return;
   }
 
   let response: Response;
   try {
     response = await app.fetch(request);
-  } catch (error) {
-    const message = error instanceof Error ? (error.stack ?? error.message) : "unknown error";
-    res.statusCode = 500;
-    res.setHeader("content-type", "text/plain; charset=utf-8");
-    res.end(message);
+  } catch {
+    sendInternalError(res);
     return;
   }
 
