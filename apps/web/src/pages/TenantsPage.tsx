@@ -27,7 +27,6 @@ import {
   updateHouseholdTenant,
   type TenantRemovalPreview,
 } from "../lib/api.ts";
-import { formatMemberEmail } from "../lib/member-email.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { DEFAULT_TENANT_COLOR, nextAvailableColor } from "../lib/tenant-colors.ts";
 import { showMutationError, showMutationSuccess, mutationToastHandlers } from "../lib/toast.ts";
@@ -260,7 +259,6 @@ export function TenantsPage() {
           {tenantsQuery.isSuccess && activeTenants.length > 0 && (
             <ul className="space-y-3">
               {activeTenants.map((tenant) => {
-                const displayEmail = formatMemberEmail(tenant.email);
                 return (
                 <li key={tenant.id} className={card}>
                   <div className="flex items-start justify-between gap-3">
@@ -272,9 +270,6 @@ export function TenantsPage() {
                       />
                       <div className="min-w-0">
                         <p className="font-semibold tracking-tight text-stone-900">{tenant.name}</p>
-                        {displayEmail !== null && (
-                          <p className="text-sm text-stone-600">{displayEmail}</p>
-                        )}
                         {isCloudMode && (
                           <p className="mt-1 text-xs text-stone-500">
                             {tenant.isCurrentUser

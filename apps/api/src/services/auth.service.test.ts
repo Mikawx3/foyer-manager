@@ -27,6 +27,9 @@ describe("AuthService", () => {
     createWithHousehold: vi.fn(),
     createAccount: vi.fn(),
     createGuest: vi.fn(),
+    promoteGuest: vi.fn(),
+    deleteGuestsWithoutMembership: vi.fn(),
+    deleteExpiredGuests: vi.fn(),
   };
 
   const mockMembers: HouseholdMemberRepository = {
@@ -42,6 +45,7 @@ describe("AuthService", () => {
     listByHousehold: vi.fn(),
     findByUserAndHousehold: vi.fn(),
     create: vi.fn(),
+    updateRole: vi.fn(),
   };
 
   let service: AuthService;

@@ -16,7 +16,7 @@ import {
 } from "../../lib/api.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { nextAvailableColor } from "../../lib/tenant-colors.ts";
-import { showMutationError } from "../../lib/toast.ts";
+import { showMutationError, showMutationSuccess } from "../../lib/toast.ts";
 import { btnPrimary, btnSecondary, card, inlineError } from "../../lib/ui-classes.ts";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
 import { ListSkeleton } from "../ui/Skeleton.tsx";
@@ -144,12 +144,7 @@ export function HouseholdAccessSection({ householdId }: HouseholdAccessSectionPr
           <ul className="mt-4 space-y-2">
             {accessQuery.data.map((member) => (
               <li key={member.userId} className="flex items-center justify-between gap-3 text-sm">
-                <span className="min-w-0">
-                  <span className="font-medium text-stone-900">{member.name}</span>
-                  {member.email && (
-                    <span className="mt-0.5 block truncate text-stone-500">{member.email}</span>
-                  )}
-                </span>
+                <span className="min-w-0 font-medium text-stone-900">{member.name}</span>
                 <span className="shrink-0 rounded-full bg-stone-100 px-2 py-1 text-xs font-medium text-stone-700">
                   {t(`roles.${member.role}`)}
                 </span>
@@ -216,7 +211,10 @@ export function HouseholdAccessSection({ householdId }: HouseholdAccessSectionPr
                   type="button"
                   className={`${btnSecondary} mt-2`}
                   onClick={() => {
-                    void navigator.clipboard.writeText(inviteUrl).then(() => setCopied(true));
+                    void navigator.clipboard.writeText(inviteUrl).then(() => {
+                      setCopied(true);
+                      showMutationSuccess(t("inviteCopied"));
+                    });
                   }}
                 >
                   {t("copyInvite")}

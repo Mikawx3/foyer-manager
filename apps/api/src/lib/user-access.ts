@@ -1,4 +1,5 @@
 import { UnauthorizedError } from "../errors/app.errors.js";
+import { isGuestExpired } from "./guest-access.js";
 import { parseHouseholdRole } from "./household-role.js";
 import {
   householdMemberRepository,
@@ -25,6 +26,9 @@ export async function loadUserAccess(
   const user = await users.findById(userId);
   if (!user) {
     throw new UnauthorizedError("User not found");
+  }
+  if (user.isGuest && isGuestExpired(user.createdAt)) {
+    throw new UnauthorizedError("Guest visit expired");
   }
 
   const memberships = await members.listByUser(userId);

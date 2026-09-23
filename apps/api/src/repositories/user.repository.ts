@@ -37,6 +37,43 @@ export class UserRepository {
     }
   }
 
+  async promoteGuest(id: string, email: string, passwordHash: string): Promise<User> {
+    try {
+      return await prisma.user.update({
+        where: { id },
+        data: {
+          email,
+          password: passwordHash,
+          isGuest: false,
+        },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
+  async deleteGuestsWithoutMembership(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+    await prisma.user.deleteMany({
+      where: {
+        id: { in: ids },
+        isGuest: true,
+        memberships: { none: {} },
+      },
+    });
+  }
+
+  async deleteExpiredGuests(olderThan: Date): Promise<void> {
+    await prisma.user.deleteMany({
+      where: {
+        isGuest: true,
+        createdAt: { lt: olderThan },
+      },
+    });
+  }
+
   async createGuest(): Promise<User> {
     try {
       return await prisma.user.create({

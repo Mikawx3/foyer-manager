@@ -11,6 +11,7 @@ import { queryKeys } from "../../lib/query-keys.ts";
 import { householdNavLinkClass, mobileMainPadding } from "../../lib/ui-classes.ts";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
 import { Skeleton } from "../ui/Skeleton.tsx";
+import { GuestAccountForm } from "../tenants/GuestAccountForm.tsx";
 import { MobileBottomTabBar } from "./MobileBottomTabBar.tsx";
 
 const navItems = [
@@ -129,6 +130,13 @@ export function HouseholdLayout() {
           </nav>
         </aside>
         <main className={`min-w-0 flex-1 overflow-y-auto ${mobileMainPadding}`}>
+          {guestSession && viewingName && (
+            <GuestAccountForm
+              householdId={id}
+              tenantId={guestSession.tenantId}
+              memberName={viewingName}
+            />
+          )}
           {householdQuery.data && (
             <div className="mb-4 lg:hidden">
               {viewingName && (

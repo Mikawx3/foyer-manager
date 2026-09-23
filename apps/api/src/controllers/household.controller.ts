@@ -8,6 +8,7 @@ import { expenseService } from "../services/expense.service.js";
 import { householdService, type HouseholdService } from "../services/household.service.js";
 import { inviteService, type InviteService } from "../services/invite.service.js";
 import { tenantService, type TenantService } from "../services/tenant.service.js";
+import { upgradeGuestSchema } from "../validators/invite.validator.js";
 import { balancesQuerySchema } from "../validators/household-balances.validator.js";
 import {
   createHouseholdSchema,
@@ -75,6 +76,18 @@ export class HouseholdController {
     assertHouseholdAdmin(c, id);
     const household = await this.service.delete(id);
     return c.json(household, 200);
+  };
+
+  upgradeGuest = async (c: Context) => {
+    const { id } = parseOrThrow(householdIdParamSchema, c.req.param());
+    const auth = getAuth(c);
+    if (!auth.isGuest) {
+      throw new ForbiddenError("Only a guest visit can become an account");
+    }
+    assertHouseholdAccess(c, id);
+    const body = parseOrThrow(upgradeGuestSchema, await c.req.json());
+    const result = await this.invites.upgradeGuest(auth.userId, id, body);
+    return c.json(result, 200);
   };
 
   createInvite = async (c: Context) => {

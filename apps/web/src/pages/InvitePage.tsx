@@ -16,6 +16,7 @@ import {
   getMe,
   getTenants,
   registerWithInvite,
+  upgradeGuestAccount,
 } from "../lib/api.ts";
 import { resolveAuthDestination } from "../lib/auth-navigation.ts";
 import { getToken, setToken } from "../lib/auth-storage.ts";
@@ -137,6 +138,23 @@ export function InvitePage() {
     },
   });
 
+  const upgradeMutation = useMutation({
+    mutationFn: () => {
+      if (!selected || householdId.length === 0) {
+        throw new Error("Member is required");
+      }
+      return upgradeGuestAccount(householdId, {
+        email: email.trim(),
+        password,
+        tenantId: selected.id,
+      });
+    },
+    onSuccess: (response) => {
+      clearGuestMemberSession();
+      void goToHousehold(response.householdId, response.token);
+    },
+  });
+
   const showGuest = !signedIn || isGuest;
   const showAccount = !isGuest && !alreadyLinked;
 
@@ -214,6 +232,54 @@ export function InvitePage() {
                         <p className={inlineError}>{getApiErrorMessage(guestMutation.error)}</p>
                       )}
                     </div>
+                  )}
+
+                  {isGuest && householdId.length > 0 && (
+                    <form
+                      className="space-y-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        upgradeMutation.mutate();
+                      }}
+                    >
+                      <p className="text-sm font-medium text-stone-900">{t("keepNameButton")}</p>
+                      <p className="text-sm text-stone-600">
+                        {selected
+                          ? t("keepNameHint", { name: selected.name })
+                          : t("chooseOrAddNameHint")}
+                      </p>
+                      <FormField label={tCommon("email")}>
+                        <input
+                          className={inputClassName}
+                          type="email"
+                          autoComplete="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          required
+                        />
+                      </FormField>
+                      <FormField label={tCommon("password")}>
+                        <input
+                          className={inputClassName}
+                          type="password"
+                          autoComplete="new-password"
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          required
+                          minLength={8}
+                        />
+                      </FormField>
+                      <button
+                        type="submit"
+                        className={`${btnPrimary} w-full`}
+                        disabled={upgradeMutation.isPending || selected === null}
+                      >
+                        {t("createAccountAndJoin")}
+                      </button>
+                      {upgradeMutation.isError && (
+                        <p className={inlineError}>{getApiErrorMessage(upgradeMutation.error)}</p>
+                      )}
+                    </form>
                   )}
 
                   {showAccount && signedIn && openMembers.length === 0 && (

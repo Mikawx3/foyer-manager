@@ -7,7 +7,8 @@ import {
 } from "@foyer/types";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { ConflictError, NotFoundError, ValidationError } from "../errors/app.errors.js";
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors/app.errors.js";
+import { GUEST_TTL_MS, isGuestExpired } from "../lib/guest-access.js";
 import { claimTenantForUser } from "./tenant-claim.js";
 import {
   householdInviteRepository,
@@ -133,6 +134,7 @@ export class InviteService {
     if (tenant.userId !== null) {
       throw new ConflictError("This member is already linked to an account");
     }
+    await this.users.deleteExpiredGuests(new Date(Date.now() - GUEST_TTL_MS));
     const userId = await this.resolveGuestUser(invite.householdId, existingUserId);
     await this.ensureMembership(invite.householdId, userId, "guest");
     const sessionToken = await signToken({ userId });
@@ -219,10 +221,42 @@ export class InviteService {
     return tenant.id;
   }
 
+  async upgradeGuest(
+    userId: string,
+    householdId: string,
+    input: { email: string; password: string; tenantId: string },
+  ): Promise<AcceptInviteResponse> {
+    const user = await this.users.findById(userId);
+    if (!user || !user.isGuest) {
+      throw new ValidationError("Only a guest visit can become an account");
+    }
+    if (isGuestExpired(user.createdAt)) {
+      throw new ValidationError("Guest visit expired");
+    }
+    const membership = await this.members.findByUserAndHousehold(userId, householdId);
+    if (!membership || membership.role !== "guest") {
+      throw new ForbiddenError("Access denied to this household");
+    }
+    const existing = await this.users.findByEmail(input.email);
+    if (existing) {
+      throw new ConflictError("Email already registered");
+    }
+    const tenant = await this.requireActiveMember(householdId, input.tenantId);
+    if (tenant.userId !== null) {
+      throw new ConflictError("This member is already linked to an account");
+    }
+    const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+    await this.users.promoteGuest(user.id, input.email.trim().toLowerCase(), passwordHash);
+    await claimTenantForUser(this.tenants, householdId, tenant.id, user.id);
+    await this.members.updateRole(membership.id, "member");
+    const sessionToken = await signToken({ userId: user.id });
+    return { householdId, token: sessionToken, tenantId: tenant.id };
+  }
+
   private async resolveGuestUser(householdId: string, existingUserId?: string): Promise<string> {
     if (existingUserId) {
       const user = await this.users.findById(existingUserId);
-      if (user?.isGuest) {
+      if (user?.isGuest && !isGuestExpired(user.createdAt)) {
         const membership = await this.members.findByUserAndHousehold(user.id, householdId);
         if (membership) {
           return user.id;

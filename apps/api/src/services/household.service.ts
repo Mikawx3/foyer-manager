@@ -1,5 +1,6 @@
 import { SOLO_SELF_NAME, type Household, type HouseholdDeletionPreview } from "@foyer/types";
 import { NotFoundError } from "../errors/app.errors.js";
+import { GUEST_TTL_MS } from "../lib/guest-access.js";
 import { generateMemberEmail } from "../lib/member-email.js";
 import { round2 } from "../lib/decimal.js";
 import { toHouseholdDto } from "../lib/mappers.js";
@@ -24,6 +25,7 @@ import {
   tenantRepository,
   type TenantRepository,
 } from "../repositories/tenant.repository.js";
+import { userRepository, type UserRepository } from "../repositories/user.repository.js";
 import { expenseService, type ExpenseService } from "./expense.service.js";
 import type {
   CreateHouseholdInput,
@@ -53,6 +55,7 @@ export class HouseholdService {
     private readonly recurring: RecurringExpenseRepository = recurringExpenseRepository,
     private readonly expenseBalances: ExpenseService = expenseService,
     private readonly members: HouseholdMemberRepository = householdMemberRepository,
+    private readonly users: UserRepository = userRepository,
   ) {}
 
   async list(): Promise<Household[]> {
@@ -165,7 +168,13 @@ export class HouseholdService {
   }
 
   async delete(id: string): Promise<Household> {
+    const memberships = await this.members.listByHousehold(id);
+    const guestIds = memberships
+      .filter((membership) => membership.user.isGuest)
+      .map((membership) => membership.userId);
     const household = await this.repository.deleteById(id);
+    await this.users.deleteGuestsWithoutMembership(guestIds);
+    await this.users.deleteExpiredGuests(new Date(Date.now() - GUEST_TTL_MS));
     return toHouseholdDto(household);
   }
 }

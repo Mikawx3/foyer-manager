@@ -139,6 +139,17 @@ export async function getHouseholdAccess(householdId: string): Promise<Household
   return data;
 }
 
+export async function upgradeGuestAccount(
+  householdId: string,
+  input: { email: string; password: string; tenantId: string },
+): Promise<AcceptInviteResponse> {
+  const { data } = await api.post<AcceptInviteResponse>(
+    `/households/${householdId}/guest-account`,
+    input,
+  );
+  return data;
+}
+
 export async function createHouseholdInvite(householdId: string): Promise<HouseholdInviteCreated> {
   const { data } = await api.post<HouseholdInviteCreated>(`/households/${householdId}/invites`);
   return data;

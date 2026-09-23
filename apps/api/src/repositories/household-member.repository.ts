@@ -31,6 +31,17 @@ export class HouseholdMemberRepository {
     });
   }
 
+  async updateRole(id: string, role: string): Promise<HouseholdMember> {
+    try {
+      return await prisma.householdMember.update({
+        where: { id },
+        data: { role },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
   async create(data: {
     userId: string;
     householdId: string;

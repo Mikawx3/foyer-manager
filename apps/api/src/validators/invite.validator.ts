@@ -26,5 +26,11 @@ export const registerInviteSchema = z
     message: "Choose an existing member or add a new name",
   });
 
+export const upgradeGuestSchema = z.object({
+  email: z.string().trim().email().max(255),
+  password: z.string().min(8).max(128),
+  tenantId: z.string().cuid(),
+});
+
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
 export type RegisterInviteInput = z.infer<typeof registerInviteSchema>;

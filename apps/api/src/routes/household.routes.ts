@@ -12,6 +12,7 @@ householdRoutes.get("/", householdController.list);
 householdRoutes.post("/", householdController.create);
 householdRoutes.get("/:id/access", householdController.listAccess);
 householdRoutes.post("/:id/invites", householdController.createInvite);
+householdRoutes.post("/:id/guest-account", householdController.upgradeGuest);
 householdRoutes.post("/:id/tenants", householdController.createTenant);
 householdRoutes.post("/:id/tenants/:tenantId/claim", householdController.claimTenant);
 householdRoutes.get("/:id/tenants", householdController.listTenants);

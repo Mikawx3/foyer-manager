@@ -229,4 +229,34 @@ describe("HouseholdService", () => {
       "user-1",
     );
   });
+
+  it("deletes guest accounts that only belonged to the removed household", async () => {
+    const repository = buildRepository({
+      deleteById: vi.fn().mockResolvedValue(prismaHousehold),
+    });
+    const members = {
+      listByHousehold: vi.fn().mockResolvedValue([
+        { userId: "guest-1", user: { isGuest: true } },
+        { userId: "admin-1", user: { isGuest: false } },
+      ]),
+    };
+    const users = {
+      deleteGuestsWithoutMembership: vi.fn(),
+      deleteExpiredGuests: vi.fn(),
+    };
+    const service = new HouseholdService(
+      repository,
+      undefined as never,
+      undefined as never,
+      undefined as never,
+      undefined as never,
+      members as never,
+      users as never,
+    );
+
+    await service.delete(householdId);
+
+    expect(users.deleteGuestsWithoutMembership).toHaveBeenCalledWith(["guest-1"]);
+    expect(users.deleteExpiredGuests).toHaveBeenCalledOnce();
+  });
 });
