@@ -30,6 +30,7 @@ import { userRepository, type UserRepository } from "../repositories/user.reposi
 import { generateMemberEmail } from "../lib/member-email.js";
 import { parseHouseholdRole } from "../lib/household-role.js";
 import { signToken } from "../lib/jwt.js";
+import { logProductEvent } from "../lib/product-event.js";
 
 const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const BCRYPT_ROUNDS = 10;
@@ -73,6 +74,7 @@ export class InviteService {
       expiresAt: new Date(Date.now() + INVITE_TTL_MS),
     });
 
+    logProductEvent({ name: "invite_created" });
     return {
       token: invite.token,
       expiresAt: invite.expiresAt.toISOString(),
@@ -137,6 +139,7 @@ export class InviteService {
     await this.users.deleteExpiredGuests(new Date(Date.now() - GUEST_TTL_MS));
     const userId = await this.resolveGuestUser(invite.householdId, existingUserId);
     await this.ensureMembership(invite.householdId, userId, "guest");
+    logProductEvent({ name: "guest_joined" });
     const sessionToken = await signToken({ userId });
     return { householdId: invite.householdId, token: sessionToken, tenantId: tenant.id };
   }
@@ -181,6 +184,7 @@ export class InviteService {
     });
     await claimTenantForUser(this.tenants, invite.householdId, tenant.id, user.id);
     await this.ensureMembership(invite.householdId, user.id, "member");
+    logProductEvent({ name: "account_created", method: "invite" });
     const sessionToken = await signToken({ userId: user.id });
     return { householdId: invite.householdId, token: sessionToken, tenantId: tenant.id };
   }
@@ -249,6 +253,7 @@ export class InviteService {
     await this.users.promoteGuest(user.id, input.email.trim().toLowerCase(), passwordHash);
     await claimTenantForUser(this.tenants, householdId, tenant.id, user.id);
     await this.members.updateRole(membership.id, "member");
+    logProductEvent({ name: "guest_converted" });
     const sessionToken = await signToken({ userId: user.id });
     return { householdId, token: sessionToken, tenantId: tenant.id };
   }

@@ -4,6 +4,7 @@ import { GUEST_TTL_MS } from "../lib/guest-access.js";
 import { generateMemberEmail } from "../lib/member-email.js";
 import { round2 } from "../lib/decimal.js";
 import { toHouseholdDto } from "../lib/mappers.js";
+import { logProductEvent } from "../lib/product-event.js";
 import { DEFAULT_TENANT_COLOR } from "../lib/tenant-colors.js";
 import {
   expenseRepository,
@@ -141,6 +142,7 @@ export class HouseholdService {
         },
         userId,
       );
+      logProductEvent({ name: "household_created", type: "solo" });
       return toHouseholdDto(household);
     }
 
@@ -152,6 +154,7 @@ export class HouseholdService {
       },
       userId,
     );
+    logProductEvent({ name: "household_created", type: "shared" });
     return toHouseholdDto(household);
   }
 

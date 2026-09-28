@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { ConflictError, UnauthorizedError } from "../errors/app.errors.js";
 import { verifyGoogleIdToken, type GoogleTokenVerifier } from "../lib/google-identity.js";
 import { signToken } from "../lib/jwt.js";
+import { logProductEvent } from "../lib/product-event.js";
 import { toHouseholdDto } from "../lib/mappers.js";
 import {
   householdMemberRepository,
@@ -55,6 +56,7 @@ export class AuthService {
       householdName: input.householdName,
     });
 
+    logProductEvent({ name: "account_created", method: "email" });
     return this.issueSession(user.id, householdId, true);
   }
 
@@ -107,6 +109,7 @@ export class AuthService {
       googleSub: identity.sub,
       householdName,
     });
+    logProductEvent({ name: "account_created", method: "google" });
     return this.issueSession(user.id, householdId, true);
   }
 
