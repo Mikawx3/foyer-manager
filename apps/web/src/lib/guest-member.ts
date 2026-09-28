@@ -6,22 +6,23 @@ export interface GuestMemberSession {
 
 const STORAGE_KEY = "foyer.guestMember";
 
-function canUseSessionStorage(): boolean {
-  return typeof sessionStorage !== "undefined";
+/** Same storage as the guest token, so a returning guest still sees who they are and can keep that name. */
+function canUseLocalStorage(): boolean {
+  return typeof localStorage !== "undefined";
 }
 
 export function saveGuestMemberSession(session: GuestMemberSession): void {
-  if (!canUseSessionStorage()) {
+  if (!canUseLocalStorage()) {
     return;
   }
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
 
 export function readGuestMemberSession(householdId: string): GuestMemberSession | null {
-  if (!canUseSessionStorage()) {
+  if (!canUseLocalStorage()) {
     return null;
   }
-  const raw = sessionStorage.getItem(STORAGE_KEY);
+  const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
     return null;
   }
@@ -54,8 +55,8 @@ export function readGuestMemberSession(householdId: string): GuestMemberSession 
 }
 
 export function clearGuestMemberSession(): void {
-  if (!canUseSessionStorage()) {
+  if (!canUseLocalStorage()) {
     return;
   }
-  sessionStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY);
 }
