@@ -27,18 +27,18 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "google-auth-library": "^11.1.0",
-    "hono": "^4.7.11",
-    "jose": "^6.2.3",
-    "pg": "^8.16.3",
-    "zod": "^4.4.3"
+    "hono": "^4.13.9",
+    "jose": "^6.2.12",
+    "pg": "^8.23.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.15.30",
-    "@types/pg": "^8.15.5",
+    "@types/pg": "^8.23.1",
     "dotenv-cli": "^8.0.0",
     "prisma": "^6.9.0",
-    "tsx": "^4.19.4",
+    "tsx": "^4.23.15",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }
