@@ -1,6 +1,7 @@
 {
   "name": "foyer-manager",
   "private": true,
+  "license": "AGPL-3.0-only",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "predev": "npm run build -w @foyer/types",
