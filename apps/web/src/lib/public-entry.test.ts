@@ -13,4 +13,9 @@ describe("resolvePublicHome", () => {
   it("shows the landing page before sign-in in cloud mode", () => {
     expect(resolvePublicHome(false, false)).toBe("landing");
   });
+
+  it("shows the landing page when the API config could not be loaded", () => {
+    expect(resolvePublicHome(true, false, false)).toBe("landing");
+    expect(resolvePublicHome(true, true, false)).toBe("landing");
+  });
 });

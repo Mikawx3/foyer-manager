@@ -11,6 +11,7 @@ interface DeploymentModeContextValue {
   isLocalMode: boolean;
   isCloudMode: boolean;
   isLoading: boolean;
+  isConfigError: boolean;
 }
 
 const DeploymentModeContext = createContext<DeploymentModeContextValue | null>(null);
@@ -36,6 +37,7 @@ export function DeploymentModeProvider({ children }: { children: ReactNode }) {
     isLocalMode: deploymentMode === "local",
     isCloudMode: deploymentMode === "cloud",
     isLoading: configQuery.isLoading,
+    isConfigError: configQuery.isError,
   };
 
   return (
