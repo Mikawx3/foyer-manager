@@ -443,3 +443,30 @@ export interface IncomeStats {
     savings: number;
   }[];
 }
+
+export interface GrowthTotals {
+  accounts: number;
+  googleAccounts: number;
+  guests: number;
+  households: number;
+  activatedHouseholds: number;
+  sharedHouseholds: number;
+  expenses: number;
+  invites: number;
+}
+
+export interface GrowthDay {
+  date: string;
+  accounts: number;
+  guests: number;
+  households: number;
+  invites: number;
+  expenses: number;
+}
+
+export interface GrowthStats {
+  generatedAt: string;
+  windowDays: number;
+  totals: GrowthTotals;
+  daily: GrowthDay[];
+}

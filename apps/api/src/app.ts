@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { adminController } from "./controllers/admin.controller.js";
 import { configController } from "./controllers/config.controller.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { authMiddleware } from "./middleware/auth.middleware.js";
@@ -21,6 +22,7 @@ export function createApp() {
   app.get("/api/invites/:token", inviteController.preview);
   app.post("/api/invites/:token/accept", inviteController.accept);
   app.post("/api/invites/:token/register", inviteController.register);
+  app.get("/api/admin/stats", adminController.stats);
 
   const protectedApi = new Hono();
   protectedApi.use("*", authMiddleware);
