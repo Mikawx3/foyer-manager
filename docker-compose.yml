@@ -1,0 +1,50 @@
+# Self-hosting: cp .env.example .env, fill in the secrets, then `docker compose up -d`.
+# The app is served on http://localhost:${WEB_PORT:-8080}. Put a TLS reverse proxy in front for public use.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-foyer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-foyer}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-foyer} -d ${POSTGRES_DB:-foyer}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-foyer}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-foyer}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      ADMIN_STATS_TOKEN: ${ADMIN_STATS_TOKEN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        VITE_APP_NAME: ${APP_NAME:-}
+        VITE_PRIVACY_CONTACT_EMAIL: ${PRIVACY_CONTACT_EMAIL:-}
+        VITE_SOURCE_URL: ${SOURCE_URL:-}
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+
+volumes:
+  db-data:

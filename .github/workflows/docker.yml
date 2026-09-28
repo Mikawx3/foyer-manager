@@ -1,0 +1,70 @@
+name: Docker self-host
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - docker-compose.yml
+      - docker/**
+      - .dockerignore
+      - package-lock.json
+      - apps/api/prisma/**
+      - .github/workflows/docker.yml
+  pull_request:
+    paths:
+      - Dockerfile
+      - docker-compose.yml
+      - docker/**
+      - .dockerignore
+      - package-lock.json
+      - apps/api/prisma/**
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compose-up:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test .env
+        run: |
+          cp .env.example .env
+          sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 16)|" .env
+          sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" .env
+
+      - name: Build and start the stack
+        run: docker compose up -d --build
+
+      - name: Wait for the app
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/api/config > /dev/null; then
+              echo "API reachable through nginx"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready" >&2
+          exit 1
+
+      - name: Smoke test
+        run: |
+          curl -fsS http://localhost:8080/api/config
+          curl -fsS http://localhost:8080/ | grep -q '<div id="root">'
+          curl -fsS http://localhost:8080/households | grep -q '<div id="root">'
+          status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/admin/stats)
+          test "$status" = "404"
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
