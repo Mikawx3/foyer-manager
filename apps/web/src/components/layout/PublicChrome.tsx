@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
 import { getToken } from "../../lib/auth-storage.ts";
 import { getPrivacyContactEmail } from "../../lib/privacy-contact.ts";
+import { getSourceRepositoryUrl } from "../../lib/source-repository.ts";
 import { btnPrimary, btnSecondary } from "../../lib/ui-classes.ts";
 import { AppLogo } from "../brand/AppLogo.tsx";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher.tsx";
@@ -20,9 +21,9 @@ const PRODUCT_LINKS = [
 export function PublicHeader() {
   const { t } = useTranslation("common");
   const { t: tLanding } = useTranslation("landing");
-  const { isLocalMode, isLoading } = useDeploymentMode();
+  const { isLocalMode, isLoading, isConfigError } = useDeploymentMode();
   const hasSession = Boolean(getToken());
-  const showAuth = !isLoading && !isLocalMode;
+  const showAuth = !isLoading && (isConfigError || !isLocalMode);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-surface">
@@ -57,10 +58,11 @@ export function PublicHeader() {
 export function PublicFooter() {
   const { t } = useTranslation("landing");
   const { t: tCommon } = useTranslation("common");
-  const { isLocalMode, isLoading } = useDeploymentMode();
+  const { isLocalMode, isLoading, isConfigError } = useDeploymentMode();
   const hasSession = Boolean(getToken());
-  const showAuth = !isLoading && !isLocalMode;
+  const showAuth = !isLoading && (isConfigError || !isLocalMode);
   const contactEmail = getPrivacyContactEmail();
+  const sourceUrl = getSourceRepositoryUrl();
 
   return (
     <footer className="mt-auto border-t border-border">
@@ -111,6 +113,11 @@ export function PublicFooter() {
                 {t("footerFaq")}
               </Link>
             </li>
+            <li>
+              <a href={sourceUrl} className={footerLinkClass} target="_blank" rel="noopener noreferrer">
+                {t("footerSource")}
+              </a>
+            </li>
           </ul>
         </nav>
         <nav aria-label={t("footerLegal")}>
@@ -145,7 +152,12 @@ export function PublicFooter() {
         </nav>
       </div>
       <div className="border-t border-border">
-        <p className="mx-auto max-w-5xl px-4 py-4 text-sm text-stone-500 sm:px-6">{t("footerNote")}</p>
+        <p className="mx-auto max-w-5xl px-4 py-4 text-sm text-stone-500 sm:px-6">
+          {t("footerNote")} ·{" "}
+          <a href={sourceUrl} className="transition hover:text-primary" target="_blank" rel="noopener noreferrer">
+            {t("footerOpenSource")}
+          </a>
+        </p>
       </div>
     </footer>
   );

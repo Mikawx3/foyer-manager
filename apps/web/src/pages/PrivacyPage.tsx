@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.tsx";
 import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
+import { getSourceRepositoryUrl } from "../lib/source-repository.ts";
 
 const SECTIONS = [
   "controller",
@@ -52,6 +53,16 @@ export function PrivacyPage() {
                   className="mt-2 inline-block text-sm font-medium text-primary hover:text-primary-hover"
                 >
                   {contactEmail}
+                </a>
+              )}
+              {section === "security" && (
+                <a
+                  href={getSourceRepositoryUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-sm font-medium text-primary hover:text-primary-hover"
+                >
+                  {t("sourceLink")}
                 </a>
               )}
               {section === "rights" && (

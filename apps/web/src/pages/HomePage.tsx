@@ -6,6 +6,7 @@ import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getToken } from "../lib/auth-storage.ts";
 import { resolvePublicHome } from "../lib/public-entry.ts";
+import { getSourceRepositoryUrl } from "../lib/source-repository.ts";
 import { amount, amountLg, btnPrimary, btnSecondary, card, cardInteractive } from "../lib/ui-classes.ts";
 
 const AUDIENCES = [
@@ -18,7 +19,7 @@ const PREVIEW_LINES = ["Groceries", "Electricity", "Internet"] as const;
 
 const STEPS = ["step1", "step2", "step3"] as const;
 
-const ADVANTAGES = ["Balance", "Bills", "Private"] as const;
+const ADVANTAGES = ["Balance", "Bills", "Private", "Open"] as const;
 
 const USE_CASES = [
   { to: "/use/couple", title: "useCoupleTitle", body: "useCoupleBody" },
@@ -32,7 +33,7 @@ const audienceLinkClass =
 
 export function HomePage() {
   const { t } = useTranslation("landing");
-  const { isLocalMode, isLoading } = useDeploymentMode();
+  const { isLocalMode, isLoading, isConfigError } = useDeploymentMode();
   const hasSession = Boolean(getToken());
 
   usePageMeta(t("metaTitle"), t("metaDescription"));
@@ -45,7 +46,7 @@ export function HomePage() {
     );
   }
 
-  if (resolvePublicHome(isLocalMode, hasSession) === "app") {
+  if (resolvePublicHome(isLocalMode, hasSession, !isConfigError) === "app") {
     return <Navigate to="/households" replace />;
   }
 
@@ -121,11 +122,21 @@ export function HomePage() {
 
         <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
           <h2 className="text-lg font-semibold tracking-tight text-stone-900">{t("advantagesTitle")}</h2>
-          <ul className="mt-6 grid gap-4 md:grid-cols-3">
+          <ul className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {ADVANTAGES.map((advantage) => (
               <li key={advantage} className={card}>
                 <h3 className="font-semibold text-stone-900">{t(`advantage${advantage}Title`)}</h3>
                 <p className="mt-1 text-sm text-stone-600">{t(`advantage${advantage}Body`)}</p>
+                {advantage === "Open" && (
+                  <a
+                    href={getSourceRepositoryUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-sm font-medium text-primary hover:text-primary-hover"
+                  >
+                    {t("advantageOpenLink")}
+                  </a>
+                )}
               </li>
             ))}
           </ul>
