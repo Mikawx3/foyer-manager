@@ -6,7 +6,7 @@ import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
 import { getApiErrorMessage, getHousehold, getMe, getTenants } from "../../lib/api.ts";
-import { clearAuth } from "../../lib/auth-storage.ts";
+import { signOutActiveSession } from "../../lib/auth-storage.ts";
 import {
   calendarDayKey,
   dismissGuestPrompt,
@@ -100,7 +100,7 @@ export function HouseholdLayout() {
   };
 
   const handleSignOut = () => {
-    clearAuth();
+    signOutActiveSession(isGuest);
     navigate("/login", { replace: true });
   };
 

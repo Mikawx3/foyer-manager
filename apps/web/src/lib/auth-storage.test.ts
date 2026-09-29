@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearAuth, clearToken, getToken, setToken } from "./auth-storage.ts";
+import { saveGuestMemberSession, readGuestMemberSession } from "./guest-member.ts";
+import {
+  clearAuth,
+  clearToken,
+  getGuestResumeToken,
+  getToken,
+  resumeGuestSession,
+  setToken,
+  signOutActiveSession,
+} from "./auth-storage.ts";
 
 function createLocalStorageMock(): Storage {
   const store = new Map<string, string>();
@@ -43,5 +52,37 @@ describe("auth-storage", () => {
     setToken("abc123");
     clearAuth();
     expect(getToken()).toBeNull();
+  });
+
+  it("parks a guest visit on sign-out and restores it", () => {
+    setToken("guest-token");
+    saveGuestMemberSession({
+      householdId: "hh-1",
+      tenantId: "tenant-1",
+      invitePath: "/invite/abc",
+    });
+
+    signOutActiveSession(true);
+
+    expect(getToken()).toBeNull();
+    expect(readGuestMemberSession("hh-1")).toBeNull();
+    expect(getGuestResumeToken()).toBe("guest-token");
+
+    expect(resumeGuestSession()).toBe(true);
+    expect(getToken()).toBe("guest-token");
+    expect(getGuestResumeToken()).toBeNull();
+    expect(readGuestMemberSession("hh-1")).toEqual({
+      householdId: "hh-1",
+      tenantId: "tenant-1",
+      invitePath: "/invite/abc",
+    });
+  });
+
+  it("drops an account token on sign-out", () => {
+    setToken("account-token");
+    signOutActiveSession(false);
+    expect(getToken()).toBeNull();
+    expect(getGuestResumeToken()).toBeNull();
+    expect(resumeGuestSession()).toBe(false);
   });
 });

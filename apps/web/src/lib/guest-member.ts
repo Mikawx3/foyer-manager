@@ -5,6 +5,7 @@ export interface GuestMemberSession {
 }
 
 const STORAGE_KEY = "foyer.guestMember";
+const RESUME_KEY = "foyer.guestMember.resume";
 
 /** Same storage as the guest token, so a returning guest still sees who they are and can keep that name. */
 function canUseLocalStorage(): boolean {
@@ -59,4 +60,27 @@ export function clearGuestMemberSession(): void {
     return;
   }
   localStorage.removeItem(STORAGE_KEY);
+}
+
+/** Keep the chosen name across a guest sign-out, then put it back when the visit resumes. */
+export function parkGuestMemberSession(): void {
+  if (!canUseLocalStorage()) {
+    return;
+  }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    localStorage.setItem(RESUME_KEY, raw);
+  }
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+export function restoreGuestMemberSession(): void {
+  if (!canUseLocalStorage()) {
+    return;
+  }
+  const raw = localStorage.getItem(RESUME_KEY);
+  if (raw) {
+    localStorage.setItem(STORAGE_KEY, raw);
+  }
+  localStorage.removeItem(RESUME_KEY);
 }

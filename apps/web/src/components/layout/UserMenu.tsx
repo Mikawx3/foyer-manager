@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import type { AuthUser } from "@foyer/types";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
-import { clearAuth } from "../../lib/auth-storage.ts";
+import { signOutActiveSession } from "../../lib/auth-storage.ts";
+import { queryKeys } from "../../lib/query-keys.ts";
 
 export function UserMenu() {
   const { t } = useTranslation("nav");
@@ -27,7 +29,8 @@ export function UserMenu() {
   }, [open]);
 
   const handleSignOut = () => {
-    clearAuth();
+    const me = queryClient.getQueryData<AuthUser>(queryKeys.me);
+    signOutActiveSession(me?.isGuest === true);
     void queryClient.clear();
     setOpen(false);
     navigate("/", { replace: true });

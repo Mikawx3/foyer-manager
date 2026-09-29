@@ -3,13 +3,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthOrDivider, GoogleAuthButton } from "../components/auth/GoogleAuthButton.tsx";
+import { ResumeGuestHousehold } from "../components/auth/ResumeGuestHousehold.tsx";
 import { FormField, inputClassName } from "../components/forms/FormField.tsx";
 import { AppHeader } from "../components/layout/AppHeader.tsx";
 import { PublicFooter } from "../components/layout/PublicChrome.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { getApiErrorMessage, login, loginWithGoogle } from "../lib/api.ts";
 import { readInviteReturnPath, resolveGoogleAuthPath, resolvePostLoginPath } from "../lib/auth-navigation.ts";
-import { getToken, setToken } from "../lib/auth-storage.ts";
+import { getGuestResumeToken, getToken, setToken } from "../lib/auth-storage.ts";
 import { btnPrimary, formCard, inlineError } from "../lib/ui-classes.ts";
 
 export function LoginPage() {
@@ -59,6 +60,7 @@ export function LoginPage() {
       <AppHeader homeTo="/" />
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
         <div className={`${formCard} w-full max-w-md`}>
+          <ResumeGuestHousehold />
           <h1 className="text-xl font-semibold tracking-tight text-stone-900">{t("signIn")}</h1>
           <p className="text-sm text-stone-600">{t("signInSubtitle")}</p>
           {googleClientId && (
@@ -66,7 +68,7 @@ export function LoginPage() {
               <GoogleAuthButton
                 clientId={googleClientId}
                 context="signin"
-                oneTap={!getToken()}
+                oneTap={!getToken() && getGuestResumeToken() === null}
                 disabled={googleMutation.isPending || mutation.isPending}
                 onCredential={(idToken) => googleMutation.mutate({ idToken })}
               />

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
+import { ResumeGuestHousehold } from "../components/auth/ResumeGuestHousehold.tsx";
 import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.tsx";
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
@@ -61,7 +62,9 @@ export function HomePage() {
               {t("heroTitle")}
             </h1>
             <p className="mt-4 max-w-xl text-base text-stone-600">{t("heroSubtitle")}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 max-w-md">
+              <ResumeGuestHousehold />
+              <div className="flex flex-col gap-3 sm:flex-row">
               <Link to="/households/new" className={`${btnPrimary} px-5`}>
                 {t("createHousehold")}
               </Link>
@@ -71,6 +74,7 @@ export function HomePage() {
               >
                 {t("signIn")}
               </Link>
+              </div>
             </div>
             <ul className="mt-6 flex flex-wrap gap-2">
               {AUDIENCES.map((audience) => (
