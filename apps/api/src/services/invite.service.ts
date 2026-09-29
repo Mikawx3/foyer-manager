@@ -8,7 +8,7 @@ import {
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors/app.errors.js";
-import { GUEST_TTL_MS, isGuestExpired } from "../lib/guest-access.js";
+import { GUEST_TTL_MS, GUEST_TOKEN_EXPIRES_IN, isGuestExpired } from "../lib/guest-access.js";
 import { claimTenantForUser } from "./tenant-claim.js";
 import {
   householdInviteRepository,
@@ -140,7 +140,7 @@ export class InviteService {
     const userId = await this.resolveGuestUser(invite.householdId, existingUserId);
     await this.ensureMembership(invite.householdId, userId, "guest");
     logProductEvent({ name: "guest_joined" });
-    const sessionToken = await signToken({ userId });
+    const sessionToken = await signToken({ userId }, GUEST_TOKEN_EXPIRES_IN);
     return { householdId: invite.householdId, token: sessionToken, tenantId: tenant.id };
   }
 
@@ -228,7 +228,7 @@ export class InviteService {
   async upgradeGuest(
     userId: string,
     householdId: string,
-    input: { email: string; password: string; tenantId: string },
+    input: { email: string; password: string; tenantId?: string },
   ): Promise<AcceptInviteResponse> {
     const user = await this.users.findById(userId);
     if (!user || !user.isGuest) {
@@ -238,19 +238,33 @@ export class InviteService {
       throw new ValidationError("Guest visit expired");
     }
     const membership = await this.members.findByUserAndHousehold(userId, householdId);
-    if (!membership || membership.role !== "guest") {
+    if (!membership || (membership.role !== "guest" && membership.role !== "admin")) {
       throw new ForbiddenError("Access denied to this household");
     }
     const existing = await this.users.findByEmail(input.email);
     if (existing) {
       throw new ConflictError("Email already registered");
     }
+    const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+    await this.users.promoteGuest(user.id, input.email.trim().toLowerCase(), passwordHash);
+
+    if (membership.role === "admin") {
+      const already = await this.tenants.findByHouseholdAndUser(householdId, user.id);
+      if (!already && input.tenantId) {
+        await claimTenantForUser(this.tenants, householdId, input.tenantId, user.id);
+      }
+      logProductEvent({ name: "guest_converted" });
+      const sessionToken = await signToken({ userId: user.id });
+      return { householdId, token: sessionToken, tenantId: already?.id ?? input.tenantId ?? "" };
+    }
+
+    if (!input.tenantId) {
+      throw new ValidationError("Choose which member you are");
+    }
     const tenant = await this.requireActiveMember(householdId, input.tenantId);
     if (tenant.userId !== null) {
       throw new ConflictError("This member is already linked to an account");
     }
-    const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
-    await this.users.promoteGuest(user.id, input.email.trim().toLowerCase(), passwordHash);
     await claimTenantForUser(this.tenants, householdId, tenant.id, user.id);
     await this.members.updateRole(membership.id, "member");
     logProductEvent({ name: "guest_converted" });

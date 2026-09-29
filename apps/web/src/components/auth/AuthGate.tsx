@@ -57,7 +57,7 @@ export function AuthGate() {
     );
   }
 
-  if (!isLocalMode && !token) {
+  if (!isLocalMode && !token && !isLocalWizardPath(location.pathname)) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 

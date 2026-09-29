@@ -9,7 +9,7 @@ import { PublicFooter } from "../components/layout/PublicChrome.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { getApiErrorMessage, login, loginWithGoogle } from "../lib/api.ts";
 import { readInviteReturnPath, resolveGoogleAuthPath, resolvePostLoginPath } from "../lib/auth-navigation.ts";
-import { setToken } from "../lib/auth-storage.ts";
+import { getToken, setToken } from "../lib/auth-storage.ts";
 import { btnPrimary, formCard, inlineError } from "../lib/ui-classes.ts";
 
 export function LoginPage() {
@@ -66,6 +66,7 @@ export function LoginPage() {
               <GoogleAuthButton
                 clientId={googleClientId}
                 context="signin"
+                oneTap={!getToken()}
                 disabled={googleMutation.isPending || mutation.isPending}
                 onCredential={(idToken) => googleMutation.mutate({ idToken })}
               />

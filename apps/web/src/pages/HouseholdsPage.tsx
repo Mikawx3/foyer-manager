@@ -28,7 +28,7 @@ export function HouseholdsPage() {
     enabled: !isConfigLoading && !isLocalMode,
   });
 
-  if (isConfigLoading || householdsQuery.isLoading) {
+  if (isConfigLoading || householdsQuery.isLoading || (!isLocalMode && meQuery.isLoading)) {
     return (
       <div className="space-y-8">
         <div>
@@ -79,14 +79,10 @@ export function HouseholdsPage() {
         <h1 className="mt-8 text-2xl font-semibold tracking-tight text-stone-900">
           {t("setupTitle")}
         </h1>
-        <p className="mt-3 max-w-md text-sm text-stone-600">
-          {isGuest ? t("guestEmptyDescription") : t("setupDescription")}
-        </p>
-        {!isGuest && (
-          <Link to="/households/new" className={`${btnPrimary} mt-8`}>
-            {tCommon("newHousehold")}
-          </Link>
-        )}
+        <p className="mt-3 max-w-md text-sm text-stone-600">{t("setupDescription")}</p>
+        <Link to="/households/new" className={`${btnPrimary} mt-8`}>
+          {tCommon("newHousehold")}
+        </Link>
       </div>
     );
   }

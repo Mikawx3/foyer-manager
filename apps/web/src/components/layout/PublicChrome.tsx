@@ -44,7 +44,7 @@ export function PublicHeader() {
               <Link to="/login" className={`${btnSecondary} px-2`}>
                 {tLanding("signIn")}
               </Link>
-              <Link to="/register" className={`${btnPrimary} !hidden sm:!inline-flex`}>
+              <Link to="/households/new" className={`${btnPrimary} !hidden sm:!inline-flex`}>
                 {tLanding("createHousehold")}
               </Link>
             </>
@@ -80,7 +80,7 @@ export function PublicFooter() {
             {showAuth && !hasSession && (
               <>
                 <li>
-                  <Link to="/register" className={footerLinkClass}>
+                  <Link to="/households/new" className={footerLinkClass}>
                     {t("createHousehold")}
                   </Link>
                 </li>

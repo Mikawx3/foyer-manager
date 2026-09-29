@@ -1,4 +1,5 @@
 export type ProductEvent =
+  | { name: "signup_started" }
   | { name: "account_created"; method: "email" | "google" | "invite" }
   | { name: "guest_joined" }
   | { name: "guest_converted" }

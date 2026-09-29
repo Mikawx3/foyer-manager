@@ -7,8 +7,10 @@ import {
   getCategories,
   getTenants,
   putDefaultSplits,
+  startGuestSession,
   updateHousehold,
 } from "./api.ts";
+import { getToken, setToken } from "./auth-storage.ts";
 import type { WizardState } from "./household-wizard-types.ts";
 import { isValidRecurringDraft } from "./household-wizard-types.ts";
 import { DEFAULT_TENANT_COLOR } from "./tenant-colors.ts";
@@ -20,6 +22,7 @@ export interface SubmitWizardOptions {
   mode: WizardSubmitMode;
   householdId?: string;
   claimSelf?: boolean;
+  ensureGuestSession?: boolean;
 }
 
 function buildRecurringSplits(
@@ -76,6 +79,10 @@ export async function submitHouseholdWizard(
       settlementPeriod: state.settlementPeriod,
     });
   } else {
+    if (options.ensureGuestSession && !getToken()) {
+      const session = await startGuestSession();
+      setToken(session.token);
+    }
     const household = await createHousehold({
       name: state.name.trim(),
       type: state.type,

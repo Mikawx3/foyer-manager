@@ -56,6 +56,7 @@ import {
 } from "../lib/expense-splits.ts";
 import { queryKeys } from "../lib/query-keys.ts";
 import { mutationToastHandlers } from "../lib/toast.ts";
+import { markFirstExpenseSaved } from "../lib/guest-account-prompt.ts";
 import type { CreateExpenseForm, UpdateExpenseForm } from "../lib/schemas.ts";
 import {
   amount,
@@ -446,7 +447,11 @@ export function ExpensesPage() {
 
   const handleCreateExpense = async (data: CreateExpenseForm | UpdateExpenseForm) => {
     if ("householdId" in data) {
+      const wasEmpty = (expensesQuery.data?.total ?? 0) === 0;
       await createExpenseMutation.mutateAsync(data);
+      if (wasEmpty) {
+        markFirstExpenseSaved();
+      }
     }
   };
 

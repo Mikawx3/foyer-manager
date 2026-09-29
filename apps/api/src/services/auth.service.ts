@@ -1,8 +1,9 @@
 import type { AuthResponse, AuthUser, LoginPayload, RegisterPayload } from "@foyer/types";
 import bcrypt from "bcryptjs";
-import { ConflictError, UnauthorizedError } from "../errors/app.errors.js";
+import { ConflictError, UnauthorizedError, ValidationError } from "../errors/app.errors.js";
 import { verifyGoogleIdToken, type GoogleTokenVerifier } from "../lib/google-identity.js";
-import { signToken } from "../lib/jwt.js";
+import { GUEST_TOKEN_EXPIRES_IN, isGuestExpired } from "../lib/guest-access.js";
+import { signToken, verifyToken } from "../lib/jwt.js";
 import { logProductEvent } from "../lib/product-event.js";
 import { toHouseholdDto } from "../lib/mappers.js";
 import {
@@ -43,6 +44,32 @@ export class AuthService {
     private readonly members: HouseholdMemberRepository = householdMemberRepository,
   ) {}
 
+  recordSignupStarted(): void {
+    logProductEvent({ name: "signup_started" });
+  }
+
+  async startGuest(): Promise<AuthResponse> {
+    const user = await this.users.createGuest();
+    const token = await signToken({ userId: user.id }, GUEST_TOKEN_EXPIRES_IN);
+    return { token, householdId: null, isNewAccount: false };
+  }
+
+  async resolveGuestCaller(authorization: string | undefined): Promise<string | undefined> {
+    if (!authorization?.startsWith("Bearer ")) {
+      return undefined;
+    }
+    try {
+      const { userId } = await verifyToken(authorization.slice("Bearer ".length));
+      const user = await this.users.findById(userId);
+      if (!user?.isGuest || isGuestExpired(user.lastSeenAt)) {
+        return undefined;
+      }
+      return user.id;
+    } catch {
+      return undefined;
+    }
+  }
+
   async register(input: RegisterInput): Promise<AuthResponse> {
     const existing = await this.users.findByEmail(input.email);
     if (existing) {
@@ -77,13 +104,22 @@ export class AuthService {
     return this.issueSession(user.id, householdId, false);
   }
 
-  async loginWithGoogle(input: GoogleAuthInput): Promise<AuthResponse> {
+  async loginWithGoogle(input: GoogleAuthInput, guestUserId?: string): Promise<AuthResponse> {
     const identity = await this.verifyGoogleToken(input.idToken);
     if (!identity.emailVerified) {
       throw new UnauthorizedError("Google email is not verified");
     }
 
     const email = identity.email.trim().toLowerCase();
+    if (guestUserId) {
+      return this.claimGuestWithGoogle(
+        guestUserId,
+        identity.sub,
+        email,
+        input.confirmExistingAccount === true,
+      );
+    }
+
     const linked = await this.users.findByGoogleSub(identity.sub);
     if (linked) {
       const householdId = await this.resolveSessionHouseholdId(linked.id);
@@ -111,6 +147,46 @@ export class AuthService {
     });
     logProductEvent({ name: "account_created", method: "google" });
     return this.issueSession(user.id, householdId, true);
+  }
+
+  private async claimGuestWithGoogle(
+    guestUserId: string,
+    googleSub: string,
+    email: string,
+    confirmExistingAccount: boolean,
+  ): Promise<AuthResponse> {
+    const guest = await this.users.findById(guestUserId);
+    if (!guest?.isGuest) {
+      throw new ValidationError("Only a guest visit can become an account");
+    }
+    if (isGuestExpired(guest.lastSeenAt)) {
+      throw new ValidationError("Guest visit expired");
+    }
+
+    const linked = await this.users.findByGoogleSub(googleSub);
+    const byEmail = linked ?? (await this.users.findByEmail(email));
+    const other = byEmail && byEmail.id !== guest.id ? byEmail : null;
+
+    if (other) {
+      if (other.isGuest) {
+        throw new ConflictError("Email already registered");
+      }
+      if (other.googleSub && other.googleSub !== googleSub) {
+        throw new ConflictError("This email is already linked to another Google account");
+      }
+      if (!confirmExistingAccount) {
+        throw new ConflictError("This Google account already exists", { code: "existing_account" });
+      }
+      await this.users.adoptGuestHousehold(guest.id, other.id, googleSub);
+      logProductEvent({ name: "guest_converted" });
+      const householdId = await this.resolveSessionHouseholdId(other.id);
+      return this.issueSession(other.id, householdId, false);
+    }
+
+    await this.users.promoteGuestWithGoogle(guest.id, email, googleSub);
+    logProductEvent({ name: "guest_converted" });
+    const householdId = await this.resolveSessionHouseholdId(guest.id);
+    return this.issueSession(guest.id, householdId, false);
   }
 
   async me(userId: string): Promise<AuthUser> {

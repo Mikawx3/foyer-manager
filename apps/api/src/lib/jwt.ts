@@ -16,11 +16,11 @@ function getExpiresIn(): string {
   return process.env.JWT_EXPIRES_IN ?? "7d";
 }
 
-export async function signToken(payload: JwtPayload): Promise<string> {
+export async function signToken(payload: JwtPayload, expiresIn?: string): Promise<string> {
   return new SignJWT({ userId: payload.userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(getExpiresIn())
+    .setExpirationTime(expiresIn ?? getExpiresIn())
     .sign(getSecret());
 }
 

@@ -59,7 +59,7 @@ export function UseCasePage() {
         </ul>
         {showAuth && (
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <Link to="/register" className={`${btnPrimary} px-5`}>
+            <Link to="/households/new" className={`${btnPrimary} px-5`}>
               {tLanding("createHousehold")}
             </Link>
             <Link

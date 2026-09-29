@@ -29,7 +29,7 @@ export const registerInviteSchema = z
 export const upgradeGuestSchema = z.object({
   email: z.string().trim().email().max(255),
   password: z.string().min(8).max(128),
-  tenantId: z.string().cuid(),
+  tenantId: z.string().cuid().optional(),
 });
 
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;

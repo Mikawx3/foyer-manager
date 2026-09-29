@@ -103,6 +103,8 @@ describe("InviteService", () => {
     deleteGuestsWithoutMembership: vi.fn(),
     deleteExpiredGuests: vi.fn(),
     touchLastSeen: vi.fn(),
+    promoteGuestWithGoogle: vi.fn(),
+    adoptGuestHousehold: vi.fn(),
   };
     const tenants: TenantRepository = {
       findById: vi.fn().mockResolvedValue(openMember),
@@ -183,6 +185,8 @@ describe("InviteService", () => {
       deleteGuestsWithoutMembership: vi.fn(),
       deleteExpiredGuests: vi.fn(),
     touchLastSeen: vi.fn(),
+    promoteGuestWithGoogle: vi.fn(),
+    adoptGuestHousehold: vi.fn(),
     };
     const tenants: TenantRepository = {
       findById: vi.fn()
@@ -259,6 +263,8 @@ describe("InviteService", () => {
       deleteGuestsWithoutMembership: vi.fn(),
       deleteExpiredGuests: vi.fn(),
     touchLastSeen: vi.fn(),
+    promoteGuestWithGoogle: vi.fn(),
+    adoptGuestHousehold: vi.fn(),
     };
     const tenants: TenantRepository = {
       findById: vi.fn().mockResolvedValue({ ...openMember, userId: "user-1" }),
@@ -430,6 +436,92 @@ describe("InviteService", () => {
     expect(tenants.claimIfUnclaimed).toHaveBeenCalledWith(tenantId, householdId, "guest-1");
     expect(members.updateRole).toHaveBeenCalledWith("mem-1", "member");
   });
+
+  it("keeps a guest admin as admin when the visit becomes an account", async () => {
+    const { service, users, tenants, members } = buildInviteService({
+      users: {
+        findById: vi.fn().mockResolvedValue({
+          id: "guest-1",
+          email: "guest+1@guests.foyer.invalid",
+          password: null,
+          googleSub: null,
+          isGuest: true,
+          createdAt: new Date(),
+          lastSeenAt: new Date(),
+        }),
+        findByEmail: vi.fn().mockResolvedValue(null),
+      },
+      members: {
+        findByUserAndHousehold: vi.fn().mockResolvedValue({
+          id: "mem-admin",
+          role: "admin",
+          userId: "guest-1",
+          householdId,
+          createdAt: new Date(),
+        }),
+      },
+      tenants: {
+        findByHouseholdAndUser: vi.fn().mockResolvedValue({
+          ...openMember,
+          userId: "guest-1",
+        }),
+      },
+    });
+
+    const result = await service.upgradeGuest("guest-1", householdId, {
+      email: "nina@example.com",
+      password: "password1",
+      tenantId,
+    });
+
+    expect(result.tenantId).toBe(tenantId);
+    expect(users.promoteGuest).toHaveBeenCalledWith("guest-1", "nina@example.com", "hashed-password");
+    expect(tenants.claimIfUnclaimed).not.toHaveBeenCalled();
+    expect(members.updateRole).not.toHaveBeenCalled();
+  });
+
+  it("leaves the guest household intact when the email is already registered", async () => {
+    const { service, users, members } = buildInviteService({
+      users: {
+        findById: vi.fn().mockResolvedValue({
+          id: "guest-1",
+          email: "guest+1@guests.foyer.invalid",
+          password: null,
+          googleSub: null,
+          isGuest: true,
+          createdAt: new Date(),
+          lastSeenAt: new Date(),
+        }),
+        findByEmail: vi.fn().mockResolvedValue({
+          id: "user-real",
+          email: "nina@example.com",
+          password: "hash",
+          googleSub: null,
+          isGuest: false,
+          createdAt: new Date(),
+          lastSeenAt: new Date(),
+        }),
+      },
+      members: {
+        findByUserAndHousehold: vi.fn().mockResolvedValue({
+          id: "mem-admin",
+          role: "admin",
+          userId: "guest-1",
+          householdId,
+          createdAt: new Date(),
+        }),
+      },
+    });
+
+    await expect(
+      service.upgradeGuest("guest-1", householdId, {
+        email: "nina@example.com",
+        password: "password1",
+      }),
+    ).rejects.toBeInstanceOf(ConflictError);
+    expect(users.promoteGuest).not.toHaveBeenCalled();
+    expect(members.updateRole).not.toHaveBeenCalled();
+  });
 });
 
 function buildInviteService(overrides?: {
@@ -501,6 +593,8 @@ function buildInviteService(overrides?: {
     deleteGuestsWithoutMembership: vi.fn(),
     deleteExpiredGuests: vi.fn(),
     touchLastSeen: vi.fn(),
+    promoteGuestWithGoogle: vi.fn(),
+    adoptGuestHousehold: vi.fn(),
     ...overrides?.users,
   };
   const tenants: TenantRepository = {

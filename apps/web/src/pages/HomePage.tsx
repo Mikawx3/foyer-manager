@@ -62,7 +62,7 @@ export function HomePage() {
             </h1>
             <p className="mt-4 max-w-xl text-base text-stone-600">{t("heroSubtitle")}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/register" className={`${btnPrimary} px-5`}>
+              <Link to="/households/new" className={`${btnPrimary} px-5`}>
                 {t("createHousehold")}
               </Link>
               <Link
@@ -162,7 +162,7 @@ export function HomePage() {
           <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
             <h2 className="text-lg font-semibold tracking-tight text-stone-900">{t("closingTitle")}</h2>
             <p className="mt-2 max-w-xl text-sm text-stone-600">{t("closingBody")}</p>
-            <Link to="/register" className={`${btnPrimary} mt-6 px-5`}>
+            <Link to="/households/new" className={`${btnPrimary} mt-6 px-5`}>
               {t("createHousehold")}
             </Link>
           </div>

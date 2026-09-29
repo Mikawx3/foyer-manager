@@ -59,6 +59,7 @@ export function HouseholdWizardPage({ mode = "create" }: HouseholdWizardPageProp
         mode,
         householdId: mode === "setup" ? householdId : undefined,
         claimSelf: !isLocalMode,
+        ensureGuestSession: !isLocalMode && mode === "create",
       }),
     onSuccess: async (resultHouseholdId, wizardState) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.tenants(resultHouseholdId) });

@@ -14,7 +14,10 @@ interface GoogleIdentityServices {
         callback: (response: GoogleCredentialResponse) => void;
         auto_select?: boolean;
         cancel_on_tap_outside?: boolean;
+        use_fedcm_for_prompt?: boolean;
       }) => void;
+      prompt: () => void;
+      cancel: () => void;
       renderButton: (
         parent: HTMLElement,
         options: {
@@ -69,6 +72,8 @@ interface GoogleAuthButtonProps {
   clientId: string;
   context: "signin" | "signup";
   disabled?: boolean;
+  /** Offer the signed-in Google account as soon as this page opens. */
+  oneTap?: boolean;
   onCredential: (idToken: string) => void;
 }
 
@@ -76,6 +81,7 @@ export function GoogleAuthButton({
   clientId,
   context,
   disabled = false,
+  oneTap = false,
   onCredential,
 }: GoogleAuthButtonProps) {
   const { i18n, t } = useTranslation("auth");
@@ -83,10 +89,10 @@ export function GoogleAuthButton({
   const onCredentialRef = useRef(onCredential);
   onCredentialRef.current = onCredential;
   const [loadError, setLoadError] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(oneTap);
 
   useEffect(() => {
-    if (!started) {
+    if (!started || disabled) {
       return;
     }
     const container = containerRef.current;
@@ -102,8 +108,9 @@ export function GoogleAuthButton({
         }
         window.google.accounts.id.initialize({
           client_id: clientId,
-          auto_select: false,
+          auto_select: oneTap,
           cancel_on_tap_outside: true,
+          use_fedcm_for_prompt: true,
           callback: (response) => {
             if (response.credential) {
               onCredentialRef.current(response.credential);
@@ -124,6 +131,9 @@ export function GoogleAuthButton({
           width,
           locale: i18n.resolvedLanguage === "fr" ? "fr" : "en",
         });
+        if (oneTap) {
+          window.google.accounts.id.prompt();
+        }
       })
       .catch(() => {
         if (!cancelled) {
@@ -133,8 +143,11 @@ export function GoogleAuthButton({
 
     return () => {
       cancelled = true;
+      if (oneTap) {
+        window.google?.accounts.id.cancel();
+      }
     };
-  }, [clientId, context, i18n.resolvedLanguage, started]);
+  }, [clientId, context, disabled, i18n.resolvedLanguage, oneTap, started]);
 
   return (
     <div className={disabled ? "pointer-events-none opacity-60" : undefined}>

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
@@ -7,10 +7,11 @@ import { FormField, inputClassName } from "../components/forms/FormField.tsx";
 import { AppHeader } from "../components/layout/AppHeader.tsx";
 import { PublicFooter } from "../components/layout/PublicChrome.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
-import { getApiErrorMessage, loginWithGoogle, register } from "../lib/api.ts";
+import { getApiErrorMessage, isExistingAccountConflict, loginWithGoogle, register } from "../lib/api.ts";
 import { resolveGoogleAuthPath } from "../lib/auth-navigation.ts";
-import { setToken } from "../lib/auth-storage.ts";
-import { btnPrimary, formCard, inlineError } from "../lib/ui-classes.ts";
+import { recordSignupStarted } from "../lib/signup-started.ts";
+import { getToken, setToken } from "../lib/auth-storage.ts";
+import { btnPrimary, btnSecondary, formCard, inlineError } from "../lib/ui-classes.ts";
 
 export function RegisterPage() {
   const { t } = useTranslation("auth");
@@ -20,6 +21,15 @@ export function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [householdName, setHouseholdName] = useState("");
+  const [pendingGoogleToken, setPendingGoogleToken] = useState<string | null>(null);
+
+  useQuery({
+    queryKey: ["product-event", "signup_started"],
+    queryFn: () => recordSignupStarted(),
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: Number.POSITIVE_INFINITY,
+    retry: false,
+  });
 
   const mutation = useMutation({
     mutationFn: register,
@@ -37,8 +47,14 @@ export function RegisterPage() {
     mutationFn: loginWithGoogle,
     onSuccess: async (response) => {
       setToken(response.token);
+      setPendingGoogleToken(null);
       const path = await resolveGoogleAuthPath(response);
       navigate(path, { replace: true });
+    },
+    onError: (error, variables) => {
+      if (isExistingAccountConflict(error)) {
+        setPendingGoogleToken(variables.idToken);
+      }
     },
   });
 
@@ -58,21 +74,39 @@ export function RegisterPage() {
         <div className={`${formCard} w-full max-w-md`}>
           <h1 className="text-xl font-semibold tracking-tight text-stone-900">{t("createAccount")}</h1>
           <p className="text-sm text-stone-600">{t("createAccountSubtitle")}</p>
-          <FormField label={t("householdName")}>
-            <input
-              className={inputClassName}
-              form="register-form"
-              value={householdName}
-              onChange={(event) => setHouseholdName(event.target.value)}
-              required
-              placeholder={t("householdNamePlaceholder")}
-            />
-          </FormField>
+          {pendingGoogleToken ? (
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-stone-900">{t("existingAccountBody")}</p>
+              <button
+                type="button"
+                className={`${btnPrimary} w-full`}
+                disabled={googleMutation.isPending}
+                onClick={() =>
+                  googleMutation.mutate({
+                    idToken: pendingGoogleToken,
+                    confirmExistingAccount: true,
+                    householdName: householdName.trim() || undefined,
+                  })
+                }
+              >
+                {t("existingAccountConfirm")}
+              </button>
+              <button
+                type="button"
+                className={`${btnSecondary} w-full`}
+                onClick={() => setPendingGoogleToken(null)}
+              >
+                {tCommon("cancel")}
+              </button>
+            </div>
+          ) : (
+            <>
           {googleClientId && (
             <>
               <GoogleAuthButton
                 clientId={googleClientId}
                 context="signup"
+                oneTap={!getToken()}
                 disabled={googleMutation.isPending || mutation.isPending}
                 onCredential={(idToken) =>
                   googleMutation.mutate({
@@ -81,13 +115,22 @@ export function RegisterPage() {
                   })
                 }
               />
-              {googleMutation.isError && (
+              {googleMutation.isError && !isExistingAccountConflict(googleMutation.error) && (
                 <p className={inlineError}>{getApiErrorMessage(googleMutation.error)}</p>
               )}
               <AuthOrDivider />
             </>
           )}
           <form id="register-form" onSubmit={handleSubmit} className="space-y-4">
+          <FormField label={t("householdName")}>
+            <input
+              className={inputClassName}
+              value={householdName}
+              onChange={(event) => setHouseholdName(event.target.value)}
+              required
+              placeholder={t("householdNamePlaceholder")}
+            />
+          </FormField>
           <FormField label={tCommon("email")}>
             <input
               className={inputClassName}
@@ -126,6 +169,8 @@ export function RegisterPage() {
             </Link>
           </p>
           </form>
+            </>
+          )}
         </div>
       </div>
       <PublicFooter />

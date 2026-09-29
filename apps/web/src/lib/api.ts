@@ -43,7 +43,7 @@ import type {
 } from "@foyer/types";
 import axios, { isAxiosError } from "axios";
 import i18n from "../i18n.ts";
-import { clearAuth, getToken } from "./auth-storage.ts";
+import { clearAuth, getToken, setToken } from "./auth-storage.ts";
 
 export interface ApiErrorBody {
   error: string;
@@ -73,7 +73,13 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const refreshed = response.headers["x-session-token"];
+    if (typeof refreshed === "string" && refreshed.length > 0) {
+      setToken(refreshed);
+    }
+    return response;
+  },
   (error) => {
     if (isAxiosError(error) && error.response?.status === 401) {
       clearAuth();
@@ -114,9 +120,33 @@ export async function login(input: LoginPayload): Promise<AuthResponse> {
   return data;
 }
 
+export async function postSignupStarted(): Promise<void> {
+  await api.post("/auth/signup-started", {});
+}
+
 export async function register(input: RegisterPayload): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>("/auth/register", input);
   return data;
+}
+
+export async function startGuestSession(): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/guest-start", {});
+  return data;
+}
+
+export function isExistingAccountConflict(error: unknown): boolean {
+  if (!isAxiosError(error) || error.response?.status !== 409) {
+    return false;
+  }
+  const data: unknown = error.response.data;
+  if (typeof data !== "object" || data === null || !("details" in data)) {
+    return false;
+  }
+  const details = data.details;
+  if (typeof details !== "object" || details === null || !("code" in details)) {
+    return false;
+  }
+  return details.code === "existing_account";
 }
 
 export async function loginWithGoogle(input: GoogleAuthPayload): Promise<AuthResponse> {
@@ -141,7 +171,7 @@ export async function getHouseholdAccess(householdId: string): Promise<Household
 
 export async function upgradeGuestAccount(
   householdId: string,
-  input: { email: string; password: string; tenantId: string },
+  input: { email: string; password: string; tenantId?: string },
 ): Promise<AcceptInviteResponse> {
   const { data } = await api.post<AcceptInviteResponse>(
     `/households/${householdId}/guest-account`,

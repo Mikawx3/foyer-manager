@@ -4,9 +4,14 @@ import { AuthService } from "./auth.service.js";
 import type { HouseholdMemberRepository } from "../repositories/household-member.repository.js";
 import type { UserRepository } from "../repositories/user.repository.js";
 import { ConflictError, UnauthorizedError } from "../errors/app.errors.js";
+import { logProductEvent } from "../lib/product-event.js";
 
 vi.mock("../lib/jwt.js", () => ({
   signToken: vi.fn(async () => "mock-jwt-token"),
+}));
+
+vi.mock("../lib/product-event.js", () => ({
+  logProductEvent: vi.fn(),
 }));
 
 const userFixture = {
@@ -31,6 +36,8 @@ describe("AuthService", () => {
     deleteGuestsWithoutMembership: vi.fn(),
     deleteExpiredGuests: vi.fn(),
     touchLastSeen: vi.fn(),
+    promoteGuestWithGoogle: vi.fn(),
+    adoptGuestHousehold: vi.fn(),
   };
 
   const mockMembers: HouseholdMemberRepository = {
@@ -242,6 +249,164 @@ describe("AuthService", () => {
     expect(vi.mocked(mockUsers.createWithHousehold).mock.calls[0]?.[0]?.householdName).toBe(
       "Alice Martin",
     );
+  });
+
+  it("startGuest returns a session for a new guest user", async () => {
+    vi.mocked(mockUsers.createGuest).mockResolvedValue({
+      ...userFixture,
+      id: "guest-1",
+      email: "guest+1@guests.foyer.invalid",
+      password: null,
+      isGuest: true,
+      lastSeenAt: new Date(),
+    });
+
+    const result = await service.startGuest();
+
+    expect(mockUsers.createGuest).toHaveBeenCalledOnce();
+    expect(result).toEqual({
+      token: "mock-jwt-token",
+      householdId: null,
+      isNewAccount: false,
+    });
+  });
+
+  it("loginWithGoogle turns a guest admin into the same account", async () => {
+    const verifyGoogleToken = vi.fn(async () => ({
+      sub: "google-sub",
+      email: "alice@example.com",
+      emailVerified: true,
+      name: "Alice",
+    }));
+    service = new AuthService(mockUsers, verifyGoogleToken, mockMembers);
+    vi.mocked(mockUsers.findById).mockResolvedValue({
+      ...userFixture,
+      id: "guest-1",
+      email: "guest+1@guests.foyer.invalid",
+      password: null,
+      isGuest: true,
+      lastSeenAt: new Date(),
+    });
+    vi.mocked(mockUsers.findByGoogleSub).mockResolvedValue(null);
+    vi.mocked(mockUsers.findByEmail).mockResolvedValue(null);
+    vi.mocked(mockUsers.promoteGuestWithGoogle).mockResolvedValue({
+      ...userFixture,
+      id: "guest-1",
+      password: null,
+      googleSub: "google-sub",
+      isGuest: false,
+      lastSeenAt: new Date(),
+    });
+    vi.mocked(mockMembers.listByUser).mockResolvedValue([
+      {
+        id: "mem-1",
+        role: "admin",
+        userId: "guest-1",
+        householdId: "hh-guest",
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await service.loginWithGoogle({ idToken: "token" }, "guest-1");
+
+    expect(mockUsers.promoteGuestWithGoogle).toHaveBeenCalledWith(
+      "guest-1",
+      "alice@example.com",
+      "google-sub",
+    );
+    expect(mockUsers.createWithHousehold).not.toHaveBeenCalled();
+    expect(mockUsers.adoptGuestHousehold).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      token: "mock-jwt-token",
+      householdId: "hh-guest",
+      isNewAccount: false,
+    });
+  });
+
+  it("loginWithGoogle asks before adding a guest household to an existing account", async () => {
+    const verifyGoogleToken = vi.fn(async () => ({
+      sub: "google-sub",
+      email: "alice@example.com",
+      emailVerified: true,
+      name: "Alice",
+    }));
+    service = new AuthService(mockUsers, verifyGoogleToken, mockMembers);
+    vi.mocked(mockUsers.findById).mockResolvedValue({
+      ...userFixture,
+      id: "guest-1",
+      email: "guest+1@guests.foyer.invalid",
+      password: null,
+      isGuest: true,
+      lastSeenAt: new Date(),
+    });
+    vi.mocked(mockUsers.findByGoogleSub).mockResolvedValue({
+      ...userFixture,
+      password: null,
+      googleSub: "google-sub",
+      lastSeenAt: new Date(),
+    });
+
+    await expect(service.loginWithGoogle({ idToken: "token" }, "guest-1")).rejects.toMatchObject({
+      name: "ConflictError",
+      details: { code: "existing_account" },
+    });
+    expect(mockUsers.adoptGuestHousehold).not.toHaveBeenCalled();
+    expect(mockUsers.promoteGuestWithGoogle).not.toHaveBeenCalled();
+  });
+
+  it("loginWithGoogle moves the guest household onto the existing account after confirmation", async () => {
+    const verifyGoogleToken = vi.fn(async () => ({
+      sub: "google-sub",
+      email: "alice@example.com",
+      emailVerified: true,
+      name: "Alice",
+    }));
+    service = new AuthService(mockUsers, verifyGoogleToken, mockMembers);
+    vi.mocked(mockUsers.findById).mockResolvedValue({
+      ...userFixture,
+      id: "guest-1",
+      email: "guest+1@guests.foyer.invalid",
+      password: null,
+      isGuest: true,
+      lastSeenAt: new Date(),
+    });
+    vi.mocked(mockUsers.findByGoogleSub).mockResolvedValue({
+      ...userFixture,
+      password: null,
+      googleSub: "google-sub",
+      lastSeenAt: new Date(),
+    });
+    vi.mocked(mockMembers.listByUser).mockResolvedValue([
+      {
+        id: "mem-1",
+        role: "admin",
+        userId: "user-1",
+        householdId: "hh-1",
+        createdAt: new Date(),
+      },
+      {
+        id: "mem-2",
+        role: "admin",
+        userId: "user-1",
+        householdId: "hh-guest",
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await service.loginWithGoogle(
+      { idToken: "token", confirmExistingAccount: true },
+      "guest-1",
+    );
+
+    expect(mockUsers.adoptGuestHousehold).toHaveBeenCalledWith("guest-1", "user-1", "google-sub");
+    expect(mockUsers.promoteGuestWithGoogle).not.toHaveBeenCalled();
+    expect(result.householdId).toBeNull();
+    expect(result.isNewAccount).toBe(false);
+  });
+
+  it("recordSignupStarted logs a signup_started event without personal data", () => {
+    service.recordSignupStarted();
+    expect(logProductEvent).toHaveBeenCalledWith({ name: "signup_started" });
   });
 
   it("loginWithGoogle rejects an unverified Google email", async () => {

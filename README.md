@@ -112,7 +112,8 @@ curl -H "Authorization: Bearer $ADMIN_STATS_TOKEN" "https://your-domain/api/admi
 ```
 
 It returns accounts, guests, households, activation and a daily breakdown. The API also logs one
-JSON line per product event (`"kind":"product_event"`), with no personal data.
+JSON line per product event (`"kind":"product_event"`), with no personal data. Opening the
+registration page logs `signup_started`.
 
 ## Contributing
 

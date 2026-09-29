@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { ForbiddenError } from "../errors/app.errors.js";
+import { assertGuestMayCreateHousehold } from "../lib/guest-household.js";
 import { assertHouseholdAccess, assertHouseholdAdmin, currentUserId } from "../lib/household-access.js";
 import { isLocalDeployment } from "../lib/deployment.js";
 import { getAuth } from "../middleware/auth.middleware.js";
@@ -56,9 +57,7 @@ export class HouseholdController {
     }
 
     const auth = getAuth(c);
-    if (auth.isGuest) {
-      throw new ForbiddenError("Guests cannot create a household");
-    }
+    assertGuestMayCreateHousehold(auth.isGuest, auth.memberships.length);
     const household = await this.service.createForUser(auth.userId, body);
     return c.json(household, 201);
   };
@@ -145,7 +144,10 @@ export class HouseholdController {
     assertHouseholdAccess(c, id);
     const auth = getAuth(c);
     if (auth.isGuest) {
-      throw new ForbiddenError("Guests cannot link a member");
+      const membership = auth.memberships.find((item) => item.householdId === id);
+      if (membership?.role !== "admin") {
+        throw new ForbiddenError("Guests cannot link a member");
+      }
     }
     const tenant = await this.tenants.claimForUser(id, tenantId, auth.userId);
     return c.json(tenant, 200);

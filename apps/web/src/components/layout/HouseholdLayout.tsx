@@ -1,17 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { LayoutDashboard, LogOut, Receipt, Scale, Settings, Home, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
 import { getApiErrorMessage, getHousehold, getMe, getTenants } from "../../lib/api.ts";
 import { clearAuth } from "../../lib/auth-storage.ts";
+import {
+  calendarDayKey,
+  dismissGuestPrompt,
+  GUEST_FIRST_EXPENSE_EVENT,
+  isGuestPromptDismissed,
+  recordGuestVisit,
+  shouldPromptGuestAccount,
+} from "../../lib/guest-account-prompt.ts";
 import { readGuestMemberSession } from "../../lib/guest-member.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
 import { householdNavLinkClass, mobileMainPadding } from "../../lib/ui-classes.ts";
 import { ErrorMessage } from "../ui/ErrorMessage.tsx";
 import { Skeleton } from "../ui/Skeleton.tsx";
-import { GuestAccountForm } from "../tenants/GuestAccountForm.tsx";
+import { GuestKeepAccess } from "../tenants/GuestKeepAccess.tsx";
 import { MobileBottomTabBar } from "./MobileBottomTabBar.tsx";
 
 const navItems = [
@@ -23,10 +32,15 @@ const navItems = [
 
 export function HouseholdLayout() {
   const { t } = useTranslation("nav");
+  const { t: tAuth } = useTranslation("auth");
   const { t: tCommon } = useTranslation("common");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isCloudMode } = useDeploymentMode();
+  const { isCloudMode, googleClientId } = useDeploymentMode();
+  const [visitCount, setVisitCount] = useState(0);
+  const [promptDismissed, setPromptDismissed] = useState(false);
+  const [firstExpenseJustSaved, setFirstExpenseJustSaved] = useState(false);
+  const [keepAccessOpen, setKeepAccessOpen] = useState(false);
 
   const householdQuery = useQuery({
     queryKey: queryKeys.household(id),
@@ -48,6 +62,42 @@ export function HouseholdLayout() {
   const viewingName = guestSession
     ? identityQuery.data?.find((tenant) => tenant.id === guestSession.tenantId)?.name
     : identityQuery.data?.find((tenant) => tenant.isCurrentUser)?.name;
+  const isGuest = meQuery.data?.isGuest === true;
+  const selfTenantId =
+    guestSession?.tenantId ??
+    identityQuery.data?.find((tenant) => tenant.isCurrentUser)?.id;
+  const showKeepAccess =
+    keepAccessOpen ||
+    shouldPromptGuestAccount({
+      isGuest,
+      dismissed: promptDismissed,
+      visitCount,
+      firstExpenseJustSaved,
+    });
+
+  useEffect(() => {
+    if (!isGuest) {
+      return;
+    }
+    setPromptDismissed(isGuestPromptDismissed());
+    setVisitCount(recordGuestVisit(calendarDayKey(new Date())));
+  }, [isGuest]);
+
+  useEffect(() => {
+    if (!isGuest) {
+      return;
+    }
+    const onFirstExpense = () => setFirstExpenseJustSaved(true);
+    window.addEventListener(GUEST_FIRST_EXPENSE_EVENT, onFirstExpense);
+    return () => window.removeEventListener(GUEST_FIRST_EXPENSE_EVENT, onFirstExpense);
+  }, [isGuest]);
+
+  const closeKeepAccess = () => {
+    dismissGuestPrompt();
+    setPromptDismissed(true);
+    setFirstExpenseJustSaved(false);
+    setKeepAccessOpen(false);
+  };
 
   const handleSignOut = () => {
     clearAuth();
@@ -130,12 +180,14 @@ export function HouseholdLayout() {
           </nav>
         </aside>
         <main className={`min-w-0 flex-1 overflow-y-auto ${mobileMainPadding}`}>
-          {guestSession && viewingName && (
-            <GuestAccountForm
-              householdId={id}
-              tenantId={guestSession.tenantId}
-              memberName={viewingName}
-            />
+          {isGuest && (
+            <button
+              type="button"
+              className="mb-4 text-sm font-medium text-primary hover:text-primary-hover"
+              onClick={() => setKeepAccessOpen(true)}
+            >
+              {tAuth("keepAccessLink")}
+            </button>
           )}
           {householdQuery.data && (
             <div className="mb-4 lg:hidden">
@@ -149,6 +201,15 @@ export function HouseholdLayout() {
         </main>
       </div>
       <MobileBottomTabBar householdId={id} />
+      {isGuest && (
+        <GuestKeepAccess
+          open={showKeepAccess}
+          onClose={closeKeepAccess}
+          householdId={id}
+          tenantId={selfTenantId}
+          googleClientId={googleClientId}
+        />
+      )}
     </>
   );
 }

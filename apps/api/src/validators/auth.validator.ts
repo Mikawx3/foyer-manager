@@ -14,7 +14,12 @@ export const loginSchema = z.object({
 export const googleAuthSchema = z.object({
   idToken: z.string().trim().min(1),
   householdName: z.string().trim().min(1).max(255).optional(),
+  confirmExistingAccount: z.boolean().optional(),
 });
+
+export const guestStartSchema = z.object({}).strict();
+
+export const signupStartedSchema = z.object({}).strict();
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

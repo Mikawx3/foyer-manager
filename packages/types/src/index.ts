@@ -97,6 +97,7 @@ export interface LoginPayload {
 export interface GoogleAuthPayload {
   idToken: string;
   householdName?: string;
+  confirmExistingAccount?: boolean;
 }
 
 export interface HouseholdMembershipSummary {

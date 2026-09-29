@@ -1,8 +1,11 @@
 import type { Context, Next } from "hono";
 import { UnauthorizedError } from "../errors/app.errors.js";
 import { isLocalDeployment } from "../lib/deployment.js";
-import { verifyToken } from "../lib/jwt.js";
+import { GUEST_TOKEN_EXPIRES_IN } from "../lib/guest-access.js";
+import { signToken, verifyToken } from "../lib/jwt.js";
 import { loadUserAccess, type AuthContext } from "../lib/user-access.js";
+
+export const SESSION_TOKEN_HEADER = "X-Session-Token";
 
 export type { AuthContext };
 
@@ -34,6 +37,10 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
 
   const access = await loadUserAccess(userId);
   c.set("auth", access);
+  if (access.isGuest) {
+    const refreshed = await signToken({ userId: access.userId }, GUEST_TOKEN_EXPIRES_IN);
+    c.header(SESSION_TOKEN_HEADER, refreshed);
+  }
   await next();
 }
 

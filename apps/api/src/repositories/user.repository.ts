@@ -52,6 +52,85 @@ export class UserRepository {
     }
   }
 
+  async promoteGuestWithGoogle(id: string, email: string, googleSub: string): Promise<User> {
+    try {
+      return await prisma.user.update({
+        where: { id },
+        data: {
+          email,
+          googleSub,
+          password: null,
+          isGuest: false,
+        },
+      });
+    } catch (error) {
+      handlePrismaError(error);
+    }
+  }
+
+  /** Moves the guest's households onto an existing account, then deletes the guest user. */
+  async adoptGuestHousehold(guestId: string, accountUserId: string, googleSub: string): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      const account = await tx.user.findUnique({ where: { id: accountUserId } });
+      if (!account || account.isGuest) {
+        throw new Error("Account not found");
+      }
+
+      const memberships = await tx.householdMember.findMany({ where: { userId: guestId } });
+      for (const membership of memberships) {
+        const existing = await tx.householdMember.findUnique({
+          where: {
+            userId_householdId: {
+              userId: accountUserId,
+              householdId: membership.householdId,
+            },
+          },
+        });
+        if (!existing) {
+          await tx.householdMember.update({
+            where: { id: membership.id },
+            data: { userId: accountUserId },
+          });
+          continue;
+        }
+        if (membership.role === "admin" && existing.role !== "admin") {
+          await tx.householdMember.update({
+            where: { id: existing.id },
+            data: { role: "admin" },
+          });
+        }
+        await tx.householdMember.delete({ where: { id: membership.id } });
+      }
+
+      const guestTenants = await tx.tenant.findMany({ where: { userId: guestId } });
+      for (const tenant of guestTenants) {
+        const taken = await tx.tenant.findFirst({
+          where: { householdId: tenant.householdId, userId: accountUserId },
+        });
+        if (!taken) {
+          await tx.tenant.update({
+            where: { id: tenant.id },
+            data: { userId: accountUserId },
+          });
+        }
+      }
+
+      await tx.householdInvite.updateMany({
+        where: { createdById: guestId },
+        data: { createdById: accountUserId },
+      });
+
+      if (!account.googleSub) {
+        await tx.user.update({
+          where: { id: accountUserId },
+          data: { googleSub },
+        });
+      }
+
+      await tx.user.delete({ where: { id: guestId } });
+    });
+  }
+
   async deleteGuestsWithoutMembership(ids: string[]): Promise<void> {
     if (ids.length === 0) {
       return;
