@@ -9,6 +9,7 @@ __pycache__/
 *.pyc
 .cursor/chat/
 .cursor/mcp.json
+.cursor/skills/
 *.log
 coverage/
 .vite/
