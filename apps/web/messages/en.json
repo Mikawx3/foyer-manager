@@ -664,6 +664,7 @@
     "heroTitle": "See who paid, and who owes what.",
     "heroSubtitle": "Rent, groceries, bills. Everyone sees their share, and what is left to settle. No spreadsheet, no ads.",
     "createHousehold": "Create a household",
+    "noAccountHint": "No account needed. You can create one later.",
     "signIn": "Sign in",
     "audienceCouple": "For a couple",
     "audienceRoommates": "For roommates",

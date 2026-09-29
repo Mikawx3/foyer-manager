@@ -5,7 +5,7 @@ import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.ts
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getAppName } from "../lib/app-name.ts";
-import { btnPrimary, btnSecondary, card } from "../lib/ui-classes.ts";
+import { btnPrimary, card } from "../lib/ui-classes.ts";
 
 const USE_CASE_IDS = ["couple", "roommates", "solo", "bills"] as const;
 const POINTS = ["point1", "point2", "point3"] as const;
@@ -58,16 +58,11 @@ export function UseCasePage() {
           ))}
         </ul>
         {showAuth && (
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-10">
             <Link to="/households/new" className={`${btnPrimary} px-5`}>
               {tLanding("createHousehold")}
             </Link>
-            <Link
-              to="/login"
-              className={`${btnSecondary} rounded-lg border border-stone-200 bg-surface px-5`}
-            >
-              {tLanding("signIn")}
-            </Link>
+            <p className="mt-3 text-sm text-stone-500">{tLanding("noAccountHint")}</p>
           </div>
         )}
       </main>

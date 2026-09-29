@@ -8,7 +8,7 @@ import { usePageMeta } from "../hooks/usePageMeta.ts";
 import { getToken } from "../lib/auth-storage.ts";
 import { resolvePublicHome } from "../lib/public-entry.ts";
 import { getSourceRepositoryUrl } from "../lib/source-repository.ts";
-import { amount, amountLg, btnPrimary, btnSecondary, card, cardInteractive } from "../lib/ui-classes.ts";
+import { amount, amountLg, btnPrimary, card, cardInteractive } from "../lib/ui-classes.ts";
 
 const AUDIENCES = [
   { to: "/use/couple", label: "audienceCouple" },
@@ -64,17 +64,10 @@ export function HomePage() {
             <p className="mt-4 max-w-xl text-base text-stone-600">{t("heroSubtitle")}</p>
             <div className="mt-8 max-w-md">
               <ResumeGuestHousehold />
-              <div className="flex flex-col gap-3 sm:flex-row">
               <Link to="/households/new" className={`${btnPrimary} px-5`}>
                 {t("createHousehold")}
               </Link>
-              <Link
-                to="/login"
-                className={`${btnSecondary} rounded-lg border border-stone-200 bg-surface px-5`}
-              >
-                {t("signIn")}
-              </Link>
-              </div>
+              <p className="mt-3 text-sm text-stone-500">{t("noAccountHint")}</p>
             </div>
             <ul className="mt-6 flex flex-wrap gap-2">
               {AUDIENCES.map((audience) => (

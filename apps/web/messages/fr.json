@@ -664,6 +664,7 @@
     "heroTitle": "Voir qui a payé, et qui doit quoi.",
     "heroSubtitle": "Loyer, courses, factures. Chacun voit sa part, et ce qu'il reste à régler. Sans tableur, sans publicité.",
     "createHousehold": "Créer un foyer",
+    "noAccountHint": "Sans compte. Vous pourrez en créer un plus tard.",
     "signIn": "Se connecter",
     "audienceCouple": "Pour un couple",
     "audienceRoommates": "Pour une colocation",
