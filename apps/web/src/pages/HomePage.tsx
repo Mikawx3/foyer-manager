@@ -5,8 +5,9 @@ import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.ts
 import { ListSkeleton } from "../components/ui/Skeleton.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
 import { usePageMeta } from "../hooks/usePageMeta.ts";
+import { useLocalizePath } from "../hooks/usePublicLocale.ts";
 import { getToken } from "../lib/auth-storage.ts";
-import { resolvePublicHome } from "../lib/public-entry.ts";
+import { resolvePublicHome, showPublicAuthLinks } from "../lib/public-entry.ts";
 import { getSourceRepositoryUrl } from "../lib/source-repository.ts";
 import { amount, amountLg, btnPrimary, card, cardInteractive } from "../lib/ui-classes.ts";
 
@@ -35,11 +36,14 @@ const audienceLinkClass =
 export function HomePage() {
   const { t } = useTranslation("landing");
   const { isLocalMode, isLoading, isConfigError } = useDeploymentMode();
-  const hasSession = Boolean(getToken());
+  const localize = useLocalizePath();
+  const hasSession = typeof localStorage !== "undefined" && Boolean(getToken());
+  const showAuth = showPublicAuthLinks(isLoading, isConfigError, isLocalMode);
 
   usePageMeta(t("metaTitle"), t("metaDescription"));
 
-  if (isLoading) {
+  // A signed-in visitor goes straight to the app; the landing is for everyone else.
+  if (hasSession && isLoading) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
         <ListSkeleton rows={3} />
@@ -47,7 +51,7 @@ export function HomePage() {
     );
   }
 
-  if (resolvePublicHome(isLocalMode, hasSession, !isConfigError) === "app") {
+  if (!isLoading && resolvePublicHome(isLocalMode, hasSession, !isConfigError) === "app") {
     return <Navigate to="/households" replace />;
   }
 
@@ -62,17 +66,19 @@ export function HomePage() {
               {t("heroTitle")}
             </h1>
             <p className="mt-4 max-w-xl text-base text-stone-600">{t("heroSubtitle")}</p>
-            <div className="mt-8 max-w-md">
-              <ResumeGuestHousehold />
-              <Link to="/households/new" className={`${btnPrimary} px-5`}>
-                {t("createHousehold")}
-              </Link>
-              <p className="mt-3 text-sm text-stone-500">{t("noAccountHint")}</p>
-            </div>
+            {showAuth && (
+              <div className="mt-8 max-w-md">
+                <ResumeGuestHousehold />
+                <Link to="/households/new" className={`${btnPrimary} px-5`}>
+                  {t("createHousehold")}
+                </Link>
+                <p className="mt-3 text-sm text-stone-500">{t("noAccountHint")}</p>
+              </div>
+            )}
             <ul className="mt-6 flex flex-wrap gap-2">
               {AUDIENCES.map((audience) => (
                 <li key={audience.to}>
-                  <Link to={audience.to} className={audienceLinkClass}>
+                  <Link to={localize(audience.to)} className={audienceLinkClass}>
                     {t(audience.label)}
                   </Link>
                 </li>
@@ -145,13 +151,18 @@ export function HomePage() {
             <ul className="mt-6 grid gap-4 sm:grid-cols-2">
               {USE_CASES.map((useCase) => (
                 <li key={useCase.to}>
-                  <Link to={useCase.to} className={cardInteractive}>
+                  <Link to={localize(useCase.to)} className={cardInteractive}>
                     <h3 className="font-semibold text-stone-900">{t(useCase.title)}</h3>
                     <p className="mt-1 text-sm text-stone-600">{t(useCase.body)}</p>
                   </Link>
                 </li>
               ))}
             </ul>
+            <p className="mt-6 text-sm text-stone-600">
+              <Link to={localize("/compare")} className="font-medium text-primary hover:text-primary-hover">
+                {t("compareLink")}
+              </Link>
+            </p>
           </div>
         </section>
 
@@ -159,9 +170,11 @@ export function HomePage() {
           <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
             <h2 className="text-lg font-semibold tracking-tight text-stone-900">{t("closingTitle")}</h2>
             <p className="mt-2 max-w-xl text-sm text-stone-600">{t("closingBody")}</p>
-            <Link to="/households/new" className={`${btnPrimary} mt-6 px-5`}>
-              {t("createHousehold")}
-            </Link>
+            {showAuth && (
+              <Link to="/households/new" className={`${btnPrimary} mt-6 px-5`}>
+                {t("createHousehold")}
+              </Link>
+            )}
           </div>
         </section>
       </main>

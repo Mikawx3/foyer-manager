@@ -14,3 +14,16 @@ export function resolvePublicHome(
   }
   return "landing";
 }
+
+/**
+ * Sign-in and "create a household" links on public pages. They are shown
+ * until the deployment is known to be local (no accounts), so the first
+ * client render matches the prerendered HTML.
+ */
+export function showPublicAuthLinks(
+  isLoading: boolean,
+  isConfigError: boolean,
+  isLocalMode: boolean,
+): boolean {
+  return isLoading || isConfigError || !isLocalMode;
+}

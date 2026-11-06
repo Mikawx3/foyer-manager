@@ -2,8 +2,10 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useDeploymentMode } from "../../contexts/DeploymentModeContext.tsx";
+import { useLocalizePath } from "../../hooks/usePublicLocale.ts";
 import { getToken } from "../../lib/auth-storage.ts";
 import { getPrivacyContactEmail } from "../../lib/privacy-contact.ts";
+import { showPublicAuthLinks } from "../../lib/public-entry.ts";
 import { getSourceRepositoryUrl } from "../../lib/source-repository.ts";
 import { btnPrimary, btnSecondary } from "../../lib/ui-classes.ts";
 import { AppLogo } from "../brand/AppLogo.tsx";
@@ -16,19 +18,21 @@ const PRODUCT_LINKS = [
   { to: "/use/roommates", label: "footerUseRoommates" },
   { to: "/use/solo", label: "footerUseSolo" },
   { to: "/use/bills", label: "footerUseBills" },
+  { to: "/compare", label: "footerCompare" },
 ] as const;
 
 export function PublicHeader() {
   const { t } = useTranslation("common");
   const { t: tLanding } = useTranslation("landing");
   const { isLocalMode, isLoading, isConfigError } = useDeploymentMode();
+  const localize = useLocalizePath();
   const hasSession = Boolean(getToken());
-  const showAuth = !isLoading && (isConfigError || !isLocalMode);
+  const showAuth = showPublicAuthLinks(isLoading, isConfigError, isLocalMode);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-surface">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link to="/" className="flex items-center gap-3 rounded-lg transition hover:opacity-90">
+        <Link to={localize("/")} className="flex items-center gap-3 rounded-lg transition hover:opacity-90">
           <AppLogo />
           <span className="text-lg font-semibold tracking-tight text-stone-900">{t("appName")}</span>
         </Link>
@@ -59,8 +63,9 @@ export function PublicFooter() {
   const { t } = useTranslation("landing");
   const { t: tCommon } = useTranslation("common");
   const { isLocalMode, isLoading, isConfigError } = useDeploymentMode();
+  const localize = useLocalizePath();
   const hasSession = Boolean(getToken());
-  const showAuth = !isLoading && (isConfigError || !isLocalMode);
+  const showAuth = showPublicAuthLinks(isLoading, isConfigError, isLocalMode);
   const contactEmail = getPrivacyContactEmail();
   const sourceUrl = getSourceRepositoryUrl();
 
@@ -72,7 +77,7 @@ export function PublicFooter() {
           <ul className="mt-3 space-y-2">
             {PRODUCT_LINKS.map((item) => (
               <li key={item.to}>
-                <Link to={item.to} className={footerLinkClass}>
+                <Link to={localize(item.to)} className={footerLinkClass}>
                   {t(item.label)}
                 </Link>
               </li>
@@ -109,7 +114,7 @@ export function PublicFooter() {
               </a>
             </li>
             <li>
-              <Link to="/help" className={footerLinkClass}>
+              <Link to={localize("/help")} className={footerLinkClass}>
                 {t("footerFaq")}
               </Link>
             </li>
@@ -124,27 +129,27 @@ export function PublicFooter() {
           <h2 className="text-sm font-semibold text-stone-900">{t("footerLegal")}</h2>
           <ul className="mt-3 space-y-2">
             <li>
-              <Link to="/privacy" className={footerLinkClass}>
+              <Link to={localize("/privacy")} className={footerLinkClass}>
                 {t("privacyLink")}
               </Link>
             </li>
             <li>
-              <Link to="/privacy#cookies" className={footerLinkClass}>
+              <Link to={localize("/privacy#cookies")} className={footerLinkClass}>
                 {t("footerCookies")}
               </Link>
             </li>
             <li>
-              <Link to="/legal" className={footerLinkClass}>
+              <Link to={localize("/legal")} className={footerLinkClass}>
                 {t("footerLegalNotice")}
               </Link>
             </li>
             <li>
-              <Link to="/terms" className={footerLinkClass}>
+              <Link to={localize("/terms")} className={footerLinkClass}>
                 {t("footerTerms")}
               </Link>
             </li>
             <li>
-              <Link to="/accessibility" className={footerLinkClass}>
+              <Link to={localize("/accessibility")} className={footerLinkClass}>
                 {t("footerAccessibility")}
               </Link>
             </li>

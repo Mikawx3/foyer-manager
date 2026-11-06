@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { PublicDocument } from "../components/layout/PublicChrome.tsx";
 import { usePageMeta } from "../hooks/usePageMeta.ts";
+import { useLocalizePath } from "../hooks/usePublicLocale.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
 
 const QUESTIONS = ["who", "invite", "delete", "google", "ads"] as const;
@@ -11,12 +12,18 @@ const linkClass = "mt-2 inline-block text-sm font-medium text-primary hover:text
 export function HelpPage() {
   const { t } = useTranslation("help");
   const contactEmail = getPrivacyContactEmail();
+  const localize = useLocalizePath();
 
-  usePageMeta(t("metaTitle"), t("metaDescription"));
+  const answerFor = (question: (typeof QUESTIONS)[number]): string =>
+    question === "delete" ? t("deleteBody", { email: contactEmail }) : t(`${question}Body`);
+
+  usePageMeta(t("metaTitle"), t("metaDescription"), {
+    faq: QUESTIONS.map((question) => ({ question: t(`${question}Title`), answer: answerFor(question) })),
+  });
 
   return (
     <PublicDocument title={t("title")} intro={t("intro")}>
-      <Link to="/privacy" className={linkClass}>
+      <Link to={localize("/privacy")} className={linkClass}>
         {t("privacyLink")}
       </Link>
       <div className="mt-10 space-y-8">
@@ -26,7 +33,7 @@ export function HelpPage() {
               {t(`${question}Title`)}
             </h2>
             <p className="mt-2 whitespace-pre-line text-sm leading-6 text-stone-700">
-              {question === "delete" ? t("deleteBody", { email: contactEmail }) : t(`${question}Body`)}
+              {answerFor(question)}
             </p>
             {question === "delete" && (
               <a href={`mailto:${contactEmail}`} className={linkClass}>

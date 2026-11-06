@@ -1,6 +1,11 @@
-export const PUBLIC_SITE_ORIGIN = "https://allotwe.com";
+export const DEFAULT_PUBLIC_SITE_ORIGIN = "https://allotwe.com";
 
-const PUBLIC_SITE_HOST = "allotwe.com";
+export function resolvePublicSiteOrigin(configured: string | undefined): string {
+  const trimmed = configured?.trim() ?? "";
+  return /^https?:\/\//.test(trimmed) ? trimmed.replace(/\/+$/, "") : DEFAULT_PUBLIC_SITE_ORIGIN;
+}
+
+export const PUBLIC_SITE_ORIGIN = resolvePublicSiteOrigin(import.meta.env.VITE_PUBLIC_SITE_ORIGIN);
 
 export function canonicalUrlForPath(pathname: string): string {
   if (pathname === "/" || pathname.length === 0) {
@@ -11,5 +16,5 @@ export function canonicalUrlForPath(pathname: string): string {
 }
 
 export function isPublicSiteHost(hostname: string): boolean {
-  return hostname === PUBLIC_SITE_HOST;
+  return hostname === new URL(PUBLIC_SITE_ORIGIN).hostname;
 }

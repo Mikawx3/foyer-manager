@@ -1,5 +1,8 @@
 import { Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
+import { storeLocale } from "../../lib/locale-preference.ts";
+import { localizePath, normalizeLocale, parsePublicPath, type PublicLocale } from "../../lib/public-routes.ts";
 import { btnSecondary } from "../../lib/ui-classes.ts";
 
 interface LanguageSwitcherProps {
@@ -8,10 +11,17 @@ interface LanguageSwitcherProps {
 
 export function LanguageSwitcher({ compact = false }: LanguageSwitcherProps) {
   const { i18n, t } = useTranslation("settings");
-  const current = i18n.language.startsWith("fr") ? "fr" : "en";
+  const location = useLocation();
+  const navigate = useNavigate();
+  const current = normalizeLocale(i18n.language);
 
-  const setLanguage = (lang: "en" | "fr") => {
+  const setLanguage = (lang: PublicLocale) => {
+    storeLocale(lang);
     void i18n.changeLanguage(lang);
+    const parsed = parsePublicPath(location.pathname);
+    if (parsed && parsed.locale !== lang) {
+      navigate(`${localizePath(parsed.path, lang)}${location.search}${location.hash}`, { replace: true });
+    }
   };
 
   if (compact) {
@@ -28,6 +38,7 @@ export function LanguageSwitcher({ compact = false }: LanguageSwitcherProps) {
                 : "text-stone-600 hover:bg-stone-100"
             }`}
             aria-pressed={current === "en"}
+            lang="en"
           >
             EN
           </button>
@@ -40,6 +51,7 @@ export function LanguageSwitcher({ compact = false }: LanguageSwitcherProps) {
                 : "text-stone-600 hover:bg-stone-100"
             }`}
             aria-pressed={current === "fr"}
+            lang="fr"
           >
             FR
           </button>
@@ -55,6 +67,7 @@ export function LanguageSwitcher({ compact = false }: LanguageSwitcherProps) {
         onClick={() => setLanguage("en")}
         className={`${btnSecondary} ${current === "en" ? "ring-2 ring-stone-900" : ""}`}
         aria-pressed={current === "en"}
+        lang="en"
       >
         EN
       </button>
@@ -63,6 +76,7 @@ export function LanguageSwitcher({ compact = false }: LanguageSwitcherProps) {
         onClick={() => setLanguage("fr")}
         className={`${btnSecondary} ${current === "fr" ? "ring-2 ring-stone-900" : ""}`}
         aria-pressed={current === "fr"}
+        lang="fr"
       >
         FR
       </button>

@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { resolvePublicHome } from "./public-entry.ts";
+import { resolvePublicHome, showPublicAuthLinks } from "./public-entry.ts";
+
+describe("showPublicAuthLinks", () => {
+  it("shows the links while the config loads and in cloud mode", () => {
+    expect(showPublicAuthLinks(true, false, true)).toBe(true);
+    expect(showPublicAuthLinks(false, false, false)).toBe(true);
+  });
+
+  it("shows the links when the config failed to load", () => {
+    expect(showPublicAuthLinks(false, true, true)).toBe(true);
+  });
+
+  it("hides the links once the deployment is known to be local", () => {
+    expect(showPublicAuthLinks(false, false, true)).toBe(false);
+  });
+});
 
 describe("resolvePublicHome", () => {
   it("opens the app in local mode", () => {

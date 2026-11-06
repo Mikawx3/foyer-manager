@@ -1,11 +1,13 @@
 import { Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useLocalizePath } from "../hooks/usePublicLocale.ts";
 import { btnPrimary } from "../lib/ui-classes.ts";
 
 export function NotFoundPage() {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
+  const localize = useLocalizePath();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-bg px-4 text-center">
@@ -18,7 +20,7 @@ export function NotFoundPage() {
       <button
         type="button"
         className={`${btnPrimary} mt-8`}
-        onClick={() => navigate("/")}
+        onClick={() => navigate(localize("/"))}
       >
         {t("backToHome")}
       </button>

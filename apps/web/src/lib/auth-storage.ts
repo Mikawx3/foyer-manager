@@ -7,8 +7,12 @@ import {
 const TOKEN_KEY = "fm_token";
 const GUEST_RESUME_KEY = "fm_guest_resume";
 
+function hasStorage(): boolean {
+  return typeof localStorage !== "undefined";
+}
+
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return hasStorage() ? localStorage.getItem(TOKEN_KEY) : null;
 }
 
 export function setToken(token: string): void {
@@ -25,7 +29,7 @@ export function clearAuth(): void {
 }
 
 export function getGuestResumeToken(): string | null {
-  return localStorage.getItem(GUEST_RESUME_KEY);
+  return hasStorage() ? localStorage.getItem(GUEST_RESUME_KEY) : null;
 }
 
 /** A guest has no password. Signing out closes the screen and keeps the visit on this browser. */

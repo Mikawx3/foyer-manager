@@ -658,8 +658,8 @@
     "guestEmptyDescription": "Vous n'avez plus accès à un foyer. Demandez une nouvelle invitation à l'administrateur."
   },
   "landing": {
-    "metaTitle": "{{appName}}",
-    "metaDescription": "Qui a payé le loyer, les courses, les factures ? {{appName}} montre la part de chacun et qui doit quoi. Pour un couple, une colocation, ou soi seul.",
+    "metaTitle": "{{appName}} — Dépenses partagées en couple ou en colocation : qui doit quoi",
+    "metaDescription": "Application gratuite et open source pour partager les dépenses du foyer : loyer, courses, factures. Chacun voit sa part et qui doit quoi. Sans compte, sans publicité.",
     "eyebrow": "Dépenses d'un foyer, au même endroit.",
     "heroTitle": "Voir qui a payé, et qui doit quoi.",
     "heroSubtitle": "Loyer, courses, factures. Chacun voit sa part, et ce qu'il reste à régler. Sans tableur, sans publicité.",
@@ -726,7 +726,9 @@
     "footerFaq": "FAQ",
     "footerSource": "Code source",
     "footerOpenSource": "Open source (AGPL-3.0)",
-    "footerAccessibility": "Accessibilité"
+    "footerAccessibility": "Accessibilité",
+    "compareLink": "Comparer avec Tricount, Splitwise et un tableur",
+    "footerCompare": "Comparatif"
   },
   "privacy": {
     "metaTitle": "Confidentialité — {{appName}}",
@@ -805,8 +807,8 @@
     "lawBody": "Ces conditions sont régies par le droit français. Si un désaccord demeure après que vous avez écrit à l'adresse de contact, les tribunaux français sont compétents."
   },
   "help": {
-    "metaTitle": "FAQ — {{appName}}",
-    "metaDescription": "Réponses courtes sur les foyers, les invitations et vos données.",
+    "metaTitle": "FAQ : foyers, invitations et données — {{appName}}",
+    "metaDescription": "Qui peut voir un foyer, comment fonctionnent les invitations, comment supprimer ses données, faut-il un compte Google, y a-t-il de la publicité.",
     "title": "FAQ",
     "intro": "Réponses courtes sur les foyers, les invitations et vos données.",
     "privacyLink": "Politique de confidentialité",
@@ -835,8 +837,8 @@
   "useCases": {
     "eyebrow": "Cas d'usage",
     "couple": {
-      "metaTitle": "Pour un couple — {{appName}}",
-      "metaDescription": "Un foyer pour deux. Le loyer, les courses, et qui doit quoi.",
+      "metaTitle": "Partager les dépenses en couple : loyer, courses, qui doit quoi — {{appName}}",
+      "metaDescription": "Gérer les dépenses communes en couple : un foyer pour deux, loyer et courses répartis à parts égales ou au pourcentage, et un solde clair de qui doit quoi.",
       "title": "Pour un couple",
       "intro": "Un foyer pour deux. Le loyer, les courses et le reste, avec une vue claire de qui a payé et de qui doit quoi.",
       "point1Title": "Un foyer partagé",
@@ -847,8 +849,8 @@
       "point3Body": "Les soldes indiquent qui doit payer qui. Enregistrez le paiement quand c'est fait."
     },
     "roommates": {
-      "metaTitle": "Pour une colocation — {{appName}}",
-      "metaDescription": "Colocation : loyer et factures communes, avec un solde pour chacun.",
+      "metaTitle": "Dépenses de colocation : loyer et factures partagés — {{appName}}",
+      "metaDescription": "Gérer les dépenses d'une colocation : loyer, internet, électricité et courses au même endroit, avec un solde par colocataire et les remboursements à faire.",
       "title": "Pour une colocation",
       "intro": "Plusieurs personnes, un même logement. Le loyer et les factures communes restent au même endroit, avec un solde pour chacun.",
       "point1Title": "Toutes les personnes qui y vivent",
@@ -859,8 +861,8 @@
       "point3Body": "Loyer, internet et électricité peuvent revenir à chaque période, déjà répartis."
     },
     "solo": {
-      "metaTitle": "Pour soi seul — {{appName}}",
-      "metaDescription": "Un foyer pour vous seul. Dépenses, revenus, et ce qu'il reste à dépenser.",
+      "metaTitle": "Suivre ses dépenses seul : budget du mois et reste à vivre — {{appName}}",
+      "metaDescription": "Un foyer pour vous seul : dépenses par catégorie, revenus du mois et ce qu'il reste à dépenser après les factures. Gratuit, sans compte obligatoire.",
       "title": "Pour soi seul",
       "intro": "Un foyer peut n'être que vous. Gardez les dépenses, les revenus et ce qu'il reste à dépenser, sans inviter personne.",
       "point1Title": "Seulement votre foyer",
@@ -871,8 +873,8 @@
       "point3Body": "Loyer, charges et abonnements, prêts à chaque période, même quand personne d'autre ne les partage."
     },
     "bills": {
-      "metaTitle": "Factures partagées — {{appName}}",
-      "metaDescription": "Loyer, internet, électricité. Les factures qui reviennent, déjà réparties.",
+      "metaTitle": "Factures partagées récurrentes : loyer, internet, électricité — {{appName}}",
+      "metaDescription": "Les factures qui reviennent chaque mois, saisies une fois et déjà réparties entre les personnes du foyer. Loyer, internet, électricité, abonnements.",
       "title": "Factures partagées",
       "intro": "Loyer, internet, électricité. Les factures qui reviennent chaque mois, réparties entre les personnes qui les partagent.",
       "point1Title": "Les saisir une fois",
@@ -882,5 +884,63 @@
       "point3Title": "Voir qui a avancé l'argent",
       "point3Body": "Les soldes et les règlements suggérés indiquent qui doit payer qui, après les factures de la période."
     }
+  },
+  "compare": {
+    "metaTitle": "Alternative à Tricount et Splitwise, open source — {{appName}}",
+    "metaDescription": "Comparer {{appName}}, Tricount, Splitwise et un tableur pour partager les dépenses d'un couple ou d'une colocation : open source, auto-hébergement, sans compte, revenus.",
+    "eyebrow": "Comparatif",
+    "title": "Une alternative à Tricount et Splitwise, open source",
+    "intro": "Tricount et Splitwise font bien le partage de dépenses. {{appName}} couvre le même besoin pour un foyer, avec le code ouvert, la possibilité d'héberger sa propre copie et le suivi des revenus du mois. Voici ce qui change, sans détour.",
+    "tableCaption": "Comparaison de {{appName}}, Tricount, Splitwise et d'un tableur",
+    "criterion": "Critère",
+    "yes": "Oui",
+    "no": "Non",
+    "column": {
+      "allotwe": "{{appName}}",
+      "tricount": "Tricount",
+      "splitwise": "Splitwise",
+      "spreadsheet": "Tableur"
+    },
+    "row": {
+      "openSource": "Code source ouvert",
+      "selfHost": "Hébergeable chez soi",
+      "noAccount": "Démarrer sans compte",
+      "income": "Revenus et reste à dépenser",
+      "recurring": "Factures récurrentes déjà réparties",
+      "nativeApps": "Applications iOS et Android",
+      "currencies": "Plusieurs devises"
+    },
+    "cell": {
+      "openSource": {
+        "spreadsheet": "Selon l'outil"
+      },
+      "selfHost": {
+        "spreadsheet": "Un fichier à vous"
+      },
+      "income": {
+        "spreadsheet": "À construire"
+      },
+      "recurring": {
+        "tricount": "Manuel",
+        "spreadsheet": "Copier-coller"
+      },
+      "nativeApps": {
+        "allotwe": "Web, adapté au mobile",
+        "spreadsheet": "Selon l'outil"
+      },
+      "currencies": {
+        "allotwe": "Euro",
+        "spreadsheet": "Manuel"
+      }
+    },
+    "tableNote": "Informations relevées sur les sites des éditeurs. Les produits évoluent : signalez une erreur et nous corrigerons.",
+    "whenAllotweTitle": "Quand {{appName}} convient mieux",
+    "whenAllotweBody": "Vous partagez un logement et voulez une vue stable du mois : le loyer et les factures reviennent déjà répartis, chaque personne a un solde, et les revenus donnent ce qu'il reste à dépenser.\n\nVous tenez à savoir où vont vos données : le code est public (AGPL-3.0), la base est hébergée dans l'Union européenne, et vous pouvez installer votre propre copie avec Docker.\n\nVous voulez essayer tout de suite : un foyer se crée sans compte, et les autres rejoignent par un lien.",
+    "whenOthersTitle": "Quand Tricount ou Splitwise conviennent mieux",
+    "whenOthersBody": "Un voyage entre amis, un cadeau commun, un événement ponctuel : leurs applications mobiles natives et la gestion de plusieurs devises sont faites pour ça.\n\n{{appName}} est une application web pensée pour un foyer qui dure, en euros. Il s'ouvre sur un téléphone, mais il n'y a pas d'application à installer depuis les stores.",
+    "honestTitle": "Ce que {{appName}} ne fait pas",
+    "honestBody": "Il ne déplace pas d'argent et ne se connecte pas à votre banque. Il ne lit pas vos tickets de caisse. Il ne gère qu'une devise, l'euro. C'est un registre clair de qui a payé quoi, et de ce qu'il reste à régler.",
+    "tryTitle": "Essayer avec un vrai mois",
+    "tryBody": "Créez un foyer, saisissez le loyer et deux factures. Le solde apparaît tout de suite."
   }
 }

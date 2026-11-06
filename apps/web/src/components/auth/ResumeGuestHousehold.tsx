@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { getGuestResumeToken, resumeGuestSession } from "../../lib/auth-storage.ts";
@@ -7,7 +7,12 @@ import { btnPrimary } from "../../lib/ui-classes.ts";
 export function ResumeGuestHousehold() {
   const { t } = useTranslation("auth");
   const navigate = useNavigate();
-  const [available, setAvailable] = useState(() => getGuestResumeToken() !== null);
+  // Read after mount: the prerendered HTML never shows this block, so hydration stays consistent.
+  const [available, setAvailable] = useState(false);
+
+  useEffect(() => {
+    setAvailable(getGuestResumeToken() !== null);
+  }, []);
 
   if (!available) {
     return null;

@@ -658,8 +658,8 @@
     "guestEmptyDescription": "You no longer have access to a household. Ask an admin for a new invitation."
   },
   "landing": {
-    "metaTitle": "{{appName}}",
-    "metaDescription": "Who paid the rent, the groceries, the bills? {{appName}} shows each person's share and who owes what. For a couple, roommates, or one person.",
+    "metaTitle": "{{appName}} — Shared household expenses: who paid, who owes what",
+    "metaDescription": "Free, open-source app to share household expenses: rent, groceries, bills. Everyone sees their share and who owes whom. No account needed, no ads.",
     "eyebrow": "A household's expenses, in one place.",
     "heroTitle": "See who paid, and who owes what.",
     "heroSubtitle": "Rent, groceries, bills. Everyone sees their share, and what is left to settle. No spreadsheet, no ads.",
@@ -726,7 +726,9 @@
     "footerFaq": "FAQ",
     "footerSource": "Source code",
     "footerOpenSource": "Open source (AGPL-3.0)",
-    "footerAccessibility": "Accessibility"
+    "footerAccessibility": "Accessibility",
+    "compareLink": "Compare with Tricount, Splitwise and a spreadsheet",
+    "footerCompare": "Compare"
   },
   "privacy": {
     "metaTitle": "Privacy — {{appName}}",
@@ -805,8 +807,8 @@
     "lawBody": "These terms are governed by French law. If a disagreement remains after you write to the contact address, the French courts have jurisdiction."
   },
   "help": {
-    "metaTitle": "FAQ — {{appName}}",
-    "metaDescription": "Short answers about households, invitations and your data.",
+    "metaTitle": "FAQ: households, invitations and your data — {{appName}}",
+    "metaDescription": "Who can see a household, how invitations work, how to delete your data, whether you need Google, and whether there is advertising.",
     "title": "FAQ",
     "intro": "Short answers about households, invitations and your data.",
     "privacyLink": "Privacy notice",
@@ -835,8 +837,8 @@
   "useCases": {
     "eyebrow": "Use case",
     "couple": {
-      "metaTitle": "For a couple — {{appName}}",
-      "metaDescription": "One household for two. Rent, groceries, and who owes what.",
+      "metaTitle": "Splitting expenses as a couple: rent, groceries, who owes what — {{appName}}",
+      "metaDescription": "Manage shared expenses as a couple: one household for two, rent and groceries split equally or by percentage, and a clear balance of who owes what.",
       "title": "For a couple",
       "intro": "One household for two people. Rent, groceries and the rest, with a clear view of who paid and who owes what.",
       "point1Title": "A shared household",
@@ -847,8 +849,8 @@
       "point3Body": "Balances show who should pay whom. Record the payment when it is done."
     },
     "roommates": {
-      "metaTitle": "For roommates — {{appName}}",
-      "metaDescription": "Roommates: rent and shared bills, with a balance for each person.",
+      "metaTitle": "Roommate expenses: shared rent and bills — {{appName}}",
+      "metaDescription": "Manage roommate expenses: rent, internet, electricity and groceries in one place, with a balance for each roommate and the repayments to make.",
       "title": "For roommates",
       "intro": "Several people, one home. Rent and the shared bills stay in one place, with a balance for each person.",
       "point1Title": "Everyone who lives there",
@@ -859,8 +861,8 @@
       "point3Body": "Rent, internet and electricity can repeat each period, already split."
     },
     "solo": {
-      "metaTitle": "For one person — {{appName}}",
-      "metaDescription": "A household just for you. Expenses, income, and what is left to spend.",
+      "metaTitle": "Track your own spending: monthly budget and what is left — {{appName}}",
+      "metaDescription": "A household just for you: spending by category, monthly income and what is left after the bills. Free, no account required.",
       "title": "For one person",
       "intro": "A household can be just you. Keep expenses, income and what is left to spend, without inviting anyone.",
       "point1Title": "Only your household",
@@ -871,8 +873,8 @@
       "point3Body": "Rent, utilities and subscriptions, ready each period, even when nobody else shares them."
     },
     "bills": {
-      "metaTitle": "Shared bills — {{appName}}",
-      "metaDescription": "Rent, internet, electricity. Bills that return, already split.",
+      "metaTitle": "Recurring shared bills: rent, internet, electricity — {{appName}}",
+      "metaDescription": "Bills that return every month, entered once and already split between the people in the household. Rent, internet, electricity, subscriptions.",
       "title": "Shared bills",
       "intro": "Rent, internet, electricity. The bills that return every month, split across the people who share them.",
       "point1Title": "Set them once",
@@ -882,5 +884,63 @@
       "point3Title": "See who advanced the money",
       "point3Body": "Balances and suggested repayments show who should pay whom, after the bills of the period."
     }
+  },
+  "compare": {
+    "metaTitle": "Open-source alternative to Tricount and Splitwise — {{appName}}",
+    "metaDescription": "Compare {{appName}}, Tricount, Splitwise and a spreadsheet for sharing expenses as a couple or roommates: open source, self-hosting, no account needed, income tracking.",
+    "eyebrow": "Comparison",
+    "title": "An open-source alternative to Tricount and Splitwise",
+    "intro": "Tricount and Splitwise split expenses well. {{appName}} covers the same need for a household, with open code, the option to host your own copy and a view of the month's income. Here is what differs, plainly.",
+    "tableCaption": "Comparison of {{appName}}, Tricount, Splitwise and a spreadsheet",
+    "criterion": "Criterion",
+    "yes": "Yes",
+    "no": "No",
+    "column": {
+      "allotwe": "{{appName}}",
+      "tricount": "Tricount",
+      "splitwise": "Splitwise",
+      "spreadsheet": "Spreadsheet"
+    },
+    "row": {
+      "openSource": "Open source code",
+      "selfHost": "Self-hostable",
+      "noAccount": "Start without an account",
+      "income": "Income and what is left to spend",
+      "recurring": "Recurring bills already split",
+      "nativeApps": "iOS and Android apps",
+      "currencies": "Several currencies"
+    },
+    "cell": {
+      "openSource": {
+        "spreadsheet": "Depends on the tool"
+      },
+      "selfHost": {
+        "spreadsheet": "Your own file"
+      },
+      "income": {
+        "spreadsheet": "Build it yourself"
+      },
+      "recurring": {
+        "tricount": "Manual",
+        "spreadsheet": "Copy and paste"
+      },
+      "nativeApps": {
+        "allotwe": "Web, mobile-friendly",
+        "spreadsheet": "Depends on the tool"
+      },
+      "currencies": {
+        "allotwe": "Euro",
+        "spreadsheet": "Manual"
+      }
+    },
+    "tableNote": "Taken from the publishers' websites. Products change: report a mistake and we will fix it.",
+    "whenAllotweTitle": "When {{appName}} fits better",
+    "whenAllotweBody": "You share a home and want a steady view of the month: rent and bills come back already split, each person has a balance, and income shows what is left to spend.\n\nYou care where your data lives: the code is public (AGPL-3.0), the database is hosted in the European Union, and you can run your own copy with Docker.\n\nYou want to try right now: a household starts without an account, and the others join through a link.",
+    "whenOthersTitle": "When Tricount or Splitwise fit better",
+    "whenOthersBody": "A trip with friends, a group gift, a one-off event: their native mobile apps and multi-currency support are built for that.\n\n{{appName}} is a web app made for a household that lasts, in euros. It opens on a phone, but there is no app to install from the stores.",
+    "honestTitle": "What {{appName}} does not do",
+    "honestBody": "It does not move money and does not connect to your bank. It does not read receipts. It handles one currency, the euro. It is a clear record of who paid what, and of what is left to settle.",
+    "tryTitle": "Try it with a real month",
+    "tryBody": "Create a household, enter the rent and two bills. The balance shows up right away."
   }
 }

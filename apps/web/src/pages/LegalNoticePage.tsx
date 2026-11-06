@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { PublicDocument } from "../components/layout/PublicChrome.tsx";
 import { usePageMeta } from "../hooks/usePageMeta.ts";
+import { useLocalizePath } from "../hooks/usePublicLocale.ts";
 import { getPrivacyContactEmail } from "../lib/privacy-contact.ts";
 
 const SECTIONS = ["publisher", "hosting", "privacy"] as const;
@@ -11,6 +12,8 @@ const linkClass = "mt-2 inline-block text-sm font-medium text-primary hover:text
 export function LegalNoticePage() {
   const { t } = useTranslation("legal");
   const contactEmail = getPrivacyContactEmail();
+
+  const localize = useLocalizePath();
 
   usePageMeta(t("metaTitle"), t("metaDescription"));
 
@@ -31,7 +34,7 @@ export function LegalNoticePage() {
               </a>
             )}
             {section === "privacy" && (
-              <Link to="/privacy" className={linkClass}>
+              <Link to={localize("/privacy")} className={linkClass}>
                 {t("privacyLink")}
               </Link>
             )}

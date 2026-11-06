@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AuthUser } from "@foyer/types";
+import { useLocalizePath } from "../../hooks/usePublicLocale.ts";
 import { CloudOnly } from "../deployment/CloudOnly.tsx";
 import { signOutActiveSession } from "../../lib/auth-storage.ts";
 import { queryKeys } from "../../lib/query-keys.ts";
@@ -11,6 +12,7 @@ import { queryKeys } from "../../lib/query-keys.ts";
 export function UserMenu() {
   const { t } = useTranslation("nav");
   const navigate = useNavigate();
+  const localize = useLocalizePath();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,7 +35,7 @@ export function UserMenu() {
     signOutActiveSession(me?.isGuest === true);
     void queryClient.clear();
     setOpen(false);
-    navigate("/", { replace: true });
+    navigate(localize("/"), { replace: true });
   };
 
   return (
@@ -65,7 +67,7 @@ export function UserMenu() {
             </Link>
           </CloudOnly>
           <Link
-            to="/privacy"
+            to={localize("/privacy")}
             role="menuitem"
             className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
             onClick={() => setOpen(false)}

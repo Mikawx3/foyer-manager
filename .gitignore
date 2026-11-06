@@ -5,6 +5,7 @@ node_modules/
 !.env.example
 !.env.*.example
 dist/
+dist-ssr/
 __pycache__/
 *.pyc
 .cursor/chat/

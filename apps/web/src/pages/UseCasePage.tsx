@@ -1,27 +1,24 @@
-import { useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { PublicFooter, PublicHeader } from "../components/layout/PublicChrome.tsx";
 import { useDeploymentMode } from "../contexts/DeploymentModeContext.tsx";
+import { useIsomorphicLayoutEffect } from "../hooks/useIsomorphicLayoutEffect.ts";
 import { usePageMeta } from "../hooks/usePageMeta.ts";
+import { useLocalizePath } from "../hooks/usePublicLocale.ts";
 import { getAppName } from "../lib/app-name.ts";
+import { showPublicAuthLinks } from "../lib/public-entry.ts";
+import { isUseCaseId } from "../lib/public-routes.ts";
 import { btnPrimary, card } from "../lib/ui-classes.ts";
 
-const USE_CASE_IDS = ["couple", "roommates", "solo", "bills"] as const;
 const POINTS = ["point1", "point2", "point3"] as const;
-
-type UseCaseId = (typeof USE_CASE_IDS)[number];
-
-function isUseCaseId(value: string | undefined): value is UseCaseId {
-  return USE_CASE_IDS.some((id) => id === value);
-}
 
 export function UseCasePage() {
   const { useCaseId } = useParams();
   const { t } = useTranslation("useCases");
   const { t: tLanding } = useTranslation("landing");
-  const { isLocalMode, isLoading } = useDeploymentMode();
-  const showAuth = !isLoading && !isLocalMode;
+  const { isLocalMode, isLoading, isConfigError } = useDeploymentMode();
+  const localize = useLocalizePath();
+  const showAuth = showPublicAuthLinks(isLoading, isConfigError, isLocalMode);
   const valid = isUseCaseId(useCaseId);
 
   usePageMeta(
@@ -29,7 +26,7 @@ export function UseCasePage() {
     valid ? t(`${useCaseId}.metaDescription`) : undefined,
   );
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!valid) {
       return;
     }
@@ -37,7 +34,7 @@ export function UseCasePage() {
   }, [useCaseId, valid]);
 
   if (!valid) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={localize("/")} replace />;
   }
 
   return (
@@ -65,6 +62,11 @@ export function UseCasePage() {
             <p className="mt-3 text-sm text-stone-500">{tLanding("noAccountHint")}</p>
           </div>
         )}
+        <p className="mt-10 text-sm text-stone-500">
+          <Link to={localize("/compare")} className="font-medium text-primary hover:text-primary-hover">
+            {tLanding("compareLink")}
+          </Link>
+        </p>
       </main>
       <PublicFooter />
     </div>
